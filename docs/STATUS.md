@@ -70,9 +70,11 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Rà file Work Order của Bank Team (chỉ cấu trúc và số đếm, chạy trên máy): sheet lưu mật khẩu cổng đối tác ở dạng chữ thường (tab "Thông tin đăng ký của BankEMI"); đã báo `@harveyng710-source`.
   - `bun test`: 243 pass, 0 fail.
 
+- **Chạy trên máy Ubuntu của người dùng (D-26)**: `deploy/local/install.sh` (một lệnh, không sudo), `deploy/local/run.sh`, hướng dẫn `deploy/local/README.md`. Cho phép `QUEUE_BASE_URL=http://localhost` (test T-LOCAL-01, T-LOCAL-02). Đã cài thử trên một tài khoản Ubuntu sạch (systemd giả lập): đăng nhập, nạp WO, ghi nhận, sao lưu, chạy lại script đều đúng.
+
 ## Việc tiếp theo
 
-1. Harvey: dựng máy Azure theo `deploy/README.md` (bước 1 tới 7). Xong là Amy dùng thật cả tự báo, mã lý do và NBA.
+1. Harvey: cài thử trên máy Ubuntu của mình theo `deploy/local/README.md`, rồi cài cho Amy. Máy chủ (`deploy/README.md`) để dành khi cần truy cập từ xa.
 2. Harvey gửi dòng tiêu đề cột của các file xuất CRM; fleet viết bảng ghép (`deploy/README.md` bước 7).
 3. Amy xác nhận khoảng 30 ca eval để điểm tự tin không còn thấp.
 4. Amy chốt ngưỡng WO tồn đọng (tạm 7 và 14 ngày) và cách tính 24 giờ cho BK-13.
