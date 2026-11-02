@@ -77,11 +77,17 @@ export function getLlmPricing(env: Env = process.env): LlmPricing {
 // Hàng chờ (design doc mục 5.7, D-04). SESSION_SECRET ký cookie phiên, tối thiểu 32 ký tự.
 export type QueueConfig = { sessionSecret: string; baseUrl: string; host: string; port: number };
 
+// Chạy trên chính máy của người dùng (D-26): chỉ http://localhost hoặc http://127.0.0.1 được miễn HTTPS,
+// vì trình duyệt và Hàng chờ cùng một máy, dữ liệu không đi qua mạng.
+export function isLocalBaseUrl(baseUrl: string): boolean {
+  return /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(baseUrl);
+}
+
 export function getQueueConfig(env: Env = process.env): QueueConfig {
   const sessionSecret = required(env, "SESSION_SECRET");
   if (sessionSecret.length < 32) throw new ConfigError("SESSION_SECRET");
   const baseUrl = required(env, "QUEUE_BASE_URL").replace(/\/+$/, "");
-  if (!baseUrl.startsWith("https://")) throw new ConfigError("QUEUE_BASE_URL");
+  if (!baseUrl.startsWith("https://") && !isLocalBaseUrl(baseUrl)) throw new ConfigError("QUEUE_BASE_URL");
   const port = Number(optional(env, "PORT") ?? "3000");
   if (!Number.isInteger(port)) throw new ConfigError("PORT");
   // Mặc định chỉ nghe trong máy; Caddy đứng trước nhận HTTPS từ Internet (D-23).

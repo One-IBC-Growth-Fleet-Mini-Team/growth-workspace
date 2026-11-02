@@ -41,8 +41,9 @@ export function cookieValue(req: Request, name: string): string | undefined {
   return undefined;
 }
 
-function cookie(name: string, value: string, maxAgeSeconds: number, path = "/", sameSite: "Strict" | "Lax" = "Strict"): string {
-  return `${name}=${value}; Path=${path}; Max-Age=${maxAgeSeconds}; HttpOnly; Secure; SameSite=${sameSite}`;
+// secure = false chỉ khi Hàng chờ chạy ở http://localhost (D-26): khi đó trình duyệt cùng máy, không có HTTPS.
+function cookie(name: string, value: string, maxAgeSeconds: number, path = "/", sameSite: "Strict" | "Lax" = "Strict", secure = true): string {
+  return `${name}=${value}; Path=${path}; Max-Age=${maxAgeSeconds}; HttpOnly;${secure ? " Secure;" : ""} SameSite=${sameSite}`;
 }
 
 export function createSessionCookie(secret: string, s: Session): string {
@@ -53,12 +54,12 @@ export function newSession(user: QueueUser, now: Date): Session {
   return { sub: user.id, csrf: randomBytes(24).toString("base64url"), exp: now.getTime() + SESSION_TTL_MS };
 }
 
-export function sessionSetCookie(secret: string, s: Session): string {
-  return cookie(SESSION_COOKIE, sealValue(secret, s), Math.floor(SESSION_TTL_MS / 1000));
+export function sessionSetCookie(secret: string, s: Session, secure = true): string {
+  return cookie(SESSION_COOKIE, sealValue(secret, s), Math.floor(SESSION_TTL_MS / 1000), "/", "Strict", secure);
 }
 
-export function clearCookie(name: string, path = "/"): string {
-  return cookie(name, "", 0, path);
+export function clearCookie(name: string, path = "/", secure = true): string {
+  return cookie(name, "", 0, path, "Strict", secure);
 }
 
 export function readSession(req: Request, secret: string, now: Date): Session | null {

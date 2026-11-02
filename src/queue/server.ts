@@ -14,6 +14,7 @@ import {
   getQueueConfig,
   getReportSource,
   getTeamsWebhooks,
+  isLocalBaseUrl,
   WO_PARAMS,
 } from "../config.ts";
 import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
@@ -111,6 +112,7 @@ function sourceStatus(db: Database, queueDate: string, now: Date): { status: Sou
 export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promise<Response> } {
   const now = deps.now ?? (() => new Date());
   const origin = new URL(deps.baseUrl).origin;
+  const secure = !isLocalBaseUrl(deps.baseUrl);
   const userOf = (s: Session): QueueUser =>
     PASSWORD_USERS[s.sub] ?? [...deps.users.values()].find((u) => u.id === s.sub)!;
   // Đếm lần đăng nhập sai theo người dùng, trong bộ nhớ (khởi động lại thì xoá, chấp nhận được với 2 người dùng).
@@ -145,7 +147,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(renderLoginPage("Sai tên hoặc mật khẩu."), 401, { "content-type": "text/html; charset=utf-8" });
       }
       fails.delete(who);
-      return redirect("/queue", [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()))], 303);
+      return redirect("/queue", [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()), secure)], 303);
     }
 
     if (req.method === "GET" && path === "/login") {
@@ -234,7 +236,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
-      if (path === "/logout") return redirect("/login", [clearCookie("gw_session")], 303);
+      if (path === "/logout") return redirect("/login", [clearCookie("gw_session", "/", secure)], 303);
 
       if (path === "/import") {
         if (userOf(session).role !== "approver" || !(deps.onImport || deps.onWoImport)) return text(403, "Không có quyền.");
