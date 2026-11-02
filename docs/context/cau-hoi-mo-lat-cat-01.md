@@ -49,9 +49,9 @@ Sau khi có token: chạy `bun run preflight -- --network`, lệnh tự báo tê
 
 | Mã | Câu hỏi | Đang chặn | Mặc định hiện tại |
 |---|---|---|---|
-| K-01 (Q-03) | Được gửi văn bản tự báo (đã xoá email, SĐT, giấy tờ, ngày sinh, URL; có thể còn tên khách) sang Claude API không? | Toàn bộ phần đọc tự báo bằng LLM | Có gửi (giả định A-11 của design doc) |
-| K-02 (Q-16) | Ngoài xem và nhận escalate, Mark cần quyền gì trên Hàng chờ? | Phân quyền | Chỉ xem |
-| K-03 | Trả lời Sổ quyết định D-14 tới D-22 | Xem `docs/context/so-quyet-dinh-mo.md` | Cột "Đang làm" của sổ |
+| K-01 (Q-03) | Được gửi văn bản tự báo (đã xoá email, SĐT, giấy tờ, ngày sinh, URL; có thể còn tên khách) sang Claude API không? | Toàn bộ phần đọc tự báo bằng LLM | **Đã chốt ở PR #8: có** |
+| K-02 (Q-16) | Ngoài xem và nhận escalate, Mark cần quyền gì trên Hàng chờ? | Phân quyền | **Đã chốt ở PR #8: chỉ xem** |
+| K-03 | Trả lời Sổ quyết định D-14 tới D-22 | Xem `docs/context/so-quyet-dinh-mo.md` | **Đã chốt ở PR #8** |
 
 ## 5. Người chịu trách nhiệm kỹ thuật
 
