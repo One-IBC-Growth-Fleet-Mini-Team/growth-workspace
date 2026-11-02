@@ -7,11 +7,15 @@ Cập nhật lần cuối: 02/11/2026. Quy ước: agent hoặc người nào xo
 - Đã bootstrap repo (commit `49f349c`): spec v0.3.2, CLAUDE.md kèm Karpathy guidelines, tài liệu kickoff.
 - Repo public, `main` có branch protection: cần 1 approve của code owner, cấm force push và xoá nhánh.
 - gstack đã đưa vào `.claude/skills/gstack` (chỉ mã nguồn; cách cài xem `docs/kickoff/setup.md` mục "Môi trường cloud").
+- CODEOWNERS (`@harveyng710-source @markng-byte`), README.md và file này đã có trên `main` (PR #3).
+- `docs/kickoff/session-01.md` đã có mục "Bối cảnh môi trường"; `decisions.md` ghi quyết định repo public (PR #2).
 - Phiên 01 (`docs/kickoff/session-01.md`) **CHƯA chạy**.
 
 ## Việc tiếp theo
 
-1. Chạy phiên 01: thiết kế lát cắt Hàng chờ cho Amy, chỉ tài liệu, không code sản phẩm.
+1. Chạy phiên 01 trong một phiên Claude Code mới: thiết kế lát cắt Hàng chờ cho Amy, chỉ tài liệu, không code sản phẩm.
+2. Bật Secret scanning và Push protection cho repo (Settings, Code security). Người làm: admin repo.
+3. Song song: bắt đầu gỡ các mục trong "Đang bị chặn"; phiên 01 không cần chúng, giai đoạn build thì cần.
 
 ## Đang bị chặn
 
@@ -29,5 +33,4 @@ Cập nhật lần cuối: 02/11/2026. Quy ước: agent hoặc người nào xo
 
 ## PR đang mở
 
-- #2: cập nhật kickoff phiên 01 theo môi trường đã cài; ghi quyết định repo public.
-- `chore/context-ready`: STATUS.md, README.md, gstack trong repo, CODEOWNERS (thay cho #1 đã đóng).
+- Không có (sau khi PR #2 được merge). PR #1 đã đóng, thay bằng PR #3.
