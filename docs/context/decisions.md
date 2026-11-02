@@ -45,3 +45,21 @@ Giới hạn công cụ đọc: reply trong thread chỉ trả khoảng 1.000 k�
 - MobCEC xác nhận Data Contract và mở API GET Internal Control.
 - Có người chịu trách nhiệm kỹ thuật duyệt PR. (Đã có: `@harveyng710-source`, 02/11/2026.)
 - Chốt xử lý "banking", "finance" trong bộ từ cấm (không ảnh hưởng lát cắt đầu).
+
+## Quyết định lát cắt 01, chốt sau PR #4
+
+Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slice-01-amy-queue.md` mục 13) theo cột "Đề xuất", 02/11/2026.
+
+- **D-01** Stack: TypeScript chạy trên Bun 1.4.x, một ngôn ngữ cho ETL, MCP, agent, web; phụ thuộc chỉ gồm `@modelcontextprotocol/sdk`, `@anthropic-ai/sdk`, `zod`.
+- **D-02** Growth DB: SQLite (`bun:sqlite`) trên ổ bền; Neo4j để lát sau.
+- **D-03** Nơi chạy: 1 container trên nền tảng có cron và ổ bền; nền tảng gọi `bun run jobs/...`; không dùng thư viện cron trong tiến trình.
+- **D-04** Đăng nhập Hàng chờ: Microsoft Entra ID (OIDC), dùng chung app đăng ký với quyền Graph.
+- **D-05** Băm email và SĐT bằng HMAC-SHA256, khoá bí mật trong biến môi trường `PII_HASH_KEY`; **lệch spec** (spec ghi "SHA-256", CLAUDE.md quy tắc 2), Mark đã duyệt vì SHA-256 trần dò ngược được không gian SĐT nhỏ.
+- **D-06** Cờ reseller `"unknown"`: không upsell, sinh hành động "nhờ RM xác nhận cờ reseller".
+- **D-07** Điểm tự tin theo công thức design doc mục 5.6; ngưỡng ca eval `scored` là 0,8; ca `hard` (NBA, PII) phải pass 100%.
+- **D-08** Cron gọi thẳng `runSa01(date)`; Mi1 gọi sau.
+- **D-09** Phạm vi kéo CRM theo design doc mục 5.1; giữ snapshot 14 ngày.
+- **D-10** Cổng 2 đo theo design doc mục 1.8: 3 tuần liên tiếp, mỗi tuần Amy mở ít nhất 3 ngày và quyết định ít nhất 80% mục.
+- **D-11** Thông báo Teams qua Workflows hoặc Incoming Webhook tới chat của Amy, chỉ có ngày và link.
+- **D-12** Xoá có kiểm soát trên bảng chỉ thêm bằng script chạy tay (design doc mục 7.5), không chạy được từ web hay agent.
+- **D-13** Ca eval dựng từ dữ liệu thật để ngoài repo public, đọc qua biến `SA01_PRIVATE_EVAL_DIR`; trong repo chỉ có ca synthetic.

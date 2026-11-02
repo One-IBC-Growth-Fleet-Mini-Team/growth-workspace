@@ -1,0 +1,6 @@
+# Cấu hình Bun cho Growth Workspace (D-01).
+[install]
+exact = true
+
+[test]
+root = "./test"
