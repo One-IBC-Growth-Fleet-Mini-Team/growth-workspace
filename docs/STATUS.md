@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật lần cuối: 02/11/2026 (phiên 03). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+Cập nhật lần cuối: 02/11/2026 (phiên 04). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
 
 ## Trạng thái hiện tại
 
@@ -17,7 +17,7 @@ Cập nhật lần cuối: 02/11/2026 (phiên 03). Quy ước: agent hoặc ngư
   - `bun test`: 117 pass, 0 fail (sau khi sửa 9 trên 10 finding của `/review`; finding còn lại ghi ở PR).
   - Mọi chỗ phụ thuộc schema thật hoặc câu hỏi mở được đánh dấu `[ĐỐI CHIẾU SCHEMA]` hoặc mã Q-xx trong comment, nằm sau interface và chạy với dữ liệu tổng hợp: tên trường CRM, đường dẫn và phân trang API CRM (Q-01), quy tắc mã quốc gia SĐT (mục 7.2), id team, channel và cách nhận diện thread ngày (mục 5.3), lấy token Graph (Q-02), ngưỡng "cập nhật hàng loạt" của rm_active_on_deal (Q-09, giá trị tạm 3).
 
-- **Phiên 03 (02/11/2026)**: build bước 5 tới 8 (design doc mục 15), test trước, chỉ dữ liệu tổng hợp, LLM giả, không gọi mạng thật.
+- **Phiên 03 xong (PR #6 đã merge)**: build bước 5 tới 8 (design doc mục 15), test trước, chỉ dữ liệu tổng hợp, LLM giả, không gọi mạng thật.
   - Bước 5: `src/mcp/crm-read` (server stdio, Growth DB mở chỉ đọc, đúng 3 tool). Test T-MCP-01 tới T-MCP-06.
   - Bước 6: `src/agents/sa-01` (`runSa01`, prompt có version, schema đầu ra, LLM qua `@anthropic-ai/sdk`, luật NBA bằng code), bộ chạy eval `bun run eval:sa01` với 10 ca synthetic trong `evals/sa-01/cases`. Test T-SA-01 tới T-SA-05, T-NBA-*, T-PII-05.
   - Bước 7: `src/queue` (trang Hàng chờ, đăng nhập Entra OIDC kèm PKCE, CSRF, CSP), `src/teams/notify.ts`, job `src/jobs/etl-crm.ts` và `src/jobs/sa01-morning.ts`. Test T-Q-02 tới T-Q-11, T-N-01, T-N-02, T-PII-06, T-E2E-01.
@@ -27,12 +27,22 @@ Cập nhật lần cuối: 02/11/2026 (phiên 03). Quy ước: agent hoặc ngư
   - Lệch thiết kế cần người duyệt xác nhận: (1) NBA đọc thêm trường bổ sung (`last_modified_at`, ngành, dịch vụ đã mua, khách cũ) thẳng từ snapshot, vì 3 tool MCP không trả các trường này; danh sách Opportunity vẫn chỉ đến từ `get_pipeline_by_close_date` (luật 5). (2) `find_duplicate_leads` chỉ nhận `lead_id`: snapshot chưa có liên kết Lead với Client nên `NBA_X_DUP` chưa kích hoạt khi chạy thật ([ĐỐI CHIẾU SCHEMA]).
   - Giá trị tạm chờ chốt: tên Stage đã đóng và trọng số Stage (Q-09), giới hạn 20 mục NBA (Q-10), mã ngành bị hạ ưu tiên (Q-14), định dạng thân tin webhook (Q-11).
 
+- **Phiên 04 (02/11/2026)**: bước 9, phần làm được khi chưa có nguồn thật. Test trước, chỉ dữ liệu tổng hợp.
+  - Dọn snapshot cũ hơn 14 ngày (D-09): `src/db/prune.ts`, job `src/jobs/prune-snapshots.ts`; không bao giờ xoá snapshot succeeded mới nhất.
+  - Xoá có kiểm soát (D-12): `src/db/redact.ts` và lệnh chạy tay `scripts/redact-row.ts`; bảng kiểm toán `redaction_log` (migration 002, chỉ thêm). Test tĩnh: chỉ `scripts/` dùng được.
+  - Danh bạ RM (Q-07): `src/db/rm-directory.ts` và `scripts/load-rm-directory.ts`, nạp từ file JSON giữ ngoài repo.
+  - Preflight: `bun run preflight` (cấu hình, DB, danh bạ, eval) và `--network` (dò CRM chỉ GET trang đầu, báo tên trường lệch schema; đọc thử channel Graph).
+  - `Dockerfile` (D-03), biến `SA01_EVAL_RESULTS_DIR` để kết quả eval nằm trên ổ bền.
+  - Runbook `docs/runbook/lat-cat-01.md`: lịch job, checklist bật cho Amy, bảng chỗ cần đối chiếu schema, xử lý sự cố, xoá có kiểm soát, tắt khẩn cấp.
+  - `bun test`: 199 pass, 0 fail.
+
 ## Việc tiếp theo
 
-1. Bước 9: nối nguồn thật khi STATUS a, b được gỡ; đối chiếu mọi chỗ **[ĐỐI CHIẾU SCHEMA]**; Amy xác nhận khoảng 30 ca eval (đặt ở `SA01_PRIVATE_EVAL_DIR`), chạy `bun run eval:sa01`; dựng container theo D-03 (Q-13), đặt biến môi trường theo `.env.example`; bật cho Amy.
-2. Mang các câu Q-01 tới Q-16 cho Amy, MobCEC, admin tenant (design doc mục 14); trả lời Q-09, Q-10, Q-14 để thay giá trị tạm trong `src/config.ts`.
-3. Mark quyết finding R3 còn mở (tên khách một từ ở đầu câu) và hai lệch thiết kế ở trên.
-4. Bật Secret scanning và Push protection cho repo. Người làm: admin repo.
+1. Phần còn lại của bước 9 cần nguồn thật, làm theo `docs/runbook/lat-cat-01.md` mục 2: gỡ chặn a, b; đối chiếu schema; nạp danh bạ RM; Amy xác nhận khoảng 30 ca eval; `bun run preflight -- --network` xanh; chạy thử một tuần chỉ Mark xem; bật cho Amy.
+2. Chọn nền tảng host container, ổ bền, mã hoá và backup (Q-13).
+3. Mang các câu Q-01 tới Q-16 cho Amy, MobCEC, admin tenant; trả lời Q-09, Q-10, Q-14 để thay giá trị tạm trong `src/config.ts`.
+4. Mark quyết finding R3 còn mở (tên khách một từ ở đầu câu) và hai lệch thiết kế ghi ở phiên 03.
+5. Bật Secret scanning và Push protection cho repo. Người làm: admin repo.
 
 ## Đang bị chặn
 
@@ -50,4 +60,4 @@ Cập nhật lần cuối: 02/11/2026 (phiên 03). Quy ước: agent hoặc ngư
 
 ## PR đang mở
 
-- PR phiên 03 (nhánh `claude/dreamy-faraday-sw7jto`): lát cắt 01 bước 5 tới 8, chờ `@harveyng710-source` duyệt. PR #5 (phiên 02) đã merge.
+- PR phiên 04 (nhánh `claude/dreamy-faraday-sw7jto`): bước 9 phần không cần nguồn thật, chờ `@harveyng710-source` duyệt. PR #6 (phiên 03) đã merge.

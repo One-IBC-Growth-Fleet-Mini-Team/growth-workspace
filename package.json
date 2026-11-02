@@ -11,7 +11,11 @@
     "eval:sa01": "bun run src/agents/sa-01/eval/main.ts",
     "job:etl-crm": "bun run src/jobs/etl-crm.ts",
     "job:sa01-morning": "bun run src/jobs/sa01-morning.ts",
-    "queue:serve": "bun run src/queue/server.ts"
+    "queue:serve": "bun run src/queue/server.ts",
+    "job:prune-snapshots": "bun run src/jobs/prune-snapshots.ts",
+    "preflight": "bun run src/jobs/preflight.ts",
+    "ops:redact-row": "bun run scripts/redact-row.ts",
+    "ops:load-rm-directory": "bun run scripts/load-rm-directory.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",

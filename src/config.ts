@@ -58,6 +58,12 @@ export function getPrivateEvalDir(env: Env = process.env): string | undefined {
   return optional(env, "SA01_PRIVATE_EVAL_DIR");
 }
 
+// Thư mục kết quả eval (design doc mục 12.3). Khi chạy trong container phải nằm trên ổ bền,
+// ví dụ /data/eval-results; mặc định là evals/sa-01/results trong repo (bị .gitignore chặn).
+export function getEvalResultsDir(repoRoot: string, env: Env = process.env): string {
+  return optional(env, "SA01_EVAL_RESULTS_DIR") ?? `${repoRoot.replace(/\/+$/, "")}/evals/sa-01/results`;
+}
+
 export type LlmPricing = { model: string; inputUsdPerMTok: number; outputUsdPerMTok: number };
 
 export function getLlmPricing(env: Env = process.env): LlmPricing {
