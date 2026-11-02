@@ -200,7 +200,7 @@ export function renderQueuePage(args: {
   const body = html`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hàng chờ ${ddmm(args.queueDate)}</title><style>${new SafeHtml(STYLE)}</style></head><body>
 <h1>Hàng chờ ngày ${ddmm(args.queueDate)}</h1>
-<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}<a href="/brief">Brief sáng</a><a href="/digest">Digest tuần</a></nav>
+<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}<a href="/leads">Lead trùng</a>${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}<a href="/brief">Brief sáng</a><a href="/digest">Digest tuần</a></nav>
 <div class="status ${args.status}">${statusText} · Snapshot CRM: ${args.snapshotAt ?? "chưa có"} · Người dùng: ${args.user.id}</div>
 ${GROUPS.map((g) => {
     const list = visible.filter((i) => i.item_type === g.type);
@@ -320,5 +320,22 @@ export function renderDigestPage(d: Digest): string {
 <tr><td>Lượt ghi nhận WO</td><td>${d.woTouches}</td></tr>
 <tr><td>Chi phí Claude API</td><td>${d.costUsd.toFixed(2)} USD</td></tr></table></section>
 <section><h2>Ngâm lâu nhất</h2>${d.longest.length ? html`<table class="kv">${d.longest.map((l) => html`<tr><td><a href="/queue?date=${l.queueDate}#item-${l.id}">${TYPE_TEXT[l.type] ?? l.type} ngày ${ddmm(l.queueDate)}</a></td><td>${hours(l.ageHours)}</td><td>${DECISION_TEXT[l.state] ?? l.state}</td></tr>`)}</table>` : html`<p class="meta">Không có mục.</p>`}</section>`);
+export type LeadDupGroup = { match_on: "email" | "phone"; lead_ids: string[]; owner_rm_ids: string[] };
+
+// Lead trùng (spec mục 11, Mi1-sa-01; D-29): chỉ xem. Amy quyết gộp và gộp trên CRM; Growth không ghi vào CRM.
+export function renderLeadDupPage(args: { snapshotAt: string | null; groups: LeadDupGroup[] }): string {
+  const crossRm = args.groups.filter((g) => g.owner_rm_ids.length > 1);
+  const sameRm = args.groups.filter((g) => g.owner_rm_ids.length <= 1);
+  const table = (list: LeadDupGroup[]) =>
+    list.length
+      ? html`<table class="kv"><tr><td><strong>Trùng theo</strong></td><td><strong>Lead</strong></td><td><strong>RM</strong></td></tr>
+${list.map((g) => html`<tr><td>${g.match_on === "email" ? "email" : "số điện thoại"}</td><td>${g.lead_ids.join(", ")}</td><td>${g.owner_rm_ids.join(", ")}</td></tr>`)}</table>`
+      : html`<p class="meta">Không có.</p>`;
+  return shell("Lead trùng", html`<h1>Lead trùng</h1>
+<p><a href="/queue">Quay lại Hàng chờ</a></p>
+<div class="status ${args.snapshotAt ? "green" : "red"}">Dữ liệu CRM: ${args.snapshotAt ?? "chưa nạp file Lead"}</div>
+<p class="meta">Các Lead có cùng email hoặc cùng số điện thoại (so bằng mã băm, không lưu email hay số thật). Mở từng Lead trên CRM để quyết có gộp không; trang này chỉ để xem.</p>
+<section><h2>Trùng giữa các RM khác nhau (${crossRm.length})</h2><p class="meta">Một khách có thể đang được hai RM chăm; xem trước.</p>${table(crossRm)}</section>
+<section><h2>Trùng trong cùng một RM (${sameRm.length})</h2>${table(sameRm)}</section>`);
 }
 

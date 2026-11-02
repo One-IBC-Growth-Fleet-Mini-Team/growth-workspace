@@ -47,8 +47,9 @@ import {
   type Session,
 } from "./auth.ts";
 import { ITEM_ACTIONS, recordItemAction, recordQueueOpened, type ItemAction } from "./items.ts";
-import { renderBriefPage, renderDigestPage, renderImportPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
+import { renderBriefPage, renderDigestPage, renderImportPage, renderLeadDupPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
 import { buildBrief, buildDigest, mondayOf } from "../mi1/core.ts";
+import { findDuplicateLeads } from "../mcp/crm-read/tools.ts";
 import { buildWoBoard, recordWoTouch, reminderTexts } from "../db/wo.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
 import { importCrmCsv, importMessage, loadColumnMap, type CsvResource } from "../crm/csv-import.ts";
@@ -222,6 +223,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       const w = url.searchParams.get("week");
       const week = w && /^\d{4}-\d{2}-\d{2}$/.test(w) ? mondayOf(w) : mondayOf(vnDate(new Date(now().getTime() - 7 * 86_400_000)));
       return respond(renderDigestPage(buildDigest(deps.db, week, now())), 200, { "content-type": "text/html; charset=utf-8" });
+    if (req.method === "GET" && path === "/leads") {
+      if (!session) return redirect("/login");
+      const snap = latestSucceededSnapshot(deps.db);
+      const groups = snap ? findDuplicateLeads(deps.db, {}).groups : [];
+      return respond(renderLeadDupPage({ snapshotAt: snap?.snapshot_at ?? null, groups }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/wo") {

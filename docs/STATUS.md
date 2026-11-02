@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật lần cuối: 02/11/2026 (phiên 08). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+Cập nhật lần cuối: 02/11/2026 (phiên 09). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
 
 ## Mục tiêu tối thượng
 
@@ -72,12 +72,20 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 - **Chạy trên máy Ubuntu của người dùng (D-26)**: `deploy/local/install.sh` (một lệnh, không sudo), `deploy/local/run.sh`, hướng dẫn `deploy/local/README.md`. Cho phép `QUEUE_BASE_URL=http://localhost` (test T-LOCAL-01, T-LOCAL-02). Đã cài thử trên một tài khoản Ubuntu sạch (systemd giả lập): đăng nhập, nạp WO, ghi nhận, sao lưu, chạy lại script đều đúng.
 
+## Cách làm từ 02/11/2026
+
+`@harveyng710-source` đổi cách làm: mọi kết nối ra ngoài đi qua cổng chọn bằng biến môi trường (`docs/context/ports.md`); trần độ phức tạp trong CLAUDE.md (người dùng là Amy; PR dưới khoảng 400 dòng; không mở phạm vi ngoài danh sách dưới).
+
+- **Nơi chạy:** chỉ một cách, cài trên máy Ubuntu ở localhost (`deploy/local/`, PR #15, D-26). `deploy/` cho máy chủ là "để sau", không bảo trì.
+- **BK-08 (WO tồn đọng) tạm dừng:** giữ code đã merge (PR #13, #14), không làm thêm cho tới khi lát cắt của Amy chạy thật 2 tuần.
+- **Không chờ dữ liệu thật** (`@harveyng710-source`, 02/11/2026): build tiếp bằng dữ liệu tổng hợp, khi nối dữ liệu thật thì sửa tới đâu hay tới đó (D-27).
+
 ## Việc tiếp theo
 
-1. Harvey: cài thử trên máy Ubuntu của mình theo `deploy/local/README.md`, rồi cài cho Amy. Máy chủ (`deploy/README.md`) để dành khi cần truy cập từ xa.
-2. Harvey gửi dòng tiêu đề cột của các file xuất CRM; fleet viết bảng ghép (`deploy/README.md` bước 7).
-3. Amy xác nhận khoảng 30 ca eval để điểm tự tin không còn thấp.
-4. Amy chốt ngưỡng WO tồn đọng (tạm 7 và 14 ngày) và cách tính 24 giờ cho BK-13.
+1. Mi1 phần lõi, mỗi phần một PR: (a) áp mặc định "giữ nháp" cho mục quá hạn (CRON-06); (b) trang Brief sáng và Digest tuần, có Cổng 2 (CRON-06, CRON-08).
+2. Mi1-sa-01 phần còn lại bằng dữ liệu tổng hợp: kiểm trùng Lead để Amy quyết gộp, khớp PO với SO, nhắc invoice (cổng mới: tải file Order, Invoice).
+3. Khi Harvey gửi dòng tên cột CSV, tự báo thật, danh sách RM: chạy Hàng chờ với dữ liệu thật cho Amy trên máy local, sửa chỗ lệch.
+4. Sau khi chạy thật: Amy xác nhận khoảng 30 ca eval; Amy chốt danh mục mã lý do.
 5. Song song, không chặn: câu hỏi cho MobCEC (API), admin tenant (Entra, Graph); bật Secret scanning (E-02).
 
 ## Đang bị chặn
@@ -96,4 +104,5 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## PR đang mở
 
-- PR tài liệu thêm `wo_idle_days` vào `docs/spec/metric-definitions.md` (nhánh `claude/dreamy-faraday-sw7jto`): chờ duyệt. PR #12 (nạp CSV cho NBA) và PR #13 (WO tồn đọng) đã merge.
+- PR #16: nguyên tắc cổng và trần độ phức tạp, chờ duyệt.
+- PR #12, #13, #14, #15 đã merge.
