@@ -150,3 +150,13 @@ describe("T-MI1-06 trang /brief và /digest", () => {
   });
 });
 
+
+describe("T-MI1-03b escalate cũ", () => {
+  test("T-MI1-03b brief chỉ đếm mục escalate của 7 ngày gần nhất", () => {
+    item("e1", "2026-10-20");
+    item("e2", "2026-10-30");
+    act("e1", "escalate", "2026-10-20T03:00:00Z");
+    act("e2", "escalate", "2026-10-30T03:00:00Z");
+    expect(buildBrief(db, new Date("2026-11-02T01:00:00Z")).escalatedWaiting).toBe(1);
+  });
+});

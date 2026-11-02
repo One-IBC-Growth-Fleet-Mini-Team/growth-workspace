@@ -91,7 +91,10 @@ export function buildBrief(db: Database, now: Date): Brief {
     todayTotal: { total: todays.length, pending: todays.filter((i) => i.state === "pending").length },
     carryover: { count: carry.length, oldestHours: carry.length ? Math.max(...carry.map((i) => decisionAgeHours(i.created_at, null, now))) : null },
     defaultsLast24h: (db.query("SELECT COUNT(*) AS n FROM queue_defaults WHERE applied_at >= ?").get(since) as { n: number }).n,
-    escalatedWaiting: (db.query("SELECT COUNT(*) AS n FROM queue_item_state WHERE state = 'escalate'").get() as { n: number }).n,
+    // Mark chỉ xem (K-02) nên mục escalate không bao giờ tự đóng: chỉ đếm 7 ngày gần nhất.
+    escalatedWaiting: (db.query(
+      "SELECT COUNT(*) AS n FROM queue_items i JOIN queue_item_state s ON s.id = i.id WHERE s.state = 'escalate' AND i.queue_date >= ?",
+    ).get(addDays(date, -7)) as { n: number }).n,
     wo: { escalate: wo.escalate.length, remind: wo.remind.length, backlog: wo.backlog.length, importedAt: wo.importedAt },
     monthCostUsd: monthToDateCostUsd(db.query("SELECT cost_usd, started_at FROM agent_runs").all() as { cost_usd: number; started_at: string }[], now),
     monthCapUsd: LLM_MONTHLY_CAP_USD,

@@ -124,7 +124,8 @@ Description=Growth Workspace: Mi1 áp mặc định cho mục quá hạn, sao l�
 Type=oneshot
 WorkingDirectory=$APP_DIR
 EnvironmentFile=$ENV_FILE
-ExecStart=$BUN run src/jobs/mi1-morning.ts
+# Dấu "-": Mi1 lỗi thì vẫn sao lưu và dọn snapshot.
+ExecStart=-$BUN run src/jobs/mi1-morning.ts
 ExecStart=$BUN run src/jobs/backup-db.ts
 ExecStart=$BUN run src/jobs/prune-snapshots.ts
 EOF

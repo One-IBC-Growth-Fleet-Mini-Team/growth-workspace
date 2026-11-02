@@ -301,7 +301,7 @@ ${b.today.length ? html`<table class="kv">${b.today.map((t) => html`<tr><td>${TY
 <section><h2>Cần chú ý</h2><ul>
 <li>Còn chờ từ ngày trước: <strong>${b.carryover.count}</strong> mục${b.carryover.oldestHours !== null ? html`, lâu nhất ${hours(b.carryover.oldestHours)}` : ""}.</li>
 <li>Quá hạn đã áp mặc định "giữ nháp" trong 24 giờ qua: ${b.defaultsLast24h} mục (Amy vẫn quyết lại được).</li>
-<li>Đang chờ Mark xem (đã escalate): <strong>${b.escalatedWaiting}</strong> mục.</li>
+<li>Đã escalate lên Mark trong 7 ngày qua: <strong>${b.escalatedWaiting}</strong> mục.</li>
 <li>WO tồn đọng: báo Amy ${b.wo.escalate}, nhắc PIC ${b.wo.remind}, tồn từ trước chưa rà ${b.wo.backlog}${b.wo.importedAt ? "" : " (chưa nạp file Work Order)"}.</li>
 <li>Chi phí Claude API tháng này: ${b.monthCostUsd.toFixed(2)} trên trần ${b.monthCapUsd} USD.</li>
 </ul></section>`);
