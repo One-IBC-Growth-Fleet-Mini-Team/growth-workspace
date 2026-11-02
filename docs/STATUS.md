@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật lần cuối: 02/11/2026 (phiên 09). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+Cập nhật lần cuối: 02/11/2026 (phiên 09, cuối phiên). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
 
 ## Mục tiêu tối thượng
 
@@ -80,13 +80,30 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 - **BK-08 (WO tồn đọng) tạm dừng:** giữ code đã merge (PR #13, #14), không làm thêm cho tới khi lát cắt của Amy chạy thật 2 tuần.
 - **Không chờ dữ liệu thật** (`@harveyng710-source`, 02/11/2026): build tiếp bằng dữ liệu tổng hợp, khi nối dữ liệu thật thì sửa tới đâu hay tới đó (D-27).
 
+## Tiến độ toàn dự án (ước tính 02/11/2026, tính cả PR đang mở)
+
+Khoảng **33%** spec v0.3.2. GĐ0 nền móng khoảng 55%; GĐ1 khoảng 60%; GĐ2, GĐ3 chưa bắt đầu.
+
+| Hạng mục | Trạng thái |
+|---|---|
+| Repo, Growth DB, CI, cài máy Ubuntu | xong |
+| Hàng chờ, Mi1-sa-01 (tự báo, mã lý do, NBA, Lead trùng `/leads`) | xong |
+| Mi1-sa-01 đối soát đơn hàng `/billing` | PR #20 |
+| Mi1 lõi: áp mặc định, Brief sáng, Digest tuần | PR #17 |
+| Mi1-ptn-01 đối tác `/partners` | PR #21 |
+| Mi1-mkt-05, Mi1-data-01, CRON-02 | chưa làm |
+| GĐ2: mkt-01 tới mkt-04, Creative Factory, cổng tuân thủ, ma trận 5 tầng | chưa làm |
+
 ## Việc tiếp theo
 
-1. Mi1 phần lõi, mỗi phần một PR: (a) áp mặc định "giữ nháp" cho mục quá hạn (CRON-06); (b) trang Brief sáng và Digest tuần, có Cổng 2 (CRON-06, CRON-08).
-2. Mi1-sa-01 phần còn lại bằng dữ liệu tổng hợp: kiểm trùng Lead để Amy quyết gộp, khớp PO với SO, nhắc invoice (cổng mới: tải file Order, Invoice).
-3. Khi Harvey gửi dòng tên cột CSV, tự báo thật, danh sách RM: chạy Hàng chờ với dữ liệu thật cho Amy trên máy local, sửa chỗ lệch.
-4. Sau khi chạy thật: Amy xác nhận khoảng 30 ca eval; Amy chốt danh mục mã lý do.
-5. Song song, không chặn: câu hỏi cho MobCEC (API), admin tenant (Entra, Graph); bật Secret scanning (E-02).
+Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng chưa tính test, dữ liệu tổng hợp, adapter tải file chạy ngay cho mỗi nguồn mới (thêm dòng vào `ports.md`). PR song song: migration áp theo bảng đánh dấu (`src/db/migrate.ts` sau PR #20, #21), nên số migration không cần liên tiếp.
+
+1. Gỡ xung đột khi PR #17, #20, #21 merge (cùng sửa thanh điều hướng, `server.ts`, `migrate.ts`, `decisions.md`).
+2. Mi1-mkt-05 (GĐ1): bảng giá 45 tài phán và đủ 10 file SKD mỗi tài phán (CRON-04), cổng tải file.
+3. Mi1-data-01 (GĐ0): độ phủ ID, gãy tracking (`id_coverage`), cổng tải file sự kiện web; sức khoẻ BM, số WA, Fanpage (CRON-02) bằng cổng tải file hoặc nhập tay.
+4. Mi1-sa-01 đối chiếu dữ liệu thật khi Harvey gửi dòng tên cột CSV, tự báo thật, danh sách RM.
+5. GĐ2 theo spec mục 7, 8: Creative Factory, cổng tuân thủ (bộ từ cấm chờ chốt), mkt-01 tới mkt-04.
+6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn
 
@@ -104,5 +121,5 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## PR đang mở
 
-- PR #16: nguyên tắc cổng và trần độ phức tạp, chờ duyệt.
-- PR #12, #13, #14, #15 đã merge.
+- PR #17 (Mi1 lõi), #20 (đối soát đơn hàng), #21 (đối tác): chờ duyệt.
+- PR #12 tới #16, #18, #19 đã merge.
