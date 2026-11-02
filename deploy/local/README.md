@@ -44,7 +44,7 @@ Cấu hình, mật khẩu và dữ liệu giữ nguyên.
 
 ## Sao lưu
 
-Mỗi ngày 12:30 (hoặc lần đăng nhập kế tiếp nếu máy tắt lúc đó), máy chép Growth DB vào thư mục `~/Growth-backup`, giữ 14 bản gần nhất. Bản sao lưu nằm trên cùng ổ đĩa: nên chép thư mục này sang Google Drive hoặc ổ USB mỗi tuần. File trong đó không có email hay số điện thoại khách (chỉ mã băm) nhưng vẫn là dữ liệu nội bộ, không chia sẻ công khai.
+Mỗi ngày 08:15 (hoặc lần đăng nhập kế tiếp nếu máy tắt lúc đó), Mi1 đánh dấu "quá hạn, giữ nháp" cho mục chưa ai quyết của ngày trước, rồi máy chép Growth DB vào thư mục `~/Growth-backup`, giữ 14 bản gần nhất. Bản sao lưu nằm trên cùng ổ đĩa: nên chép thư mục này sang Google Drive hoặc ổ USB mỗi tuần. File trong đó không có email hay số điện thoại khách (chỉ mã băm) nhưng vẫn là dữ liệu nội bộ, không chia sẻ công khai.
 
 ## Việc thỉnh thoảng
 

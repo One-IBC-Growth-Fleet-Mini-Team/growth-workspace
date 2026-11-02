@@ -47,7 +47,8 @@ import {
   type Session,
 } from "./auth.ts";
 import { ITEM_ACTIONS, recordItemAction, recordQueueOpened, type ItemAction } from "./items.ts";
-import { renderImportPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
+import { renderBriefPage, renderDigestPage, renderImportPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
+import { buildBrief, buildDigest, mondayOf } from "../mi1/core.ts";
 import { buildWoBoard, recordWoTouch, reminderTexts } from "../db/wo.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
 import { importCrmCsv, importMessage, loadColumnMap, type CsvResource } from "../crm/csv-import.ts";
@@ -212,6 +213,15 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       if (!session) return redirect("/login");
       if (userOf(session).role !== "approver" || !(deps.onImport || deps.onWoImport)) return text(403, "Không có quyền.");
       return respond(renderImportPage({ csrf: session.csrf, message: null, crm: Boolean(deps.onImport), wo: Boolean(deps.onWoImport) }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && (path === "/brief" || path === "/digest")) {
+      if (!session) return redirect("/login");
+      if (path === "/brief") return respond(renderBriefPage(buildBrief(deps.db, now())), 200, { "content-type": "text/html; charset=utf-8" });
+      // Mặc định là tuần vừa xong (Digest đọc sáng thứ Hai, CRON-08).
+      const w = url.searchParams.get("week");
+      const week = w && /^\d{4}-\d{2}-\d{2}$/.test(w) ? mondayOf(w) : mondayOf(vnDate(new Date(now().getTime() - 7 * 86_400_000)));
+      return respond(renderDigestPage(buildDigest(deps.db, week, now())), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/wo") {

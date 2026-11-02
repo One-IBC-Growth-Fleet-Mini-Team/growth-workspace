@@ -21,7 +21,7 @@ Biến môi trường: xem `.env.example`. Đường dẫn dữ liệu, kết qu
 
 ## 1b. Việc hằng ngày của Amy (chế độ dán, D-24)
 
-1. Sáng thứ Hai tới thứ Bảy, đăng nhập Hàng chờ bằng mật khẩu.
+1. Sáng thứ Hai tới thứ Bảy, đăng nhập Hàng chờ bằng mật khẩu, mở "Brief sáng" để biết hôm nay có gì và mục nào còn chờ từ hôm trước. Sáng thứ Hai mở thêm "Digest tuần" (có kết quả Cổng 2).
 2. Bấm "Dán tự báo của RM", mở thread tự báo của ngày hôm trước trong Teams, chọn toàn bộ các trả lời, sao chép, dán vào ô, chọn đúng ngày, bấm "Xử lý". Chờ khoảng nửa phút.
 3. Bấm "Nạp dữ liệu CRM (CSV)", chọn các file vừa xuất từ CRM (Opportunity bắt buộc; Client, Lead, Order nếu có), bấm "Nạp". NBA của hôm nay được sinh ngay từ dữ liệu mới. NBA chỉ sinh khi dữ liệu CRM không cũ quá 24 giờ, nên nạp mỗi sáng muốn có NBA.
 4. Duyệt từng mục: Xác nhận, Sửa, Bác (kèm lý do), Báo PII nếu thấy còn thông tin khách.

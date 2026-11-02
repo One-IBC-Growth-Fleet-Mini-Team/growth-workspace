@@ -100,7 +100,7 @@ fi
 say "4/6 Nâng schema Growth DB"
 (set -a; . "$ENV_FILE"; set +a; cd "$APP_DIR" && "$BUN" run src/db/migrate.ts)
 
-say "5/6 Dịch vụ chạy nền khi bạn đăng nhập, sao lưu mỗi ngày 12:30"
+say "5/6 Dịch vụ chạy nền khi bạn đăng nhập; việc hằng ngày lúc 08:15"
 install -d "$UNIT_DIR"
 cat > "$UNIT_DIR/growth-queue.service" <<EOF
 [Unit]
@@ -118,12 +118,13 @@ WantedBy=default.target
 EOF
 cat > "$UNIT_DIR/growth-daily.service" <<EOF
 [Unit]
-Description=Growth Workspace: sao lưu DB vào $BACKUP_DIR và dọn snapshot CRM cũ
+Description=Growth Workspace: Mi1 áp mặc định cho mục quá hạn, sao lưu DB vào $BACKUP_DIR, dọn snapshot CRM cũ
 
 [Service]
 Type=oneshot
 WorkingDirectory=$APP_DIR
 EnvironmentFile=$ENV_FILE
+ExecStart=$BUN run src/jobs/mi1-morning.ts
 ExecStart=$BUN run src/jobs/backup-db.ts
 ExecStart=$BUN run src/jobs/prune-snapshots.ts
 EOF
@@ -132,7 +133,7 @@ cat > "$UNIT_DIR/growth-daily.timer" <<EOF
 Description=Growth Workspace: việc hằng ngày
 
 [Timer]
-OnCalendar=*-*-* 12:30:00 Asia/Ho_Chi_Minh
+OnCalendar=*-*-* 08:15:00 Asia/Ho_Chi_Minh
 Persistent=true
 
 [Install]
