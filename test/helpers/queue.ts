@@ -52,7 +52,7 @@ export function post(
 
 export function seedItem(
   db: Database,
-  over: Partial<{ id: string; item_type: string; payload: string; confidence: number; queue_date: string }> = {},
+  over: Partial<{ id: string; item_type: string; payload: string; confidence: number; queue_date: string; subject_ref: string }> = {},
 ): string {
   const id = over.id ?? Bun.randomUUIDv7();
   if (!db.query("SELECT 1 FROM agent_runs WHERE id = 'run_seed'").get()) {
@@ -61,8 +61,8 @@ export function seedItem(
   }
   db.query(`INSERT INTO queue_items (id, item_type, queue_date, dedupe_key, subject_ref, payload, rules_fired, confidence, confidence_inputs,
               assignee, default_action, due_at, etl_run_id, agent_run_id, created_at)
-            VALUES (?, ?, ?, ?, 'O1', ?, '["NBA_R5","NBA_R4"]', ?, '{"evalPassRate":1}', 'amy', 'giữ nháp', '2026-11-02T10:59:59Z', NULL, 'run_seed', '2026-11-02T01:00:00Z')`)
-    .run(id, over.item_type ?? "nba", over.queue_date ?? "2026-11-02", `dk-${id}`,
+            VALUES (?, ?, ?, ?, ?, ?, '["NBA_R5","NBA_R4"]', ?, '{"evalPassRate":1}', 'amy', 'giữ nháp', '2026-11-02T10:59:59Z', NULL, 'run_seed', '2026-11-02T01:00:00Z')`)
+    .run(id, over.item_type ?? "nba", over.queue_date ?? "2026-11-02", `dk-${id}`, over.subject_ref ?? "O1",
       over.payload ?? JSON.stringify({ action: "follow_up", subject_ref: "O1", owner_rm_id: "RM_A", explanation: "RM theo tiếp", warnings: [] }),
       over.confidence ?? 0.9);
   return id;

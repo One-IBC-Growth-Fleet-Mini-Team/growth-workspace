@@ -79,6 +79,12 @@ export function recordItemAction(
   if (!item) return fail(404, "NOT_FOUND");
   const history = listItemEvents(db, item.id);
   let payload: string | null = null;
+  // Mục đã báo PII bị ẩn và chờ người vận hành xoá: không thao tác gì thêm.
+  if (item.state === "pii_flag") return fail(409, "ITEM_FLAGGED_PII");
+  // Bấm lặp cùng một quyết định (tab cũ, bấm hai lần) không ghi thêm sự kiện.
+  if ((args.action === "confirm" || args.action === "reject" || args.action === "escalate") && item.state === args.action) {
+    return fail(409, "ALREADY_RECORDED");
+  }
 
   switch (args.action) {
     case "confirm":

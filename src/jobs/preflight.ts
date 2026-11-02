@@ -14,13 +14,15 @@ import {
   getPiiHashKey,
   getQueueConfig,
   getTeamsWebhooks,
+  METRIC_PARAMS,
   type Env,
 } from "../config.ts";
 import { readEvalStats } from "../agents/sa-01/eval/runner.ts";
 import { probeCrm } from "../crm/etl.ts";
 import { listRmDirectory } from "../db/queue.ts";
-import { migrate, SCHEMA_VERSION } from "../db/migrate.ts";
-import { openReadWrite } from "../db/open.ts";
+import { SCHEMA_VERSION } from "../db/migrate.ts";
+import { openReadOnly } from "../db/open.ts";
+import type { EvalStats } from "../agents/sa-01/run.ts";
 import { log } from "../log.ts";
 import { createGraphClient } from "../teams/graph-read.ts";
 import { createGraphTokenProvider } from "../teams/graph-token.ts";
@@ -57,23 +59,41 @@ export function checkConfig(env: Env): Check[] {
   return out;
 }
 
+// Kiểm DB ở chế độ chỉ đọc: preflight không được sửa DB đang chạy (migration do job hoặc lệnh db:migrate làm).
+export function checkDb(path: string): Check[] {
+  if (!existsSync(path)) return [{ name: "db.exists", ok: false, error_code: "DB_MISSING" }];
+  const db = openReadOnly(path);
+  try {
+    const version = (db.query("PRAGMA user_version").get() as { user_version: number }).user_version;
+    const out: Check[] = [{ name: "db.schema_version", ok: version === SCHEMA_VERSION, error_code: version === SCHEMA_VERSION ? undefined : "DB_NEEDS_MIGRATION" }];
+    if (version >= 1) {
+      const ok = listRmDirectory(db).some((r) => r.active === 1 && r.teams_user_id !== null);
+      out.push({ name: "db.rm_directory", ok, error_code: ok ? undefined : "RM_DIRECTORY_EMPTY" });
+    }
+    return out;
+  } finally {
+    db.close();
+  }
+}
+
+// Mỗi tác vụ cần đủ cỡ mẫu riêng: compute_confidence phạt cỡ mẫu theo từng tác vụ (D-07).
+export function checkEval(stats: EvalStats, resultsExist: boolean): Check[] {
+  const out: Check[] = [{ name: "eval.results", ok: resultsExist, error_code: resultsExist ? undefined : "EVAL_NOT_RUN" }];
+  out.push({ name: "eval.nba_gate", ok: stats.nba.passRate === 1, error_code: stats.nba.passRate === 1 ? undefined : "NBA_EVAL_NOT_100" });
+  for (const task of ["self_report_parse", "reason_code"] as const) {
+    const ok = stats[task].caseCount >= METRIC_PARAMS.evalMinCaseCount;
+    out.push({ name: `eval.case_count.${task}`, ok, error_code: ok ? undefined : "EVAL_TOO_FEW_CASES" });
+  }
+  return out;
+}
+
 async function main(): Promise<number> {
   const checks = checkConfig(process.env);
   const root = new URL("../../", import.meta.url).pathname;
 
-  if (checks.find((c) => c.name === "GROWTH_DB_PATH")?.ok) {
-    const db = openReadWrite(getDbPath());
-    migrate(db);
-    const version = (db.query("PRAGMA user_version").get() as { user_version: number }).user_version;
-    checks.push({ name: "db.schema_version", ok: version === SCHEMA_VERSION });
-    checks.push({ name: "db.rm_directory", ok: listRmDirectory(db).some((r) => r.active === 1 && r.teams_user_id !== null), error_code: "RM_DIRECTORY_EMPTY" });
-    db.close();
-  }
+  if (checks.find((c) => c.name === "GROWTH_DB_PATH")?.ok) checks.push(...checkDb(getDbPath()));
   const evalDir = getEvalResultsDir(root);
-  const { stats } = readEvalStats(evalDir);
-  checks.push({ name: "eval.results", ok: existsSync(join(evalDir, "latest.json")), error_code: "EVAL_NOT_RUN" });
-  checks.push({ name: "eval.nba_gate", ok: stats.nba.passRate === 1, error_code: "NBA_EVAL_NOT_100" });
-  checks.push({ name: "eval.case_count", ok: stats.self_report_parse.caseCount + stats.reason_code.caseCount >= 30, error_code: "EVAL_TOO_FEW_CASES" });
+  checks.push(...checkEval(readEvalStats(evalDir).stats, existsSync(join(evalDir, "latest.json"))));
 
   if (process.argv.includes("--network")) {
     if (checks.find((c) => c.name === "CRM_API_BASE")?.ok) {

@@ -8,8 +8,8 @@ import { loadRmDirectory } from "../../src/db/rm-directory.ts";
 import { migrate, SCHEMA_VERSION } from "../../src/db/migrate.ts";
 import { openReadWrite } from "../../src/db/open.ts";
 import { probeCrm } from "../../src/crm/etl.ts";
-import { checkConfig } from "../../src/jobs/preflight.ts";
-import { client, freshDb, opp, seedSnapshot } from "../helpers/db.ts";
+import { checkConfig, checkDb, checkEval } from "../../src/jobs/preflight.ts";
+import { client, freshDb, opp, seedSnapshot, tempDbPath } from "../helpers/db.ts";
 import { events, seedItem } from "../helpers/queue.ts";
 import { startFakeCrm } from "../crm/fake-crm.ts";
 import { RAW_BY_RESOURCE } from "../fixtures/synthetic/crm.ts";
@@ -51,6 +51,27 @@ describe("D-12 xoá có kiểm soát", () => {
     ]);
     expect(() => db.run("UPDATE queue_items SET payload = 'x' WHERE id = ?", [b])).toThrow(/append_only/);
     expect(() => db.run("DELETE FROM redaction_log")).toThrow(/append_only/);
+  });
+
+  test("T-Q-11 (D-12) xoá một mục hàng chờ thì xoá cả bản sửa của mục và rm_reports nguồn", () => {
+    const db = freshDb();
+    const id = seedItem(db, { item_type: "self_report", payload: '{"note":"x"}', subject_ref: "rep1" });
+    db.run(`INSERT INTO rm_reports (id, report_date, rm_id, source_message_ref, source_link, source_version, parsed, pii_check,
+              redaction_stats, parser_version, agent_run_id, created_at)
+            VALUES ('rep1', '2026-11-01', NULL, 'ref', 'https://x.invalid', 'v', '{"name":"CANARY_NAME_7f3a"}', 'passed', '{}', 'p', 'run_seed', 'x')`);
+    db.run("INSERT INTO queue_events (id, item_id, actor, action, payload, created_at) VALUES ('ev1', ?, 'amy', 'edit', '{\"note\":\"CANARY_NAME_7f3a\"}', 'x')", [id]);
+    db.run("INSERT INTO queue_events (id, item_id, actor, action, payload, created_at) VALUES ('ev2', ?, 'amy', 'pii_flag', NULL, 'y')", [id]);
+    const other = seedItem(db);
+    redactRow(db, { table: "queue_items", id, reasonCode: "PII_FLAG", operator: "op", now: new Date() });
+    const dump = JSON.stringify(db.query("SELECT * FROM queue_events").all()) + JSON.stringify(db.query("SELECT * FROM rm_reports").all());
+    expect(dump).not.toContain("CANARY");
+    expect(db.query("SELECT table_name, row_id FROM redaction_log ORDER BY table_name, row_id").all()).toEqual([
+      { table_name: "queue_events", row_id: "ev1" },
+      { table_name: "queue_items", row_id: id },
+      { table_name: "rm_reports", row_id: "rep1" },
+    ]);
+    expect((db.query("SELECT payload FROM queue_items WHERE id = ?").get(other) as { payload: string }).payload).not.toContain("redacted");
+    for (const t of ["queue_items", "queue_events", "rm_reports"]) expect(() => db.run(`UPDATE ${t} SET id = id`)).toThrow(/append_only/);
   });
 
   test("T-Q-11 (D-12) rm_reports.parsed và queue_events.payload cũng xoá được; dòng không tồn tại thì không đổi gì", () => {
@@ -127,6 +148,30 @@ describe("Preflight trước khi bật", () => {
     } finally {
       crm.stop();
     }
+  });
+
+  test("T-Q-01 (preflight) kiểm DB chỉ đọc: DB thiếu migration bị báo, không bị sửa", () => {
+    const { path, cleanup } = tempDbPath();
+    try {
+      const rw = openReadWrite(path);
+      migrate(rw, 1);
+      rw.close();
+      const checks = checkDb(path);
+      expect(checks.find((c) => c.name === "db.schema_version")).toMatchObject({ ok: false });
+      const again = openReadWrite(path);
+      expect((again.query("PRAGMA user_version").get() as { user_version: number }).user_version).toBe(1);
+      again.close();
+      expect(checkDb(`${path}.missing`)[0]).toMatchObject({ name: "db.exists", ok: false });
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("T-MET-06 (preflight) mỗi tác vụ LLM cần đủ cỡ mẫu eval riêng, không cộng gộp", () => {
+    const stats = { self_report_parse: { passRate: 1, caseCount: 15 }, reason_code: { passRate: 1, caseCount: 15 }, nba: { passRate: 1, caseCount: 4 } };
+    const bad = checkEval(stats, true).filter((c) => !c.ok).map((c) => c.name);
+    expect(bad).toEqual(["eval.case_count.self_report_parse", "eval.case_count.reason_code"]);
+    expect(checkEval({ ...stats, self_report_parse: { passRate: 1, caseCount: 30 }, reason_code: { passRate: 1, caseCount: 30 } }, true).every((c) => c.ok)).toBe(true);
   });
 
   test("T-Q-06 (preflight) kiểm cấu hình: báo tên biến thiếu hoặc sai, không in giá trị", () => {

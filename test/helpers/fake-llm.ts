@@ -71,7 +71,7 @@ export function fakeLlm(respond?: (req: LlmRequest, n: number) => string | Parti
     calls,
     async complete(req) {
       calls.push(req);
-      const custom = respond?.(req, calls.length);
+      const custom = respond?.(req, calls.length); // respond có thể ném lỗi để giả lỗi mạng
       const base: LlmResponse = {
         text: JSON.stringify(deterministicOutput(extractDataBlock(req.user))),
         inputTokens: 1000,

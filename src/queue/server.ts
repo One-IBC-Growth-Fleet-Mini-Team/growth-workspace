@@ -105,7 +105,14 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         log({ event: "queue.login_denied", error_code: "USER_NOT_ALLOWED" });
         return text(403, "Tài khoản không có quyền vào Hàng chờ.");
       }
-      return redirect("/queue", [sessionSetCookie(deps.sessionSecret, newSession(user, now())), clearCookie(OIDC_COOKIE)]);
+      // Trả một trang cùng site rồi mới sang /queue: chuỗi chuyển hướng bắt đầu từ Entra là khác site,
+      // nên cookie phiên Strict chỉ được gửi ở lượt điều hướng mới khởi phát từ chính trang này.
+      return respond(
+        '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/queue"><a href="/queue">Vào Hàng chờ</a>',
+        200,
+        { "content-type": "text/html; charset=utf-8" },
+        [sessionSetCookie(deps.sessionSecret, newSession(user, now())), clearCookie(OIDC_COOKIE, "/auth")],
+      );
     }
 
     const session = readSession(req, deps.sessionSecret, now());
@@ -140,7 +147,8 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       const r = recordItemAction(deps.db, { itemId: m[1]!, action: m[2] as ItemAction, user, form, now: now(), rmNames });
       if (!r.ok) return text(r.status, r.error);
       const back = `/queue?date=${r.item.queue_date}#item-${r.item.id}`;
-      if (m[2] === "escalate" && deps.notifyEscalation) await deps.notifyEscalation(`${deps.baseUrl}${back}`);
+      // Gửi tin cho Mark ở nền: webhook chậm không được giữ trang của Amy.
+      if (m[2] === "escalate" && deps.notifyEscalation) void deps.notifyEscalation(`${deps.baseUrl}${back}`).catch(() => {});
       return redirect(back, [], 303);
     }
 
@@ -176,6 +184,6 @@ if (import.meta.main) {
     oidc: createEntraOidc({ ...entra, redirectUri: `${cfg.baseUrl}/auth/callback` }),
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
-  Bun.serve({ port: cfg.port, fetch: app.fetch });
+  Bun.serve({ port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_BODY });
   log({ event: "queue.listening", count: cfg.port });
 }

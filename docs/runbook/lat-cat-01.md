@@ -62,7 +62,7 @@ Chỉ người vận hành chạy tay, không có đường nào từ web hay ag
 bun run ops:redact-row --table queue_items --id <mã mục> --reason PII_FLAG --operator <mã người vận hành>
 ```
 
-Bảng cho phép: `queue_items` (payload), `queue_events` (payload), `rm_reports` (parsed). Lệnh thay nội dung của đúng một dòng bằng `{"redacted":true}` trong một transaction, dựng lại trigger chỉ thêm, ghi `redaction_log` (không ghi nội dung đã xoá). Sau đó kiểm backup của nền tảng: bản backup cũ vẫn còn nội dung, xử lý theo chính sách lưu giữ của nền tảng (Q-13).
+Bảng cho phép: `queue_items` (payload), `queue_events` (payload), `rm_reports` (parsed). Xoá một mục `queue_items` thì xoá luôn các bản sửa của mục đó và `rm_reports` nguồn (với mục tự báo và mã lý do), vì cùng nội dung nằm ở cả ba chỗ. Lệnh thay nội dung bằng `{"redacted":true}` trong một transaction, dựng lại trigger chỉ thêm, ghi `redaction_log` (không ghi nội dung đã xoá). Sau đó kiểm backup của nền tảng: bản backup cũ vẫn còn nội dung, xử lý theo chính sách lưu giữ của nền tảng (Q-13).
 
 ## 5. Tắt khẩn cấp
 
