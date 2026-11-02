@@ -180,6 +180,14 @@ describe("T-Q-07 CSRF", () => {
   });
 });
 
+describe("T-Q-07 Origin khi trình duyệt POST form", () => {
+  test("T-Q-07 Referrer-Policy là same-origin: với no-referrer, Chromium gửi Origin: null và mọi nút bị chặn", async () => {
+    const { app } = makeApp(db);
+    const res = await get(app, "/queue?date=2026-11-02", session(AMY).cookie);
+    expect(res.headers.get("referrer-policy")).toBe("same-origin");
+  });
+});
+
 describe("T-Q-08 escape", () => {
   test("T-Q-08 chuỗi chứa <script> trong payload được escape khi render; CSP chặn script", async () => {
     const { app } = makeApp(db);

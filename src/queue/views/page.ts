@@ -34,7 +34,8 @@ const STATE_TEXT: Record<string, string> = {
 
 const STYLE = `body{font-family:system-ui,sans-serif;margin:0;padding:16px;max-width:960px;margin-inline:auto;color:#1b1b1b;background:#fafafa}
 .status{padding:8px 12px;border-radius:6px;margin-bottom:16px}.green{background:#e3f4e8}.yellow{background:#fff4cc}.red{background:#fde2e1}
-.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;margin:8px 0}.meta{color:#555;font-size:13px}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;margin:8px 0}.meta{color:#555;font-size:13px;overflow-wrap:anywhere}
+input,select{max-width:100%}
 form{display:inline-block;margin:4px 8px 4px 0}textarea{width:100%}pre{white-space:pre-wrap;word-break:break-word;font-size:13px}
 @media (prefers-color-scheme: dark){body{background:#151515;color:#eee}.card{background:#222;border-color:#444}.meta{color:#aaa}
 .green{background:#173d24}.yellow{background:#4a3d0a}.red{background:#4d1d1b}}`;

@@ -46,7 +46,8 @@ const SECURITY_HEADERS = {
     "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; script-src 'none'",
   "x-content-type-options": "nosniff",
   "x-frame-options": "DENY",
-  "referrer-policy": "no-referrer",
+  // same-origin, không dùng no-referrer: với no-referrer trình duyệt gửi Origin: null khi POST form và kiểm Origin chặn mọi nút.
+  "referrer-policy": "same-origin",
   "cache-control": "no-store",
 };
 
