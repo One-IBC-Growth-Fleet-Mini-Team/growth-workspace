@@ -12,6 +12,8 @@ import type { QueueUser } from "../queue/auth.ts";
 import { createGraphClient } from "../teams/graph-read.ts";
 import { ddmm, monthPeriod, previousWorkingDay, vnDate } from "../time.ts";
 import { fakeLlm } from "./fake-llm.ts";
+import { DEFAULT_COLUMN_MAP, importCrmCsv, importMessage } from "../crm/csv-import.ts";
+import { createPiiHasher } from "../pii/hash.ts";
 import type { OpportunityRow } from "../db/types.ts";
 
 export const DEMO_HOST = "127.0.0.1";
@@ -110,6 +112,15 @@ export async function createDemo(now: Date = new Date()) {
     oidc: {
       authorizationUrl: ({ state }) => `/auth/callback?state=${state}`,
       exchange: async (code) => ({ oid: code, nonce: "demo" }),
+    },
+    // Thử trang nạp CSV với bảng ghép mặc định (tên cột trùng tên trường).
+    onImport: async (files) => {
+      const r = importCrmCsv(db, files, { hasher: createPiiHasher("demo-only-hash-key-not-for-production-0123"), columns: DEFAULT_COLUMN_MAP, now: new Date() });
+      if (r.status !== "succeeded") return { ok: false, message: importMessage(r) };
+      const run = await runSa01(queueDate, { db, crm: directCrmReadTools(db), graph: null, parts: { selfReports: false, nba: true }, llm: null,
+        pricing: { model: "demo-fake-llm", inputUsdPerMTok: 0, outputUsdPerMTok: 0 },
+        evalStats: { self_report_parse: { passRate: 1, caseCount: 2 }, reason_code: { passRate: 1, caseCount: 2 }, nba: { passRate: 1, caseCount: 4 } }, trigger: "demo-import" });
+      return { ok: true, message: `${importMessage(r)} NBA: ${run.itemsCreated} mục mới.` };
     },
     // Thử trang dán tự báo với LLM giả.
     onPaste: async (text, reportDate) => {

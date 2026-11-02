@@ -3,7 +3,11 @@
 import type { Database } from "bun:sqlite";
 import {
   getAuthConfig,
+  getCrmColumnsPath,
+  getCrmSource,
   getDbPath,
+  getPhoneDefaultCountryCode,
+  getPiiHashKey,
   getEntraConfig,
   getEvalResultsDir,
   getLlmPricing,
@@ -41,7 +45,9 @@ import {
   type Session,
 } from "./auth.ts";
 import { ITEM_ACTIONS, recordItemAction, recordQueueOpened, type ItemAction } from "./items.ts";
-import { renderLoginPage, renderPastePage, renderQueuePage, type SourceStatus } from "./views/page.ts";
+import { renderImportPage, renderLoginPage, renderPastePage, renderQueuePage, type SourceStatus } from "./views/page.ts";
+import { importCrmCsv, importMessage, loadColumnMap, type CsvResource } from "../crm/csv-import.ts";
+import { createPiiHasher } from "../pii/hash.ts";
 import { previousWorkingDay } from "../time.ts";
 
 export type QueueAppDeps = {
@@ -54,12 +60,16 @@ export type QueueAppDeps = {
   passwordHashes?: Map<string, string>;
   // Xử lý văn bản tự báo Amy dán (D-24); trả số mục mới.
   onPaste?: (text: string, reportDate: string) => Promise<{ created: number }>;
+  // Nạp file CSV xuất từ CRM (D-24); trả câu báo kết quả cho Amy (không chứa giá trị ô).
+  onImport?: (files: Partial<Record<CsvResource, string>>) => Promise<{ ok: boolean; message: string }>;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
 
 const MAX_BODY = 16 * 1024;
 const MAX_PASTE_BODY = 128 * 1024;
+const MAX_IMPORT_BODY = 25 * 1024 * 1024;
+const IMPORT_FIELDS: Record<string, CsvResource> = { opportunity: "Opportunity", client: "Client", lead: "Lead", orderitem: "OrderItem" };
 const LOGIN_MAX_FAILS = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const PASSWORD_USERS: Record<string, QueueUser> = { amy: { id: "amy", role: "approver" }, mark: { id: "mark", role: "viewer" } };
@@ -179,7 +189,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         effectivePayload: latestEditPayload(deps.db, i.id) ?? i.payload,
       }));
       const src = sourceStatus(deps.db, queueDate, now());
-      const page = renderQueuePage({ queueDate, items, user, csrf: session.csrf, now: now(), canPaste: Boolean(deps.onPaste), ...src });
+      const page = renderQueuePage({ queueDate, items, user, csrf: session.csrf, now: now(), canPaste: Boolean(deps.onPaste), canImport: Boolean(deps.onImport), ...src });
       return respond(page, 200, { "content-type": "text/html; charset=utf-8" });
     }
 
@@ -190,14 +200,32 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(page, 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/import") {
+      if (!session) return redirect("/login");
+      if (userOf(session).role !== "approver" || !deps.onImport) return text(403, "Không có quyền.");
+      return respond(renderImportPage({ csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
       if (path === "/logout") return redirect("/login", [clearCookie("gw_session")], 303);
+
+      if (path === "/import") {
+        if (userOf(session).role !== "approver" || !deps.onImport) return text(403, "Không có quyền.");
+        const files: Partial<Record<CsvResource, string>> = {};
+        for (const [field, resource] of Object.entries(IMPORT_FIELDS)) {
+          const f = form.get(field);
+          if (f instanceof File && f.size > 0) files[resource] = await f.text();
+        }
+        // Nội dung file chỉ đi qua hàm xử lý trong bộ nhớ, không ghi DB nguyên văn hay ghi log.
+        const r = await deps.onImport(files);
+        return respond(renderImportPage({ csrf: session.csrf, message: r.message }), r.ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
 
       if (path === "/paste") {
         if (userOf(session).role !== "approver" || !deps.onPaste) return text(403, "Không có quyền.");
@@ -263,6 +291,28 @@ if (import.meta.main) {
     });
     return { created: r.itemsCreated };
   };
+  // Nạp CSV (D-24): ghi snapshot mới rồi sinh lại NBA cho hôm nay từ snapshot đó.
+  const columns = loadColumnMap(getCrmColumnsPath());
+  const cc = getPhoneDefaultCountryCode();
+  const hasher = createPiiHasher(getPiiHashKey(), cc ? { defaultCountryCode: cc } : {});
+  const onImport = async (files: Partial<Record<CsvResource, string>>) => {
+    const r = importCrmCsv(db, files, { hasher, columns, now: new Date() });
+    if (r.status !== "succeeded") return { ok: false, message: importMessage(r) };
+    const pricing = getLlmPricing();
+    const { stats, evalVersion } = readEvalStats(getEvalResultsDir(root));
+    const run = await runSa01(vnDate(new Date()), {
+      db,
+      crm: directCrmReadTools(db),
+      graph: null,
+      parts: { selfReports: false, nba: true },
+      llm: null,
+      pricing,
+      evalStats: stats,
+      evalVersion,
+      trigger: "csv-import",
+    });
+    return { ok: true, message: `${importMessage(r)} NBA: ${run.itemsCreated} mục mới.` };
+  };
   const app = createQueueApp({
     db,
     sessionSecret: cfg.sessionSecret,
@@ -280,8 +330,9 @@ if (import.meta.main) {
         : { authorizationUrl: () => "/login", exchange: async () => { throw new Error("OIDC_DISABLED"); } },
     passwordHashes: auth.mode === "password" ? auth.hashes : undefined,
     onPaste: getReportSource() === "paste" ? onPaste : undefined,
+    onImport: getCrmSource() === "csv" ? onImport : undefined,
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
-  Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_PASTE_BODY });
+  Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });
   log({ event: "queue.listening", count: cfg.port });
 }

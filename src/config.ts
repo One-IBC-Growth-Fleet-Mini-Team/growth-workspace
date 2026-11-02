@@ -114,6 +114,18 @@ export function getReportSource(env: Env = process.env): "paste" | "graph" {
   return v;
 }
 
+// Nguồn dữ liệu CRM (D-24): "csv" (mặc định, Amy nạp file xuất từ CRM) hoặc "api" (khi MobCEC mở API, Q-01).
+export function getCrmSource(env: Env = process.env): "csv" | "api" {
+  const v = optional(env, "CRM_SOURCE") ?? "csv";
+  if (v !== "csv" && v !== "api") throw new ConfigError("CRM_SOURCE");
+  return v;
+}
+
+// Bảng ghép cột CSV của CRM, giữ ngoài repo vì tên cột là schema nội bộ (C8). Không có file thì dùng bảng mặc định.
+export function getCrmColumnsPath(env: Env = process.env): string {
+  return optional(env, "CRM_CSV_COLUMNS_PATH") ?? "/etc/growth/crm-columns.json";
+}
+
 // App đăng ký Entra dùng chung cho đăng nhập Hàng chờ và đọc Graph (D-04). Quyền cụ thể chờ admin tenant (Q-02).
 export type EntraConfig = { tenantId: string; clientId: string; clientSecret: string };
 

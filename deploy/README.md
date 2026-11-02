@@ -4,7 +4,7 @@ Viết cho người không làm kỹ thuật. Mỗi bước có "làm gì" và "
 
 Muốn xem thử Hàng chờ trên máy tính của mình trước (không cần máy chủ, không cần tài khoản nào): xem `docs/huong-dan-demo.md`.
 
-> Chạy được ngay, không chờ ai (D-24): đăng nhập bằng mật khẩu, Amy dán tự báo trên trang. Chỉ cần máy chủ (bước 1 tới 5) và API key Claude. Phần NBA cần dữ liệu CRM: tạm thời nạp file CSV xuất từ CRM (đang làm), sau này đổi sang API của MobCEC. Khi có app Entra và quyền Teams thì đổi `AUTH_MODE=entra`, `REPORT_SOURCE=graph`.
+> Chạy được ngay, không chờ ai (D-24): đăng nhập bằng mật khẩu, Amy dán tự báo và nạp file CSV xuất từ CRM ngay trên trang. Chỉ cần máy chủ (bước 1 tới 5), API key Claude, và bảng ghép cột CRM (bước 7). Sau này đổi sang API của MobCEC bằng `CRM_SOURCE=api`. Khi có app Entra và quyền Teams thì đổi `AUTH_MODE=entra`, `REPORT_SOURCE=graph`.
 
 ## Bước 1. Tạo máy chủ (khoảng 15 phút, làm trên trang web của nhà cung cấp)
 
@@ -113,6 +113,16 @@ Làm theo câu hỏi trên màn hình:
 2. Tạo thêm remote tên đúng là **`growth-backup`**, loại `crypt`, bọc remote ở bước 1. Đặt mật khẩu mạnh, cất ở kho bí mật của tổ chức. Backup được mã hoá trước khi rời máy.
 
 Xong khi: lệnh `sudo systemctl start growth-offsite-backup.service` chạy không báo lỗi. Từ đó máy tự đẩy backup lúc 06:20 mỗi ngày.
+
+## Bước 7. Bảng ghép cột CRM (một lần, khoảng 10 phút)
+
+Để Hàng chờ đọc được file CSV xuất từ CRM, máy cần biết cột nào là gì. Tên cột của CRM là thông tin nội bộ nên không nằm trong repo.
+
+1. Xuất thử một lần các danh sách Opportunity, Client (Account), Lead, Order từ trang quản trị CRM; chép **chỉ dòng tiêu đề** (tên cột) của từng file gửi fleet kỹ thuật. Không gửi dòng dữ liệu nào.
+2. Fleet gửi lại nội dung file bảng ghép (cùng dạng `deploy/crm-columns.example.json`).
+3. Trên máy chủ: `sudo nano /etc/growth/crm-columns.json`, dán nội dung, lưu; rồi `sudo systemctl restart growth-queue`.
+
+Xong khi: đăng nhập bằng Amy, bấm "Nạp dữ liệu CRM (CSV)", chọn file Opportunity, bấm Nạp, thấy dòng "Đã nạp ... Opportunity". Nếu báo thiếu cột hoặc ô sai định dạng, câu báo ghi rõ tên cột và số dòng; gửi câu đó cho fleet.
 
 ## Các việc thường gặp
 

@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật lần cuối: 02/11/2026 (phiên 07). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+Cập nhật lần cuối: 02/11/2026 (phiên 08). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
 
 ## Mục tiêu tối thượng
 
@@ -55,18 +55,24 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Backup Growth DB: `src/db/backup.ts`, job `backup-db` (VACUUM INTO, giữ 14 bản).
   - Chạy thử `setup.sh` trên máy Ubuntu 24.04 giả lập có systemd: lần một dừng chờ cấu hình, lần hai dựng xong, lần ba chạy lại không hỏng; HTTPS qua Caddy; web chỉ nghe 127.0.0.1. `bun test`: 212 pass, 0 fail.
 
-- **Phiên 07 (02/11/2026)**: đường chạy thật sớm (D-24).
+- **Phiên 07 xong (PR #11 đã merge)**: đường chạy thật sớm (D-24).
   - Thẻ Hàng chờ dễ đọc: tự báo thành bảng số và lời khách nói, mã lý do kèm nghĩa tiếng Việt, NBA thành câu giải thích; dữ liệu kỹ thuật thu gọn.
   - Trang "Dán tự báo của RM" (`/paste`, chỉ Amy): tách theo dòng tiêu đề mẫu, xử lý qua đủ các lớp lọc PII như nguồn Graph; `REPORT_SOURCE=paste`.
   - Đăng nhập bằng mật khẩu (`AUTH_MODE=password`, argon2id, khoá sau 5 lần sai); `scripts/hash-password.ts`.
   - Bản demo có thêm trang dán. `bun test`: 220 pass, 0 fail.
 
+- **Phiên 08 (02/11/2026)**: nạp CSV xuất từ CRM cho NBA (D-24), không chờ API của MobCEC.
+  - `src/crm/csv.ts` (đọc CSV: ngoặc kép, xuống dòng trong ô, BOM, dấu chấm phẩy), `src/crm/csv-import.ts` (bảng ghép cột, đổi ngày dd/mm/yyyy, giờ hiểu theo giờ Việt Nam, rồi đi qua đúng bộ ánh xạ allowlist và băm của ETL; file gốc không lưu).
+  - Trang `/import` (chỉ Amy, có CSRF): nạp xong sinh lại NBA cho hôm nay; câu báo lỗi chỉ có tên cột và số dòng.
+  - `CRM_SOURCE=csv` (mặc định): job ETL theo API tự bỏ qua. Bảng ghép thật giữ ngoài repo (`/etc/growth/crm-columns.json`), mẫu ở `deploy/crm-columns.example.json`.
+  - `bun test`: 227 pass, 0 fail.
+
 ## Việc tiếp theo
 
-1. Harvey: tạo tài khoản Azure, dựng máy theo `deploy/README.md` (chế độ mật khẩu và dán), đặt API key Claude. Xong bước này là Amy dùng được phần tự báo và mã lý do với dữ liệu thật.
-2. Harvey gửi dòng tiêu đề cột (không có dữ liệu) của file xuất Opportunity, Client, Lead, Order từ CRM; fleet làm chức năng nạp CSV cho NBA.
+1. Harvey: dựng máy Azure theo `deploy/README.md` (bước 1 tới 7). Xong là Amy dùng thật cả tự báo, mã lý do và NBA.
+2. Harvey gửi dòng tiêu đề cột của các file xuất CRM; fleet viết bảng ghép (`deploy/README.md` bước 7).
 3. Amy xác nhận khoảng 30 ca eval để điểm tự tin không còn thấp.
-4. Song song, không chặn: gửi câu hỏi cho MobCEC (API), admin tenant (Entra, Graph); bật Secret scanning (E-02).
+4. Song song, không chặn: câu hỏi cho MobCEC (API), admin tenant (Entra, Graph); bật Secret scanning (E-02).
 
 ## Đang bị chặn
 
@@ -84,4 +90,4 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## PR đang mở
 
-- PR phiên 07 (nhánh `claude/dreamy-faraday-sw7jto`): thẻ dễ đọc, dán tự báo, đăng nhập mật khẩu (D-24); chờ `@harveyng710-source` duyệt. PR #10 đã merge.
+- PR phiên 08 (nhánh `claude/dreamy-faraday-sw7jto`): nạp CSV từ CRM cho NBA; chờ `@harveyng710-source` duyệt. PR #11 đã merge.

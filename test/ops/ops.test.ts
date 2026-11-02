@@ -177,6 +177,7 @@ describe("Preflight trước khi bật", () => {
   test("T-Q-06 (preflight) kiểm cấu hình: báo tên biến thiếu hoặc sai, không in giá trị", () => {
     const env = {
       GROWTH_DB_PATH: "/data/growth.sqlite",
+      CRM_SOURCE: "api",
       PII_HASH_KEY: "short",
       CRM_API_BASE: "https://api-crm.oneibc.com/v1",
       CRM_API_TOKEN: "secret-token-value",
