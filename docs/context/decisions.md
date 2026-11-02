@@ -14,6 +14,7 @@ File này thay cho việc chia sẻ lịch sử chat. Claude Code không đọc 
 - Dưới 0,8 escalate; tiền, gửi ra ngoài, xuất bản công khai luôn cần người duyệt.
 - Mỗi quyết định có phương án mặc định và hạn; quá hạn chỉ tự áp nếu không tốn tiền, không gửi ra ngoài.
 - Hàng chờ trong Workspace là nơi duyệt duy nhất; Teams và Claude Chat chỉ gửi link.
+- Người duyệt PR hiện là tài khoản tạm thời của chính chủ dự án; chuyển cho người kỹ thuật độc lập khi có.
 
 ## Tài khoản và sở hữu
 

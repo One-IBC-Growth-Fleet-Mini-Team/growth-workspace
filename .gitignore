@@ -5,3 +5,6 @@ node_modules/
 __pycache__/
 .venv/
 .claude/settings.local.json
+# gstack: chỉ commit mã nguồn ở .claude/skills/gstack; các skill do ./setup render ra thì bỏ qua
+.claude/skills/*
+!.claude/skills/gstack/
