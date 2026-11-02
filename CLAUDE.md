@@ -19,6 +19,22 @@ Repo này xây Growth Workspace của One IBC. Spec nguồn: `docs/spec/growth-w
 6. **Secret** chỉ nằm trong biến môi trường hoặc kho bí mật của tổ chức. Không commit `.env`.
 7. Tài liệu và comment viết tiếng Việt, không dùng dấu gạch ngang dài. Tên biến, hàm, schema bằng tiếng Anh.
 
+## Đi dây chừa ổ cắm (cổng kết nối)
+
+- Mọi kết nối ra ngoài (CRM, tự báo RM, thông báo, LLM, đăng nhập, lưu trữ; sau này ads, Teams, MCP khác) đi qua MỘT cổng (port), chọn adapter bằng biến môi trường.
+- Mỗi cổng có ít nhất một adapter chạy ngay không cần ai ngoài (csv, paste, password, sqlite, không gửi thông báo) và một adapter thật, có thể để trống hoặc stub.
+- Thêm nguồn mới = thêm một file adapter và một dòng cấu hình. Không sửa code nghiệp vụ.
+- Bảng mọi cổng, adapter đang có, adapter chờ, biến môi trường: `docs/context/ports.md`. Thêm hay đổi cổng thì cập nhật bảng trong cùng PR.
+
+## Trần độ phức tạp
+
+- Dự án chưa cần chuẩn bảo mật hay hạ tầng doanh nghiệp. Chọn cách đơn giản nhất chạy được cho người dùng hiện tại (Amy, một người). Bảo mật giữ ở mức: CRM chỉ đọc, không PII, có mật khẩu, không lộ secret. Không thêm SSO, hạ tầng hay công cụ vận hành mới khi chưa có người dùng thứ hai cần nó.
+- Không thêm dependency, chế độ đăng nhập hay cách triển khai mới nếu người chịu trách nhiệm kỹ thuật chưa yêu cầu rõ.
+- Chỉ một cách triển khai: cài trên máy Ubuntu, chạy ở localhost (`deploy/local/`, D-26). Bộ máy chủ trong `deploy/` là "để sau", không bảo trì thêm.
+- Mỗi PR dưới khoảng 400 dòng thay đổi (không tính test). Lớn hơn thì tách.
+- Không mở phạm vi mới nếu việc đó không có trong "Việc tiếp theo" của `docs/STATUS.md`.
+- Khi có hai cách, nêu cách đơn giản trước; ghi cách khó vào `docs/context/ports.md` mục "Để sau".
+
 ## Nguyên tắc viết code
 
 Nối thêm bộ Karpathy guidelines vào cuối file này khi setup (xem `docs/kickoff/setup.md`). Tóm tắt: nêu giả định trước khi code; đơn giản trước; chỉ sửa đúng chỗ cần sửa; định nghĩa tiêu chí thành công bằng test rồi lặp tới khi pass.
@@ -36,6 +52,7 @@ Nối thêm bộ Karpathy guidelines vào cuối file này khi setup (xem `docs/
 | `docs/spec/rejection-reason-codes.md` | Mi1-sa-01, phân loại lý do từ chối |
 | `docs/spec/data-contract-mobcec.md` | Sự kiện, chuỗi ID, API Internal Control |
 | `docs/context/decisions.md` | Quyết định đã chốt ngoài spec; bẫy dữ liệu đã biết |
+| `docs/context/ports.md` | Thêm hay đổi một kết nối ra ngoài |
 | `docs/kickoff/` | Đề bài từng phiên |
 | `evals/` | Bộ eval của agent nghiệp vụ |
 
