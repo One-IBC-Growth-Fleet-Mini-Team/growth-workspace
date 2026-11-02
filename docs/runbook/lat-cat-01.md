@@ -4,11 +4,13 @@ Dành cho người vận hành và người chịu trách nhiệm kỹ thuật. 
 
 ## 1. Thành phần và lịch
 
-Một container, ổ bền gắn vào `/data`. Nền tảng host lo lịch (D-03), không có thư viện cron trong tiến trình. Giờ dưới đây là giờ Việt Nam.
+Một container, ổ bền gắn vào `/data`. Nền tảng host lo lịch (D-03), không có thư viện cron trong tiến trình. Giờ dưới đây là giờ Việt Nam. Dựng máy và cài lịch: `deploy/README.md` (một lệnh `setup.sh`, chạy được trên Azure, Oracle hay máy Ubuntu khác).
 
 | Việc | Lệnh | Lịch |
 |---|---|---|
 | Web Hàng chờ | `bun run src/queue/server.ts` (lệnh mặc định của container) | Luôn chạy |
+| Backup Growth DB, giữ 14 bản | `bun run src/jobs/backup-db.ts` | 06:15 hằng ngày |
+| Đẩy backup ra kho ngoài máy (rclone, đã mã hoá) | timer `growth-offsite-backup` của máy chủ | 06:20 hằng ngày |
 | ETL CRM, chỉ đọc | `bun run src/jobs/etl-crm.ts` | 06:30 hằng ngày |
 | Dọn snapshot cũ hơn 14 ngày (D-09) | `bun run src/jobs/prune-snapshots.ts` | 06:45 hằng ngày |
 | Mi1-sa-01 | `bun run src/jobs/sa01-morning.ts` | 08:00 thứ Hai tới thứ Bảy |

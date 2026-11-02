@@ -1,0 +1,11 @@
+# Đẩy backup ra kho ngoài máy, 06:20 giờ Việt Nam
+[Unit]
+Description=Đẩy backup ra kho ngoài máy, 06:20 giờ Việt Nam
+
+[Timer]
+OnCalendar=*-*-* 06:20:00 Asia/Ho_Chi_Minh
+Persistent=true
+Unit=growth-offsite-backup.service
+
+[Install]
+WantedBy=timers.target

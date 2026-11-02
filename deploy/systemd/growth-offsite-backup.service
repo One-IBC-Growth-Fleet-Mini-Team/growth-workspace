@@ -1,0 +1,10 @@
+# Đẩy thư mục backup ra kho lưu trữ ngoài máy bằng rclone (chỉ chạy khi đã có /etc/growth/rclone.conf).
+# copy không bao giờ xoá trên kho; sau đó chỉ xoá bản cũ hơn 15 ngày, khớp thời hạn giữ 14 bản (D-09, D-12).
+[Unit]
+Description=Growth Workspace offsite backup
+ConditionPathExists=/etc/growth/rclone.conf
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rclone --config /etc/growth/rclone.conf copy /srv/growth/data/backups growth-backup:
+ExecStart=/usr/bin/rclone --config /etc/growth/rclone.conf delete --min-age 15d growth-backup:

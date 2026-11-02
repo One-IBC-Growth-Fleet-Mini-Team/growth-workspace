@@ -1,0 +1,10 @@
+# Chạy một job của Growth Workspace trong container đang chạy: %i là tên file trong src/jobs (không có .ts).
+[Unit]
+Description=Growth Workspace job %i
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/growth/host.env
+ExecStart=/usr/bin/docker compose -f /opt/growth-workspace/deploy/docker-compose.yml exec -T growth bun run src/jobs/%i.ts

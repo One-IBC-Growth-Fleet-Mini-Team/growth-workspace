@@ -194,3 +194,29 @@ describe("Preflight trước khi bật", () => {
     expect(JSON.stringify(results)).not.toContain("secret-token-value");
   });
 });
+
+describe("Backup Growth DB (Q-13)", () => {
+  test("T-Q-01 (backup) bản backup đọc được, đủ dữ liệu, trigger chỉ thêm vẫn còn; giữ đúng số bản gần nhất", async () => {
+    const { backupDb } = await import("../../src/db/backup.ts");
+    const { mkdtempSync, readdirSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "gw-backup-"));
+    try {
+      const db = freshDb();
+      seedItem(db);
+      const days = ["2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23"];
+      for (const d of days) backupDb(db, dir, new Date(`${d}T22:30:00Z`), 3);
+      const files = readdirSync(dir).sort();
+      expect(files).toEqual(["growth-2026-10-21T223000Z.sqlite", "growth-2026-10-22T223000Z.sqlite", "growth-2026-10-23T223000Z.sqlite"]);
+      const copy = openReadWrite(join(dir, files.at(-1)!));
+      expect(count(copy, "SELECT COUNT(*) AS n FROM queue_items")).toBe(1);
+      expect(() => copy.run("DELETE FROM queue_items")).toThrow(/append_only/);
+      expect((copy.query("PRAGMA integrity_check").get() as { integrity_check: string }).integrity_check).toBe("ok");
+      copy.close();
+      expect(() => backupDb(db, dir, new Date("2026-10-23T22:30:00Z"), 3)).toThrow(/BACKUP_EXISTS/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

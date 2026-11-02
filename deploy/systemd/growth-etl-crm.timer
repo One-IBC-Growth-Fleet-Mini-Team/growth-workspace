@@ -1,0 +1,11 @@
+# ETL CRM chỉ đọc hằng ngày, 06:30 giờ Việt Nam
+[Unit]
+Description=ETL CRM chỉ đọc hằng ngày, 06:30 giờ Việt Nam
+
+[Timer]
+OnCalendar=*-*-* 06:30:00 Asia/Ho_Chi_Minh
+Persistent=true
+Unit=growth-job@etl-crm.service
+
+[Install]
+WantedBy=timers.target

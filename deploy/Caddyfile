@@ -1,0 +1,13 @@
+# HTTPS cho Hàng chờ. Caddy tự xin và gia hạn chứng chỉ cho QUEUE_DOMAIN (cổng 80 và 443 phải mở).
+{
+	email {$ACME_EMAIL}
+}
+
+{$QUEUE_DOMAIN} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy growth:3000
+}
