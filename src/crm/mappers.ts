@@ -44,9 +44,13 @@ function optDate(r: Raw, field: string, what: string): string | null {
 }
 
 // Múi giờ của trường thời gian [ĐỐI CHIẾU SCHEMA]; lưu dạng ISO 8601 UTC.
+// Bắt buộc có múi giờ (Z hoặc ±hh:mm): không đoán theo múi giờ của máy chạy.
+const TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/;
+
 function optTimestamp(r: Raw, field: string, what: string): string | null {
   const v = optString(r, field, what);
   if (v === null) return null;
+  if (!TIMESTAMP_RE.test(v)) throw new CrmMappingError(`${what}.${field}`);
   const ms = Date.parse(v);
   if (Number.isNaN(ms)) throw new CrmMappingError(`${what}.${field}`);
   return new Date(ms).toISOString();

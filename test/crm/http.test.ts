@@ -83,6 +83,20 @@ describe("T-CRM-03 host và redirect", () => {
     expect(f.calls.length).toBe(0);
   });
 
+  test("T-CRM-03 loopback chỉ được phép khi NODE_ENV=test", async () => {
+    const f = fakeFetch(() => Response.json({}));
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      await expect(crmGet("Lead", {}, opts(f.impl, "http://127.0.0.1:9/api"))).rejects.toMatchObject({
+        code: "CRM_HOST_NOT_ALLOWED",
+      });
+    } finally {
+      process.env.NODE_ENV = prev;
+    }
+    expect(f.calls.length).toBe(0);
+  });
+
   test("T-CRM-03 redirect sang host khác bị từ chối, không đi theo", async () => {
     const f = fakeFetch(() => new Response(null, { status: 302, headers: { Location: "https://evil.example/x" } }));
     await expect(crmGet("Lead", {}, opts(f.impl))).rejects.toMatchObject({ code: "CRM_REDIRECT" });

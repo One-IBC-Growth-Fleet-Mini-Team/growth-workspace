@@ -94,6 +94,12 @@ describe("T-PII-03 R3 chặn tên còn sót", () => {
     expect(guardOutput({ note: "Johnathan Doe hỏi giá" }).pii_check).toBe("blocked");
   });
 
+  test("T-PII-03 họ, tên Việt trùng từ nhãn mẫu (Hồ, Nam, Bảo, Đăng, Thông) vẫn bị chặn", () => {
+    for (const note of ["chị Bảo Nam hỏi giá", "anh Hồ chê phí", "khách Đăng Thông cần gấp", "anh Gia hỏi lại"]) {
+      expect({ note, r: guardOutput({ note }).pii_check }).toEqual({ note, r: "blocked" });
+    }
+  });
+
   test("T-PII-03 R1 được chạy lại: email hoặc SĐT sót trong đầu ra thì blocked", () => {
     expect(guardOutput({ note: "gửi canary+1@example.invalid" }).pii_check).toBe("blocked");
     expect(guardOutput({ a: [{ b: "gọi +44 7700 900123" }] }).pii_check).toBe("blocked");

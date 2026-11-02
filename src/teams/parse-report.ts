@@ -6,6 +6,7 @@
 // Mọi văn bản đầu ra đã qua R1 (redact-regex), nên thứ gửi tiếp cho LLM không còn email, SĐT.
 // Dòng tiêu đề bị bỏ (chỉ giữ dd/mm); tác giả map bằng teams_user_id, không bằng tên trong tiêu đề.
 import { addStats, emptyStats, redactR1, type RedactionStats } from "../pii/redact-regex.ts";
+import { fold } from "../pii/name-guard.ts";
 import type { TeamsMessage } from "./graph-read.ts";
 
 export const PARSER_VERSION = "parse-report/0.1.0";
@@ -35,13 +36,7 @@ function foldWithMap(s: string): { folded: string; map: number[] } {
   let folded = "";
   const map: number[] = [];
   for (let i = 0; i < s.length; i++) {
-    const f = s[i]!
-      .normalize("NFD")
-      .replace(/\p{M}/gu, "")
-      .replace(/đ/g, "d")
-      .replace(/Đ/g, "D")
-      .toUpperCase();
-    for (const ch of f) {
+    for (const ch of fold(s[i]!)) {
       folded += ch;
       map.push(i);
     }
@@ -82,12 +77,14 @@ function matchLabel(line: string): { key: SectionKey; rest: string } | null {
   for (const { key, re } of LABEL_MATCHERS) {
     const m = re.exec(folded);
     if (!m) continue;
-    const rest = body
-      .slice(map[m[0].length])
-      .replace(/^[*_]+/, "")
-      .replace(/^[\s:：\-\u2013\u2014]+/u, "")
-      .trim();
-    return { key, rest };
+    const labelText = body.slice(0, map[m[0].length]);
+    const after = body.slice(map[m[0].length]).replace(/^[*_]+/, "");
+    // Câu tự do bắt đầu bằng từ của nhãn ("Báo giá đã gửi ...") không phải nhãn: nhãn phải có
+    // dấu phân cách theo sau, đứng một mình, hoặc được viết hoa toàn bộ như mẫu.
+    const hasSeparator = /^\s*([:：\-\u2013\u2014]|$)/u.test(after);
+    const isUpper = labelText === labelText.toUpperCase();
+    if (!hasSeparator && !isUpper) return null;
+    return { key, rest: after.replace(/^[\s:：\-\u2013\u2014]+/u, "").trim() };
   }
   return null;
 }

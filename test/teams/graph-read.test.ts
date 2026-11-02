@@ -25,6 +25,7 @@ function routes(extra: SyntheticGraphMessage[] = []) {
   return {
     [`${BASE}?$top=50`]: { value: [otherRoot], "@odata.nextLink": `https://graph.microsoft.com${BASE}?$top=50&$skiptoken=p2` },
     [`${BASE}?$top=50&$skiptoken=p2`]: { value: [root] },
+    [`${BASE}/root_3110/replies?$top=50`]: { value: [] },
     [`${BASE}/root_0111/replies?$top=50`]: {
       value: [reply("r1", "aad_a", "TIẾP CẬN: 3")],
       "@odata.nextLink": `https://graph.microsoft.com${BASE}/root_0111/replies?$top=50&$skiptoken=r2`,
@@ -62,6 +63,14 @@ describe("T-TEAMS-01 Graph chỉ GET", () => {
     expect(thread!.rootId).toBe("root_0111");
     expect(thread!.replies.map((r) => r.messageId)).toEqual(["r1", "r2"]);
     expect(thread!.replies[0]!.authorTeamsUserId).toBe("aad_a");
+  });
+
+  test("T-TEAMS-01 thấy tin gốc ở trang đầu thì không đọc tiếp các trang tin gốc", async () => {
+    const g = fakeGraph(routes());
+    const client = createGraphClient({ getToken: async () => "t", fetchImpl: g.impl });
+    const thread = await readDailyThread(client, { teamId: TEAM_ID, channelId: CHANNEL_ID, reportDate: "2026-10-31" });
+    expect(thread!.rootId).toBe("root_3110");
+    expect(g.calls.filter((c) => !c.url.includes("/replies")).length).toBe(1);
   });
 
   test("T-TEAMS-01 không có thread ngày đó thì trả null", async () => {

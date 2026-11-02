@@ -69,6 +69,13 @@ describe("T-PARSE-02 biến thể", () => {
     expect(p.sections.outreach).toEqual(["5", "Báo giáo viên xong"]);
   });
 
+  test("T-PARSE-02 câu tự do bắt đầu bằng từ của nhãn không mở mục mới; nhãn viết hoa không dấu hai chấm vẫn nhận", () => {
+    const p = parseReport("HỘI THOẠI: 3\nBáo giá đã gửi cho 2 khách\nkhách nói chung là ổn\nBÁO GIÁ 1 HK", "text");
+    expect(p.sections.conversations).toEqual(["3", "Báo giá đã gửi cho 2 khách", "khách nói chung là ổn"]);
+    expect(p.sections.quotes).toEqual(["1 HK"]);
+    expect(p.sections.customer_said).toBeUndefined();
+  });
+
   test("T-PARSE-02 hai reply của cùng RM gộp theo thứ tự thời gian", () => {
     const out = parseDailyReplies([
       msg("r2", "aad_a", "BÁO GIÁ: 1 HK\nTIẾP CẬN: 2", "2026-11-01T12:00:00Z"),

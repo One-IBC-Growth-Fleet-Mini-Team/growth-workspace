@@ -13,6 +13,21 @@ function toSecond(iso: string): string | null {
   return new Date(ms).toISOString().slice(0, 19);
 }
 
+// Bảng đếm số Opportunity theo giây, tính một lần cho mỗi mảng snapshot (tránh O(n²) khi gọi cho từng deal).
+const secondCountsCache = new WeakMap<readonly OpportunityRow[], Map<string, number>>();
+
+function secondCounts(snapshot: readonly OpportunityRow[]): Map<string, number> {
+  let counts = secondCountsCache.get(snapshot);
+  if (counts) return counts;
+  counts = new Map();
+  for (const o of snapshot) {
+    const s = o.last_modified_at === null ? null : toSecond(o.last_modified_at);
+    if (s !== null) counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  secondCountsCache.set(snapshot, counts);
+  return counts;
+}
+
 export function rmActiveOnDeal(
   opportunity: OpportunityRow,
   snapshot: readonly OpportunityRow[],
@@ -25,9 +40,5 @@ export function rmActiveOnDeal(
   if (opportunity.last_modified_at === null) return false;
   const second = toSecond(opportunity.last_modified_at);
   if (second === null) return false;
-  let sameSecond = 0;
-  for (const o of snapshot) {
-    if (o.last_modified_at !== null && toSecond(o.last_modified_at) === second) sameSecond++;
-  }
-  return sameSecond < params.bulkThreshold;
+  return (secondCounts(snapshot).get(second) ?? 0) < params.bulkThreshold;
 }

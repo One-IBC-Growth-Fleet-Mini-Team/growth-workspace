@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Database } from "bun:sqlite";
 import { openReadWrite } from "../../src/db/open.ts";
 import { migrate } from "../../src/db/migrate.ts";
-import { runCrmEtl } from "../../src/crm/etl.ts";
+import { pullScope, runCrmEtl } from "../../src/crm/etl.ts";
 import { CrmMappingError, mapClient, mapLead, mapOpportunity, mapOrderItem } from "../../src/crm/mappers.ts";
 import { createPiiHasher } from "../../src/pii/hash.ts";
 import { setLogSink } from "../../src/log.ts";
@@ -95,6 +95,24 @@ describe("T-CRM-05 ETL với CRM giả", () => {
     expect(q("/api/Client").get("has_order")).toBe("true");
   });
 
+  test("T-CRM-05 bản ghi trùng id giữa các trang không làm hỏng run", async () => {
+    const data = {
+      ...RAW_BY_RESOURCE,
+      Opportunity: [...RAW_OPPORTUNITIES, RAW_OPPORTUNITIES[0]],
+      Client: [...RAW_CLIENTS, RAW_CLIENTS[1]],
+      Lead: [...RAW_LEADS, RAW_LEADS[0]],
+    };
+    crm = startFakeCrm({ pageSize: 1, data });
+    const result = await runCrmEtl({ db, crm: { baseUrl: crm.baseUrl, token: "t", sleep: noSleep }, hasher, now: NOW });
+    expect(result.status).toBe("succeeded");
+    expect(result.rowCounts).toEqual({ opportunity: 2, client: 2, lead: 2, client_service: 2 });
+  });
+
+  test("T-CRM-05 phạm vi 13 tháng không tràn ngày cuối tháng", () => {
+    expect(pullScope(new Date("2026-12-31T06:30:00Z")).closeDateFrom).toBe("2025-11-30");
+    expect(pullScope(new Date("2027-03-31T06:30:00Z")).closeDateFrom).toBe("2026-02-28");
+  });
+
   test("T-CRM-05 401 từ CRM: run failed với CRM_AUTH, snapshot cũ giữ nguyên", async () => {
     crm = startFakeCrm({ pageSize: 10 });
     const first = await runCrmEtl({ db, crm: { baseUrl: crm.baseUrl, token: "t", sleep: noSleep }, hasher, now: NOW });
@@ -179,6 +197,8 @@ describe("T-MAP-02 allowlist và thiếu trường", () => {
       () => mapLead({ Email: "canary+1@example.invalid" }, hasher),
       () => mapOrderItem({ Order: { AccountId: "C" } }),
       () => mapOpportunity(null),
+      // Thời gian không có múi giờ bị từ chối, không đoán theo múi giờ của máy chạy.
+      () => mapOpportunity({ Id: "X", StageName: "S1", LastModifiedDate: "2026-10-30T03:15:42" }),
     ];
     for (const run of cases) {
       let err: unknown;

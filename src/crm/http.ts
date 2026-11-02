@@ -17,7 +17,8 @@ const RESOURCE_PATHS: Record<CrmResource, string> = {
   OrderItem: "OrderItem",
 };
 
-// Host CRM được phép (https). Loopback chỉ để chạy CRM giả trong test.
+// Host CRM được phép (https). Loopback chỉ được phép khi NODE_ENV=test (bun test tự đặt),
+// để chạy CRM giả trong test; môi trường chạy thật không gọi được loopback.
 const ALLOWED_HOSTS = new Set(["api-crm.oneibc.com"]);
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 
@@ -62,7 +63,9 @@ function checkedBase(baseUrl: string): URL {
   }
   const allowed =
     (url.protocol === "https:" && ALLOWED_HOSTS.has(url.hostname)) ||
-    ((url.protocol === "http:" || url.protocol === "https:") && LOOPBACK_HOSTS.has(url.hostname));
+    (process.env.NODE_ENV === "test" &&
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      LOOPBACK_HOSTS.has(url.hostname));
   if (!allowed || url.username || url.password) throw new CrmError("CRM_HOST_NOT_ALLOWED");
   return url;
 }

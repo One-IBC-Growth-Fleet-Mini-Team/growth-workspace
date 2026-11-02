@@ -33,7 +33,7 @@ const BASE_ALLOWLIST = [
   // Tài phán và quốc gia thường gặp (tách từng từ)
   "SAMOA", "WS", "BVI", "BRITISH", "VIRGIN", "ISLANDS", "ISLAND", "HONG", "KONG", "HK", "SINGAPORE", "SG",
   "SEYCHELLES", "SC", "CAYMAN", "KY", "DELAWARE", "WYOMING", "US", "USA", "UK", "ANGUILLA", "BELIZE",
-  "PANAMA", "MARSHALL", "LABUAN", "MALAYSIA", "VIETNAM", "VIET", "NAM", "VN", "DUBAI", "UAE", "CYPRUS",
+  "PANAMA", "MARSHALL", "LABUAN", "MALAYSIA", "VIETNAM", "VN", "DUBAI", "UAE", "CYPRUS",
   "MAURITIUS", "NEVIS", "KITTS", "ESTONIA", "MALTA", "IRELAND", "AUSTRALIA", "CANADA", "CHINA", "TAIWAN",
   "JAPAN", "KOREA", "THAILAND", "INDONESIA", "PHILIPPINES", "INDIA", "EU", "EUROPE", "ASIA",
   // Sản phẩm, dịch vụ, nhóm
@@ -45,8 +45,9 @@ const BASE_ALLOWLIST = [
   "LINKEDIN", "FACEBOOK", "WHATSAPP", "ZALO", "TELEGRAM", "TEAMS", "GOOGLE", "ZOOM", "WECHAT", "EMAIL", "GMAIL",
   // Tiền tệ
   "USD", "VND", "HKD", "SGD", "EUR", "GBP", "AUD",
-  // Nhãn mẫu tự báo (đã gấp chữ)
-  "TIEP", "CAN", "DANG", "BAI", "HOI", "THOAI", "BAO", "GIA", "KHACH", "NOI", "CHUA", "LEN", "HE", "THONG", "HO", "TRO",
+  // Không đưa từ của nhãn mẫu (TIẾP CẬN, BÁO GIÁ, ...) vào đây: sau khi gấp chữ chúng trùng
+  // họ, tên Việt phổ biến (Hồ, Nam, Bảo, Đăng, Thông, Gia). Chỉ "KHÁCH" là an toàn.
+  "KHACH",
   // Placeholder của R1 (đã gấp chữ)
   "SDT", "GIAY_TO", "NGAY_SINH", "URL",
   // Mã lý do từ chối v0.1 (docs/spec/rejection-reason-codes.md)

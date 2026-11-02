@@ -102,19 +102,26 @@ type GraphMessage = {
   webUrl?: unknown;
 };
 
-async function listAll(client: GraphClient, firstPath: string): Promise<GraphMessage[]> {
-  const out: GraphMessage[] = [];
+// Đọc lần lượt từng trang; dừng khi hết trang hoặc khi stop() thấy thứ cần tìm.
+async function listPages(
+  client: GraphClient,
+  firstPath: string,
+  stop: (page: GraphMessage[]) => boolean = () => false,
+): Promise<{ messages: GraphMessage[]; complete: boolean }> {
+  const messages: GraphMessage[] = [];
   let next: string | null = firstPath;
   let pages = 0;
   while (next) {
-    if (pages >= MAX_PAGES) throw new GraphError("GRAPH_PAGE_LIMIT");
+    if (pages >= MAX_PAGES) return { messages, complete: false };
     const body = (await client.get(next)) as { value?: unknown; "@odata.nextLink"?: unknown } | null;
     pages++;
     if (!body || !Array.isArray(body.value)) throw new GraphError("GRAPH_BAD_RESPONSE");
-    out.push(...(body.value as GraphMessage[]));
+    const page = body.value as GraphMessage[];
+    messages.push(...page);
+    if (stop(page)) return { messages, complete: true };
     next = typeof body["@odata.nextLink"] === "string" ? body["@odata.nextLink"] : null;
   }
-  return out;
+  return { messages, complete: true };
 }
 
 function toTeamsMessage(m: GraphMessage, rootId: string): TeamsMessage | null {
@@ -153,11 +160,17 @@ export async function readDailyThread(
 ): Promise<DailyThread | null> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(params.reportDate)) throw new RangeError("reportDate must be YYYY-MM-DD");
   const base = `${PATH_PREFIX}${encodeURIComponent(params.teamId)}/channels/${encodeURIComponent(params.channelId)}/messages`;
-  const roots = await listAll(client, `${base}?$top=50`);
-  const root = roots.find((m) => !m.deletedDateTime && typeof m.id === "string" && rootMatchesDate(m, params.reportDate));
+  const isRoot = (m: GraphMessage) =>
+    !m.deletedDateTime && typeof m.id === "string" && rootMatchesDate(m, params.reportDate);
+  // Tin gốc: dừng ngay khi thấy; quá MAX_PAGES trang mà chưa thấy thì coi như không có thread.
+  // [ĐỐI CHIẾU SCHEMA] Giả định Graph trả tin mới trước; cần kiểm khi có quyền đọc (STATUS b).
+  const roots = await listPages(client, `${base}?$top=50`, (page) => page.some(isRoot));
+  const root = roots.messages.find(isRoot);
   if (!root) return null;
   const rootId = root.id as string;
-  const raw = await listAll(client, `${base}/${encodeURIComponent(rootId)}/replies?$top=50`);
+  const replyPages = await listPages(client, `${base}/${encodeURIComponent(rootId)}/replies?$top=50`);
+  if (!replyPages.complete) throw new GraphError("GRAPH_PAGE_LIMIT");
+  const raw = replyPages.messages;
   const replies = raw.map((m) => toTeamsMessage(m, rootId)).filter((m): m is TeamsMessage => m !== null);
   return { rootId, rootWebUrl: typeof root.webUrl === "string" ? root.webUrl : "", replies };
 }

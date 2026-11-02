@@ -19,7 +19,10 @@ import { log } from "../log.ts";
 export type CrmPullScope = { closeDateFrom: string; leadCreatedFrom: string };
 
 export function pullScope(now: Date): CrmPullScope {
-  const close = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 13, now.getUTCDate()));
+  // Lùi 13 tháng; ngày vượt số ngày của tháng đích thì lấy ngày cuối tháng (31/12 thành 30/11).
+  const target = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 13, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  const close = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), Math.min(now.getUTCDate(), lastDay)));
   const lead = new Date(now.getTime() - 180 * 24 * 3600 * 1000);
   return { closeDateFrom: close.toISOString().slice(0, 10), leadCreatedFrom: lead.toISOString().slice(0, 10) };
 }
@@ -111,18 +114,30 @@ export async function runCrmEtl(deps: EtlDeps): Promise<EtlResult> {
   log({ event: "etl.started", run_id: etlRunId });
 
   const snap: CrmSnapshot = { opportunities: [], clients: [], leads: [], clientServices: [] };
-  const serviceKeys = new Set<string>();
+  // Phân trang trên dữ liệu đang thay đổi có thể trả cùng bản ghi ở hai trang: giữ bản đầu tiên.
+  const seen = new Set<string>();
+  const addOnce = <T>(list: T[], key: string, row: T) => {
+    if (seen.has(key)) return;
+    seen.add(key);
+    list.push(row);
+  };
   try {
     const scope = pullScope(startedAt);
-    await pullResource("Opportunity", pullDeps, scope, (r) => snap.opportunities.push(mapOpportunity(r)));
-    await pullResource("Client", pullDeps, scope, (r) => snap.clients.push(mapClient(r)));
-    await pullResource("Lead", pullDeps, scope, (r) => snap.leads.push(mapLead(r, deps.hasher)));
+    await pullResource("Opportunity", pullDeps, scope, (r) => {
+      const row = mapOpportunity(r);
+      addOnce(snap.opportunities, `o\u0000${row.opportunity_id}`, row);
+    });
+    await pullResource("Client", pullDeps, scope, (r) => {
+      const row = mapClient(r);
+      addOnce(snap.clients, `c\u0000${row.client_id}`, row);
+    });
+    await pullResource("Lead", pullDeps, scope, (r) => {
+      const row = mapLead(r, deps.hasher);
+      addOnce(snap.leads, `l\u0000${row.lead_id}`, row);
+    });
     await pullResource("OrderItem", pullDeps, scope, (r) => {
       const row = mapOrderItem(r);
-      const key = `${row.client_id}\u0000${row.product_family}`;
-      if (serviceKeys.has(key)) return;
-      serviceKeys.add(key);
-      snap.clientServices.push(row);
+      addOnce(snap.clientServices, `s\u0000${row.client_id}\u0000${row.product_family}`, row);
     });
     const rowCounts = insertSnapshotSucceeded(deps.db, etlRunId, snap, now().toISOString());
     log({ event: "etl.succeeded", run_id: etlRunId, count: rowCounts.opportunity });
