@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật lần cuối: 02/11/2026 (phiên 04). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+Cập nhật lần cuối: 02/11/2026 (phiên 05). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
 
 ## Trạng thái hiện tại
 
@@ -27,7 +27,7 @@ Cập nhật lần cuối: 02/11/2026 (phiên 04). Quy ước: agent hoặc ngư
   - Lệch thiết kế cần người duyệt xác nhận: (1) NBA đọc thêm trường bổ sung (`last_modified_at`, ngành, dịch vụ đã mua, khách cũ) thẳng từ snapshot, vì 3 tool MCP không trả các trường này; danh sách Opportunity vẫn chỉ đến từ `get_pipeline_by_close_date` (luật 5). (2) `find_duplicate_leads` chỉ nhận `lead_id`: snapshot chưa có liên kết Lead với Client nên `NBA_X_DUP` chưa kích hoạt khi chạy thật ([ĐỐI CHIẾU SCHEMA]).
   - Giá trị tạm chờ chốt: tên Stage đã đóng và trọng số Stage (Q-09), giới hạn 20 mục NBA (Q-10), mã ngành bị hạ ưu tiên (Q-14), định dạng thân tin webhook (Q-11).
 
-- **Phiên 04 (02/11/2026)**: bước 9, phần làm được khi chưa có nguồn thật. Test trước, chỉ dữ liệu tổng hợp.
+- **Phiên 04 xong (PR #7 đã merge)**: bước 9, phần làm được khi chưa có nguồn thật. Test trước, chỉ dữ liệu tổng hợp.
   - Dọn snapshot cũ hơn 14 ngày (D-09): `src/db/prune.ts`, job `src/jobs/prune-snapshots.ts`; không bao giờ xoá snapshot succeeded mới nhất.
   - Xoá có kiểm soát (D-12): `src/db/redact.ts` và lệnh chạy tay `scripts/redact-row.ts`; bảng kiểm toán `redaction_log` (migration 002, chỉ thêm). Test tĩnh: chỉ `scripts/` dùng được.
   - Danh bạ RM (Q-07): `src/db/rm-directory.ts` và `scripts/load-rm-directory.ts`, nạp từ file JSON giữ ngoài repo.
@@ -39,13 +39,18 @@ Cập nhật lần cuối: 02/11/2026 (phiên 04). Quy ước: agent hoặc ngư
   - Chưa làm: thêm `nba_priority`, `cost_usd`, `compute_confidence` vào `docs/spec/metric-definitions.md` (CLAUDE.md quy tắc 3; đổi định nghĩa cần PR riêng, Mark duyệt).
   - `bun test`: 208 pass, 0 fail.
 
+- **Phiên 05 (02/11/2026)**: CI và gom việc chờ người.
+  - CI GitHub Actions `.github/workflows/test.yml`: `bun test` và `tsc --strict` trên mỗi PR vào `main`; typecheck cài `typescript` tạm trong job, không đổi `package.json` (D-18).
+  - Sổ quyết định còn mở D-14 tới D-22: `docs/context/so-quyet-dinh-mo.md`.
+  - Câu hỏi mở gom theo người nhận (MobCEC, admin tenant, Amy, Mark, kỹ thuật): `docs/context/cau-hoi-mo-lat-cat-01.md`.
+  - PR riêng tiếp theo: thêm `nba_priority`, `cost_usd`, `compute_confidence` vào `docs/spec/metric-definitions.md` (D-22, CLAUDE.md quy tắc 3).
+
 ## Việc tiếp theo
 
-1. Phần còn lại của bước 9 cần nguồn thật, làm theo `docs/runbook/lat-cat-01.md` mục 2: gỡ chặn a, b; đối chiếu schema; nạp danh bạ RM; Amy xác nhận khoảng 30 ca eval; `bun run preflight -- --network` xanh; chạy thử một tuần chỉ Mark xem; bật cho Amy.
-2. Chọn nền tảng host container, ổ bền, mã hoá và backup (Q-13).
-3. Mang các câu Q-01 tới Q-16 cho Amy, MobCEC, admin tenant; trả lời Q-09, Q-10, Q-14 để thay giá trị tạm trong `src/config.ts`.
-4. Mark quyết finding R3 còn mở (tên khách một từ ở đầu câu) và hai lệch thiết kế ghi ở phiên 03.
-5. Bật Secret scanning và Push protection cho repo. Người làm: admin repo.
+1. Mark gửi `docs/context/cau-hoi-mo-lat-cat-01.md` cho từng người nhận, trả lời Sổ quyết định D-14 tới D-22.
+2. Merge PR định nghĩa chỉ số (D-22).
+3. Khi có câu trả lời: sửa giá trị tạm theo cột "Mặc định hiện tại", làm checklist bật cho Amy ở `docs/runbook/lat-cat-01.md` mục 2.
+4. Bật Secret scanning và Push protection cho repo. Người làm: admin repo.
 
 ## Đang bị chặn
 
@@ -63,4 +68,4 @@ Cập nhật lần cuối: 02/11/2026 (phiên 04). Quy ước: agent hoặc ngư
 
 ## PR đang mở
 
-- PR phiên 04 (nhánh `claude/dreamy-faraday-sw7jto`): bước 9 phần không cần nguồn thật, chờ `@harveyng710-source` duyệt. PR #6 (phiên 03) đã merge.
+- PR phiên 05 (nhánh `claude/dreamy-faraday-sw7jto`): CI, sổ quyết định còn mở, gói câu hỏi; chờ `@harveyng710-source` duyệt. PR #7 (phiên 04) đã merge. PR định nghĩa chỉ số mở sau khi PR này merge.

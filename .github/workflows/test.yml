@@ -1,0 +1,47 @@
+# CI cho Growth Workspace: chạy bộ test và typecheck trên mỗi PR vào main.
+# Không cần secret nào: mọi test chạy trên dữ liệu tổng hợp, không gọi mạng thật, không gọi LLM thật.
+name: test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - run: bun test
+
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      # typescript và @types/bun cài tạm ngoài repo, không thêm vào package.json (D-01; xem D-18).
+      - name: tsc --strict
+        run: |
+          TC="$RUNNER_TEMP/tc"
+          mkdir -p "$TC" && cd "$TC" && echo '{}' > package.json
+          bun add typescript@5.6.3 @types/bun@1.2.5 > /dev/null
+          cat > tsconfig.json <<JSON
+          { "extends": "$GITHUB_WORKSPACE/tsconfig.json",
+            "compilerOptions": { "types": ["bun"], "typeRoots": ["$TC/node_modules/@types"],
+              "baseUrl": "$GITHUB_WORKSPACE", "paths": { "*": ["$GITHUB_WORKSPACE/node_modules/*"] } },
+            "include": ["$GITHUB_WORKSPACE/src", "$GITHUB_WORKSPACE/test", "$GITHUB_WORKSPACE/scripts"] }
+          JSON
+          ./node_modules/.bin/tsc -p tsconfig.json
