@@ -124,6 +124,8 @@ Xong khi: lệnh `sudo systemctl start growth-offsite-backup.service` chạy kh�
 
 Xong khi: đăng nhập bằng Amy, bấm "Nạp dữ liệu CRM (CSV)", chọn file Opportunity, bấm Nạp, thấy dòng "Đã nạp ... Opportunity". Nếu báo thiếu cột hoặc ô sai định dạng, câu báo ghi rõ tên cột và số dòng; gửi câu đó cho fleet.
 
+File Work Order cho trang "WO tồn đọng" (D-25) dùng sẵn tên cột chuẩn của báo cáo Work Order trên CRM ("Work Order Number", "Status", "Created Date", "Product: Product Name") và cột "PIC Mới" trong sheet của Bank Team, nên thường không cần bảng ghép. Chỉ khi tên cột khác mới thêm mục `WorkOrder` hoặc `WorkOrderPic` vào bảng ghép (xem file mẫu).
+
 ## Các việc thường gặp
 
 | Muốn | Lệnh |

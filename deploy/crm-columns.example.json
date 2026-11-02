@@ -25,5 +25,15 @@
   "OrderItem": {
     "Order.AccountId": "Account ID",
     "Product2.Family": "Product Family"
+  },
+  "WorkOrder": {
+    "WorkOrderNumber": "Work Order Number",
+    "Status": "Status",
+    "CreatedDate": { "column": "Created Date", "format": "dd/mm/yyyy" },
+    "ProductName": "Product: Product Name"
+  },
+  "WorkOrderPic": {
+    "WorkOrderNumber": "Work Order Number",
+    "Pic": "PIC Mới"
   }
 }

@@ -2,6 +2,7 @@
 import { METRIC_PARAMS } from "../../config.ts";
 import { REASON_CODES, REASON_LABELS, type ReasonCode } from "../../agents/sa-01/catalog.ts";
 import type { QueueEventRow, QueueItemRow } from "../../db/queue.ts";
+import { WO_TOUCH_REASONS, type WoBoardRow } from "../../db/wo.ts";
 import { ddmm } from "../../time.ts";
 import type { QueueUser } from "../auth.ts";
 import { NBA_ACTIONS, RM_OUTCOMES } from "../items.ts";
@@ -189,6 +190,7 @@ export function renderQueuePage(args: {
   status: SourceStatus;
   canPaste?: boolean;
   canImport?: boolean;
+  canWo?: boolean;
 }): string {
   const visible = args.items.filter((i) => i.state !== "pii_flag");
   const statusText =
@@ -196,7 +198,7 @@ export function renderQueuePage(args: {
   const body = html`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hàng chờ ${ddmm(args.queueDate)}</title><style>${new SafeHtml(STYLE)}</style></head><body>
 <h1>Hàng chờ ngày ${ddmm(args.queueDate)}</h1>
-${args.user.role === "approver" && (args.canPaste || args.canImport) ? html`<nav>${args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}</nav>` : ""}
+<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}</nav>
 <div class="status ${args.status}">${statusText} · Snapshot CRM: ${args.snapshotAt ?? "chưa có"} · Người dùng: ${args.user.id}</div>
 ${GROUPS.map((g) => {
     const list = visible.filter((i) => i.item_type === g.type);
@@ -231,16 +233,54 @@ ${args.message ? html`<p class="warn">${args.message}</p>` : ""}
 <button type="submit">Xử lý</button> <a href="/queue">Quay lại Hàng chờ</a></form>`);
 }
 
-export function renderImportPage(args: { csrf: string; message: string | null }): string {
+export function renderImportPage(args: { csrf: string; message: string | null; crm?: boolean; wo?: boolean }): string {
+  const crm = args.crm ?? true;
   const file = (name: string, label: string, note: string) =>
     html`<label>${label} <input type="file" name="${name}" accept=".csv,text/csv"> <span class="meta">${note}</span></label>`;
   return shell("Nạp dữ liệu CRM", html`<h1>Nạp dữ liệu CRM (CSV)</h1>
-<p>Xuất danh sách từ trang quản trị CRM. Nếu file là Excel, mở bằng Excel rồi chọn "Lưu thành", định dạng "CSV UTF-8". File Opportunity là bắt buộc; ba file còn lại có thì nạp. Chỉ những cột cần cho NBA được đọc; email và số điện thoại được mã hoá ngay khi nạp; file gốc không được lưu. Nạp xong, NBA của hôm nay được sinh lại từ dữ liệu mới.</p>
+<p>Xuất danh sách từ trang quản trị CRM. Nếu file là Excel, mở bằng Excel rồi chọn "Lưu thành", định dạng "CSV UTF-8". Chỉ những cột cần dùng được đọc; email và số điện thoại được mã hoá ngay khi nạp; file gốc không được lưu.</p>
 ${args.message ? html`<p class="warn">${args.message}</p>` : ""}
 <form method="post" action="/import" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
-${file("opportunity", "Opportunity", "bắt buộc")}
+${crm ? html`<h2>Cho NBA</h2><p class="meta">File Opportunity là bắt buộc nếu nạp nhóm này; ba file còn lại có thì nạp. Nạp xong, NBA của hôm nay được sinh lại.</p>
+${file("opportunity", "Opportunity", "bắt buộc cho NBA")}
 ${file("client", "Client (Account)", "để biết khách cũ, cờ reseller")}
 ${file("lead", "Lead", "để cảnh báo trùng khách")}
-${file("orderitem", "Order hoặc OrderItem", "để biết khách đã mua dịch vụ gì")}
+${file("orderitem", "Order hoặc OrderItem", "để biết khách đã mua dịch vụ gì")}` : ""}
+${args.wo ? html`<h2>Cho WO tồn đọng (Bank Team)</h2><p class="meta">Có file nào nạp file đó. File PIC gồm hai cột "Work Order Number" và "PIC Mới"; chỉ cần nạp lại khi đổi người.</p>
+${file("workorder", "Work Order", "xuất từ CRM; cột Work Order Number, Status, Created Date, Product: Product Name")}
+${file("wopic", "Ghép WO và PIC", "chép từ sheet theo dõi của Bank Team")}` : ""}
 <button type="submit">Nạp</button> <a href="/queue">Quay lại Hàng chờ</a></form>`);
+}
+
+const WO_REASON_TEXT: Record<string, string> = WO_TOUCH_REASONS;
+
+function woTable(rows: WoBoardRow[], canAct: boolean, csrf: string): SafeHtml {
+  if (rows.length === 0) return html`<p class="meta">Không có WO.</p>`;
+  // Bảng rộng hơn màn hình điện thoại thì cuộn ngang trong khung, trang không tràn.
+  return html`<div style="overflow-x:auto"><table class="kv"><tr><td><strong>WO</strong></td><td><strong>PIC</strong></td><td><strong>Không cập nhật</strong></td><td><strong>Status</strong></td><td><strong>Ngày tạo</strong></td><td><strong>Dịch vụ</strong></td><td><strong>Đang chờ</strong></td>${canAct ? html`<td></td>` : ""}</tr>
+${rows.map((r) => html`<tr id="wo-${r.work_order_number}"><td>${r.work_order_number}</td><td>${r.pic ?? html`<span class="warn">chưa có PIC</span>`}</td><td>${r.idle_days} ngày</td><td>${r.status}</td><td>${r.created_date ?? "?"}</td><td class="meta">${r.product_name ?? ""}</td><td>${r.last_reason ? (WO_REASON_TEXT[r.last_reason] ?? r.last_reason) : "chưa rõ"}</td>
+${canAct ? html`<td><form method="post" action="/wo/touch"><input type="hidden" name="csrf" value="${csrf}"><input type="hidden" name="wo" value="${r.work_order_number}"><select name="reason">${Object.entries(WO_REASON_TEXT).map(([k, v]) => html`<option value="${k}">${v}</option>`)}</select> <button type="submit">Đã cập nhật</button></form></td>` : ""}</tr>`)}</table></div>`;
+}
+
+export function renderWoPage(args: {
+  csrf: string;
+  canAct: boolean;
+  importedAt: string | null;
+  escalate: WoBoardRow[];
+  remind: WoBoardRow[];
+  backlog: WoBoardRow[];
+  okCount: number;
+  reminders: { pic: string; text: string }[];
+  remindAfterDays: number;
+  escalateAfterDays: number;
+}): string {
+  return shell("WO tồn đọng", html`<h1>WO tồn đọng của Bank Team</h1>
+<p><a href="/queue">Quay lại Hàng chờ</a></p>
+<div class="status ${args.importedAt ? "green" : "red"}">Lượt nạp Work Order gần nhất: ${args.importedAt ?? "chưa có"}</div>
+<p class="meta">"Không cập nhật" tính từ lần gần nhất Status đổi giữa hai lượt nạp, hoặc lần Amy bấm "Đã cập nhật"; WO có từ trước lượt nạp đầu tính từ lượt nạp đầu. Ngưỡng tạm, chờ Amy chốt: nhắc PIC từ ${args.remindAfterDays} ngày, báo Amy từ ${args.escalateAfterDays} ngày.</p>
+<section><h2>Báo Amy: từ ${args.escalateAfterDays} ngày (${args.escalate.length})</h2>${woTable(args.escalate, args.canAct, args.csrf)}</section>
+<section><h2>Nhắc PIC: từ ${args.remindAfterDays} ngày (${args.remind.length})</h2>${woTable(args.remind, args.canAct, args.csrf)}
+${args.reminders.length ? html`<details><summary>Tin nhắc theo từng PIC (chép rồi gửi)</summary>${args.reminders.map((r) => html`<p><strong>${r.pic}</strong></p><textarea readonly rows="6" style="min-height:0">${r.text}</textarea>`)}</details>` : ""}</section>
+<section><h2>Tồn từ trước, chưa rà (${args.backlog.length})</h2><p class="meta">WO đã mở trước lượt nạp đầu tiên và chưa ai ghi nhận; cũ nhất lên đầu. Rà dần, bấm "Đã cập nhật" để đưa ra khỏi danh sách.</p>${woTable(args.backlog, args.canAct, args.csrf)}</section>
+<p class="meta">WO đang mở khác, còn trong hạn: ${args.okCount}.</p>`);
 }

@@ -18,7 +18,10 @@ export type CsvResource = (typeof CSV_RESOURCES)[number];
 
 export type DateFormat = "yyyy-mm-dd" | "dd/mm/yyyy" | "mm/dd/yyyy" | "dd/mm/yyyy hh:mm" | "iso";
 export type ColumnSpec = string | { column: string; format?: DateFormat };
-export type ColumnMap = Partial<Record<CsvResource, Record<string, ColumnSpec>>>;
+// WorkOrder, WorkOrderPic: file của Bank Team cho BK-08 (D-25), đọc ở wo-import.ts.
+export const WO_RESOURCES = ["WorkOrder", "WorkOrderPic"] as const;
+export type WoResource = (typeof WO_RESOURCES)[number];
+export type ColumnMap = Partial<Record<CsvResource | WoResource, Record<string, ColumnSpec>>>;
 
 // Trường bắt buộc của từng resource (khớp reqString trong mappers.ts).
 const REQUIRED: Record<CsvResource, string[]> = {
@@ -72,15 +75,17 @@ function setPath(obj: Record<string, unknown>, path: string, value: unknown): vo
   cur[parts.at(-1)!] = value;
 }
 
-type Detail = { code: string; detail: string };
+export type Detail = { code: string; detail: string };
 
-function rowsOf(resource: CsvResource, text: string, spec: Record<string, ColumnSpec>): Record<string, unknown>[] {
+// Dựng bản ghi thô từ CSV theo bảng ghép; chỉ cột có trong bảng ghép được đọc.
+// Thiếu cột bắt buộc ném CSV_MISSING_COLUMN; ô không đổi được ném CSV_BAD_VALUE (chỉ kèm tên cột, số dòng).
+export function readCsvRows(resource: string, text: string, spec: Record<string, ColumnSpec>, required: string[]): Record<string, unknown>[] {
   const csv = parseCsv(text);
   const cols = Object.entries(spec).map(([field, s]) => {
     const column = typeof s === "string" ? s : s.column;
     return { field, column, format: typeof s === "string" ? undefined : s.format, index: csv.header.indexOf(column) };
   });
-  for (const req of REQUIRED[resource]) {
+  for (const req of required) {
     const c = cols.find((x) => x.field === req);
     if (!c || c.index < 0) throw { code: "CSV_MISSING_COLUMN", detail: `${resource}: ${c?.column ?? req}` } satisfies Detail;
   }
@@ -127,7 +132,7 @@ export function importCrmCsv(
       const text = files[resource];
       if (!text) continue;
       const spec = opts.columns[resource] ?? DEFAULT_COLUMN_MAP[resource]!;
-      for (const raw of rowsOf(resource, text, spec)) {
+      for (const raw of readCsvRows(resource, text, spec, REQUIRED[resource])) {
         if (resource === "Opportunity") { const r = mapOpportunity(raw); once(snap.opportunities, `o\u0000${r.opportunity_id}`, r); }
         else if (resource === "Client") { const r = mapClient(raw); once(snap.clients, `c\u0000${r.client_id}`, r); }
         else if (resource === "Lead") { const r = mapLead(raw, opts.hasher); once(snap.leads, `l\u0000${r.lead_id}`, r); }
@@ -154,7 +159,7 @@ const SpecSchema = z.union([
   z.strictObject({ column: z.string().min(1), format: z.enum(["yyyy-mm-dd", "dd/mm/yyyy", "mm/dd/yyyy", "dd/mm/yyyy hh:mm", "iso"]).optional() }),
 ]);
 const ColumnMapSchema = z.strictObject(
-  Object.fromEntries(CSV_RESOURCES.map((r) => [r, z.record(z.string(), SpecSchema).optional()])) as Record<CsvResource, z.ZodOptional<z.ZodRecord<z.ZodString, typeof SpecSchema>>>,
+  Object.fromEntries([...CSV_RESOURCES, ...WO_RESOURCES].map((r) => [r, z.record(z.string(), SpecSchema).optional()])) as Record<CsvResource | WoResource, z.ZodOptional<z.ZodRecord<z.ZodString, typeof SpecSchema>>>,
 );
 
 // Đọc bảng ghép từ file; không có file thì dùng bảng mặc định. Sai dạng thì ném lỗi khi khởi động.
