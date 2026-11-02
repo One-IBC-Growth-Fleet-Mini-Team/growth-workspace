@@ -1,5 +1,7 @@
 # Growth Workspace: hướng dẫn cho Claude Code
 
+Bắt đầu mọi phiên bằng việc đọc docs/STATUS.md; kết thúc mọi phiên bằng việc cập nhật nó.
+
 Repo này xây Growth Workspace của One IBC. Spec nguồn: `docs/spec/growth-workspace-spec-v0.3.2.md`. Khi spec và code mâu thuẫn, spec thắng; khi spec mơ hồ, dừng lại và hỏi.
 
 ## Hai fleet, đừng nhầm
