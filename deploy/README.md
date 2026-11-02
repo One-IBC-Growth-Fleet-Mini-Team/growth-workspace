@@ -1,5 +1,7 @@
 # Đưa Growth Workspace lên một máy chủ
 
+> **Để sau, không bảo trì thêm (02/11/2026).** Cách triển khai duy nhất hiện nay là cài trên máy Ubuntu của người dùng: `deploy/local/README.md` (D-26). Bộ máy chủ dưới đây giữ lại cho lúc có người dùng thứ hai cần truy cập từ xa (xem `docs/context/ports.md`).
+
 Viết cho người không làm kỹ thuật. Mỗi bước có "làm gì" và "xong khi nào". Không dùng Docker (D-23): ứng dụng chạy thẳng trên máy Ubuntu, `setup.sh` lo hết phần cài đặt.
 
 Muốn xem thử Hàng chờ trên máy tính của mình trước (không cần máy chủ, không cần tài khoản nào): xem `docs/huong-dan-demo.md`.
