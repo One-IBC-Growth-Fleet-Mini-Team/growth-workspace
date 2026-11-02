@@ -14,6 +14,7 @@ import {
   getQueueConfig,
   getReportSource,
   getTeamsWebhooks,
+  WO_PARAMS,
 } from "../config.ts";
 import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
 import { readEvalStats } from "../agents/sa-01/eval/runner.ts";
@@ -45,7 +46,9 @@ import {
   type Session,
 } from "./auth.ts";
 import { ITEM_ACTIONS, recordItemAction, recordQueueOpened, type ItemAction } from "./items.ts";
-import { renderImportPage, renderLoginPage, renderPastePage, renderQueuePage, type SourceStatus } from "./views/page.ts";
+import { renderImportPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
+import { buildWoBoard, recordWoTouch, reminderTexts } from "../db/wo.ts";
+import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
 import { importCrmCsv, importMessage, loadColumnMap, type CsvResource } from "../crm/csv-import.ts";
 import { createPiiHasher } from "../pii/hash.ts";
 import { previousWorkingDay } from "../time.ts";
@@ -62,6 +65,8 @@ export type QueueAppDeps = {
   onPaste?: (text: string, reportDate: string) => Promise<{ created: number }>;
   // Nạp file CSV xuất từ CRM (D-24); trả câu báo kết quả cho Amy (không chứa giá trị ô).
   onImport?: (files: Partial<Record<CsvResource, string>>) => Promise<{ ok: boolean; message: string }>;
+  // Nạp file Work Order và file ghép PIC cho BK-08 (D-25); có hàm này thì bật trang /wo.
+  onWoImport?: (files: { WorkOrder?: string; WorkOrderPic?: string }, actor: string) => Promise<{ ok: boolean; message: string }>;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
@@ -70,6 +75,7 @@ const MAX_BODY = 16 * 1024;
 const MAX_PASTE_BODY = 128 * 1024;
 const MAX_IMPORT_BODY = 25 * 1024 * 1024;
 const IMPORT_FIELDS: Record<string, CsvResource> = { opportunity: "Opportunity", client: "Client", lead: "Lead", orderitem: "OrderItem" };
+const WO_IMPORT_FIELDS = { workorder: "WorkOrder", wopic: "WorkOrderPic" } as const;
 const LOGIN_MAX_FAILS = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const PASSWORD_USERS: Record<string, QueueUser> = { amy: { id: "amy", role: "approver" }, mark: { id: "mark", role: "viewer" } };
@@ -189,7 +195,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         effectivePayload: latestEditPayload(deps.db, i.id) ?? i.payload,
       }));
       const src = sourceStatus(deps.db, queueDate, now());
-      const page = renderQueuePage({ queueDate, items, user, csrf: session.csrf, now: now(), canPaste: Boolean(deps.onPaste), canImport: Boolean(deps.onImport), ...src });
+      const page = renderQueuePage({ queueDate, items, user, csrf: session.csrf, now: now(), canPaste: Boolean(deps.onPaste), canImport: Boolean(deps.onImport || deps.onWoImport), canWo: Boolean(deps.onWoImport), ...src });
       return respond(page, 200, { "content-type": "text/html; charset=utf-8" });
     }
 
@@ -202,8 +208,23 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
     if (req.method === "GET" && path === "/import") {
       if (!session) return redirect("/login");
-      if (userOf(session).role !== "approver" || !deps.onImport) return text(403, "Không có quyền.");
-      return respond(renderImportPage({ csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
+      if (userOf(session).role !== "approver" || !(deps.onImport || deps.onWoImport)) return text(403, "Không có quyền.");
+      return respond(renderImportPage({ csrf: session.csrf, message: null, crm: Boolean(deps.onImport), wo: Boolean(deps.onWoImport) }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/wo") {
+      if (!session) return redirect("/login");
+      if (!deps.onWoImport) return text(404, "Không tìm thấy.");
+      const board = buildWoBoard(deps.db, now());
+      const page = renderWoPage({
+        csrf: session.csrf,
+        canAct: userOf(session).role === "approver",
+        ...board,
+        reminders: reminderTexts(board.remind),
+        remindAfterDays: WO_PARAMS.remindAfterDays,
+        escalateAfterDays: WO_PARAMS.escalateAfterDays,
+      });
+      return respond(page, 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "POST") {
@@ -216,15 +237,36 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       if (path === "/logout") return redirect("/login", [clearCookie("gw_session")], 303);
 
       if (path === "/import") {
-        if (userOf(session).role !== "approver" || !deps.onImport) return text(403, "Không có quyền.");
+        if (userOf(session).role !== "approver" || !(deps.onImport || deps.onWoImport)) return text(403, "Không có quyền.");
         const files: Partial<Record<CsvResource, string>> = {};
         for (const [field, resource] of Object.entries(IMPORT_FIELDS)) {
           const f = form.get(field);
           if (f instanceof File && f.size > 0) files[resource] = await f.text();
         }
+        const woFiles: { WorkOrder?: string; WorkOrderPic?: string } = {};
+        if (deps.onWoImport) {
+          for (const [field, resource] of Object.entries(WO_IMPORT_FIELDS)) {
+            const f = form.get(field);
+            if (f instanceof File && f.size > 0) woFiles[resource] = await f.text();
+          }
+        }
         // Nội dung file chỉ đi qua hàm xử lý trong bộ nhớ, không ghi DB nguyên văn hay ghi log.
-        const r = await deps.onImport(files);
-        return respond(renderImportPage({ csrf: session.csrf, message: r.message }), r.ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+        // Chỉ có file WO thì không chạy nhóm NBA (không báo thiếu Opportunity).
+        const results: { ok: boolean; message: string }[] = [];
+        const hasWo = Object.keys(woFiles).length > 0;
+        if (deps.onImport && (Object.keys(files).length > 0 || !hasWo)) results.push(await deps.onImport(files));
+        if (deps.onWoImport && (hasWo || !deps.onImport)) results.push(await deps.onWoImport(woFiles, userOf(session).id));
+        const ok = results.every((r) => r.ok);
+        const page = renderImportPage({ csrf: session.csrf, message: results.map((r) => r.message).join(" "), crm: Boolean(deps.onImport), wo: Boolean(deps.onWoImport) });
+        return respond(page, ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      if (path === "/wo/touch") {
+        if (userOf(session).role !== "approver" || !deps.onWoImport) return text(403, "Không có quyền.");
+        const wo = String(form.get("wo") ?? "");
+        const r = recordWoTouch(deps.db, { workOrderNumber: wo, reason: String(form.get("reason") ?? ""), actor: userOf(session).id, now: now() });
+        if (!r.ok) return text(r.status, r.error);
+        return redirect("/wo", [], 303);
       }
 
       if (path === "/paste") {
@@ -313,6 +355,10 @@ if (import.meta.main) {
     });
     return { ok: true, message: `${importMessage(r)} NBA: ${run.itemsCreated} mục mới.` };
   };
+  const onWoImport = async (files: { WorkOrder?: string; WorkOrderPic?: string }, actor: string) => {
+    const r = importWorkOrders(db, files, { columns, now: new Date(), actor });
+    return { ok: r.status === "succeeded", message: woImportMessage(r) };
+  };
   const app = createQueueApp({
     db,
     sessionSecret: cfg.sessionSecret,
@@ -331,6 +377,7 @@ if (import.meta.main) {
     passwordHashes: auth.mode === "password" ? auth.hashes : undefined,
     onPaste: getReportSource() === "paste" ? onPaste : undefined,
     onImport: getCrmSource() === "csv" ? onImport : undefined,
+    onWoImport,
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
   Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });

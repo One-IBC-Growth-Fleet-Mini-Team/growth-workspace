@@ -176,5 +176,15 @@ export const NBA_PARAMS = {
   requiredNbaPassRate: 1,
 } as const;
 
+// Tham số WO tồn đọng (BK-08, D-25). N, M là GIÁ TRỊ TẠM do @harveyng710-source đặt 02/11/2026, chờ Amy chốt.
+export const WO_PARAMS = {
+  // Không có cập nhật từ chừng này ngày trở lên thì nhắc người phụ trách (N).
+  remindAfterDays: 7,
+  // Từ chừng này ngày trở lên thì báo lên Amy (M).
+  escalateAfterDays: 14,
+  // Status coi là WO đang mở, so không phân biệt hoa thường. Tên theo file Work Order của Bank Team.
+  openStatuses: ["New", "In Progress"] as readonly string[],
+} as const;
+
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;

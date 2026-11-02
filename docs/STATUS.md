@@ -66,13 +66,17 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Trang `/import` (chỉ Amy, có CSRF): nạp xong sinh lại NBA cho hôm nay; câu báo lỗi chỉ có tên cột và số dòng.
   - `CRM_SOURCE=csv` (mặc định): job ETL theo API tự bỏ qua. Bảng ghép thật giữ ngoài repo (`/etc/growth/crm-columns.json`), mẫu ở `deploy/crm-columns.example.json`.
   - `bun test`: 227 pass, 0 fail.
+  - Mở thêm phạm vi BK-08 (D-25): trang "WO tồn đọng" của Bank Team. Nạp file Work Order và file ghép PIC ở trang `/import` (`src/crm/wo-import.ts`, migration 003 chỉ thêm, không lưu tên Account); `wo_idle_days` ở `src/metrics/wo-idle.ts`; bảng ở `src/db/wo.ts`; trang `/wo` (Amy ghi nhận "Đã cập nhật" kèm đang chờ ai, Mark chỉ xem). Ngưỡng tạm 7 và 14 ngày (`WO_PARAMS`). Test T-WO-01 tới T-WO-08.
+  - Rà file Work Order của Bank Team (chỉ cấu trúc và số đếm, chạy trên máy): sheet lưu mật khẩu cổng đối tác ở dạng chữ thường (tab "Thông tin đăng ký của BankEMI"); đã báo `@harveyng710-source`.
+  - `bun test`: 243 pass, 0 fail.
 
 ## Việc tiếp theo
 
 1. Harvey: dựng máy Azure theo `deploy/README.md` (bước 1 tới 7). Xong là Amy dùng thật cả tự báo, mã lý do và NBA.
 2. Harvey gửi dòng tiêu đề cột của các file xuất CRM; fleet viết bảng ghép (`deploy/README.md` bước 7).
 3. Amy xác nhận khoảng 30 ca eval để điểm tự tin không còn thấp.
-4. Song song, không chặn: câu hỏi cho MobCEC (API), admin tenant (Entra, Graph); bật Secret scanning (E-02).
+4. Amy chốt ngưỡng WO tồn đọng (tạm 7 và 14 ngày) và cách tính 24 giờ cho BK-13; thêm `wo_idle_days` vào `docs/spec/metric-definitions.md` bằng PR riêng (Mark duyệt).
+5. Song song, không chặn: câu hỏi cho MobCEC (API), admin tenant (Entra, Graph); bật Secret scanning (E-02).
 
 ## Đang bị chặn
 
@@ -90,4 +94,4 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## PR đang mở
 
-- PR phiên 08 (nhánh `claude/dreamy-faraday-sw7jto`): nạp CSV từ CRM cho NBA; chờ `@harveyng710-source` duyệt. PR #11 đã merge.
+- PR trang WO tồn đọng (D-25, nhánh `claude/dreamy-faraday-sw7jto`): chờ `@harveyng710-source` duyệt. PR #12 (nạp CSV cho NBA) đã merge.

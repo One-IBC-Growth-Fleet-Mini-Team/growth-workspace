@@ -6,7 +6,7 @@ import { log } from "../log.ts";
 import { openReadWrite } from "./open.ts";
 
 const MIGRATIONS: { version: number; sql: string }[] = [];
-for (const name of ["001-schema.sql", "002-redaction-log.sql"]) {
+for (const name of ["001-schema.sql", "002-redaction-log.sql", "003-work-orders.sql"]) {
   MIGRATIONS.push({
     version: Number(name.slice(0, 3)),
     sql: await Bun.file(new URL(`./migrations/${name}`, import.meta.url)).text(),

@@ -14,6 +14,7 @@ import { ddmm, monthPeriod, previousWorkingDay, vnDate } from "../time.ts";
 import { fakeLlm } from "./fake-llm.ts";
 import { DEFAULT_COLUMN_MAP, importCrmCsv, importMessage } from "../crm/csv-import.ts";
 import { createPiiHasher } from "../pii/hash.ts";
+import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
 import type { OpportunityRow } from "../db/types.ts";
 
 export const DEMO_HOST = "127.0.0.1";
@@ -114,6 +115,10 @@ export async function createDemo(now: Date = new Date()) {
       exchange: async (code) => ({ oid: code, nonce: "demo" }),
     },
     // Thử trang nạp CSV với bảng ghép mặc định (tên cột trùng tên trường).
+    onWoImport: async (files, actor) => {
+      const r = importWorkOrders(db, files, { columns: {}, now: new Date(), actor });
+      return { ok: r.status === "succeeded", message: woImportMessage(r) };
+    },
     onImport: async (files) => {
       const r = importCrmCsv(db, files, { hasher: createPiiHasher("demo-only-hash-key-not-for-production-0123"), columns: DEFAULT_COLUMN_MAP, now: new Date() });
       if (r.status !== "succeeded") return { ok: false, message: importMessage(r) };
