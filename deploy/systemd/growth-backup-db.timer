@@ -1,0 +1,11 @@
+# Backup Growth DB hằng ngày, 06:15 giờ Việt Nam
+[Unit]
+Description=Backup Growth DB hằng ngày, 06:15 giờ Việt Nam
+
+[Timer]
+OnCalendar=*-*-* 06:15:00 Asia/Ho_Chi_Minh
+Persistent=true
+Unit=growth-job@backup-db.service
+
+[Install]
+WantedBy=timers.target

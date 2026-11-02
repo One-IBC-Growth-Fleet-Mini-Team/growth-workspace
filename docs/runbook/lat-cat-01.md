@@ -1,21 +1,23 @@
 # Runbook lát cắt 01: Hàng chờ buổi sáng của Amy
 
-Dành cho người vận hành và người chịu trách nhiệm kỹ thuật. Thiết kế: `docs/design/slice-01-amy-queue.md`. Mọi lệnh chạy trong container (D-03) hoặc trên máy có Bun 1.4.x.
+Dành cho người vận hành và người chịu trách nhiệm kỹ thuật. Thiết kế: `docs/design/slice-01-amy-queue.md`. Dựng máy: `deploy/README.md` (không Docker, D-23). Lệnh `bun run <file>` dưới đây chạy trên máy chủ bằng `sudo growth-run <file>`.
 
 ## 1. Thành phần và lịch
 
-Một container, ổ bền gắn vào `/data`. Nền tảng host lo lịch (D-03), không có thư viện cron trong tiến trình. Giờ dưới đây là giờ Việt Nam.
+Một máy Ubuntu, dữ liệu trên ổ bền `/srv/growth/data`. systemd của máy lo lịch (D-03, D-23), không có thư viện cron trong tiến trình. Giờ dưới đây là giờ Việt Nam. Dựng máy và cài lịch: `deploy/README.md` (lệnh `setup.sh`, chạy được trên Azure, Oracle hay máy Ubuntu 24.04 khác).
 
 | Việc | Lệnh | Lịch |
 |---|---|---|
-| Web Hàng chờ | `bun run src/queue/server.ts` (lệnh mặc định của container) | Luôn chạy |
+| Web Hàng chờ | dịch vụ `growth-queue` (`bun run src/queue/server.ts`) | Luôn chạy |
+| Backup Growth DB, giữ 14 bản | `bun run src/jobs/backup-db.ts` | 06:15 hằng ngày |
+| Đẩy backup ra kho ngoài máy (rclone, đã mã hoá) | timer `growth-offsite-backup` của máy chủ | 06:20 hằng ngày |
 | ETL CRM, chỉ đọc | `bun run src/jobs/etl-crm.ts` | 06:30 hằng ngày |
 | Dọn snapshot cũ hơn 14 ngày (D-09) | `bun run src/jobs/prune-snapshots.ts` | 06:45 hằng ngày |
 | Mi1-sa-01 | `bun run src/jobs/sa01-morning.ts` | 08:00 thứ Hai tới thứ Bảy |
 | Eval Mi1-sa-01 (gọi Claude API thật, tốn token) | `bun run eval:sa01` | Chạy tay khi đổi prompt, danh mục mã, luật, hoặc thêm ca |
 | Kiểm trước khi bật | `bun run preflight` và `bun run preflight -- --network` | Chạy tay trước khi bật, sau mỗi lần đổi cấu hình |
 
-Biến môi trường: xem `.env.example`. Đặt `GROWTH_DB_PATH=/data/growth.sqlite` và `SA01_EVAL_RESULTS_DIR=/data/eval-results` để dữ liệu và kết quả eval nằm trên ổ bền. Secret chỉ đặt trong kho bí mật của nền tảng, không bao giờ trong repo.
+Biến môi trường: xem `.env.example`. Đường dẫn dữ liệu, kết quả eval và backup trên ổ bền đặt sẵn trong `deploy/paths.env`. Secret chỉ đặt trong kho bí mật của nền tảng, không bao giờ trong repo.
 
 ## 2. Checklist bật cho Amy (bước 9)
 

@@ -1,0 +1,11 @@
+# Dọn snapshot cũ hơn 14 ngày (D-09), 06:45 giờ Việt Nam
+[Unit]
+Description=Dọn snapshot cũ hơn 14 ngày (D-09), 06:45 giờ Việt Nam
+
+[Timer]
+OnCalendar=*-*-* 06:45:00 Asia/Ho_Chi_Minh
+Persistent=true
+Unit=growth-job@prune-snapshots.service
+
+[Install]
+WantedBy=timers.target

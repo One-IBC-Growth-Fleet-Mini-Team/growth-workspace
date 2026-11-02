@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Chạy một lệnh bun của Growth Workspace trên máy chủ, đúng user "growth" và đúng biến môi trường
+# như các dịch vụ systemd. Ví dụ:
+#   sudo growth-run scripts/load-rm-directory.ts /srv/growth/data/rm-directory.json
+#   sudo growth-run src/agents/sa-01/eval/main.ts
+set -euo pipefail
+[ "$(id -u)" -eq 0 ] || { echo "Cần chạy bằng sudo: sudo growth-run $*"; exit 1; }
+[ "$#" -ge 1 ] || { echo "Cách dùng: sudo growth-run <file .ts> [tham số]"; exit 2; }
+exec systemd-run --quiet --wait --pipe --collect \
+  -p User=growth -p Group=growth \
+  -p WorkingDirectory=/opt/growth-workspace \
+  -p EnvironmentFile=/etc/growth/growth.env \
+  -p EnvironmentFile=/opt/growth-workspace/deploy/paths.env \
+  -p ReadWritePaths=/srv/growth -p ProtectSystem=strict -p ProtectHome=true -p PrivateTmp=true -p NoNewPrivileges=true \
+  /opt/bun/bin/bun run "$@"

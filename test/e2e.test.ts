@@ -9,7 +9,7 @@ import { createCrmReadServer, openCrmReadDb } from "../src/mcp/crm-read/server.t
 import { createGraphClient } from "../src/teams/graph-read.ts";
 import { createPiiHasher } from "../src/pii/hash.ts";
 import { freshDb, tempDbPath } from "./helpers/db.ts";
-import { fakeLlm } from "./helpers/fake-llm.ts";
+import { fakeLlm } from "../src/demo/fake-llm.ts";
 import { AMY, events, get, makeApp, post, session } from "./helpers/queue.ts";
 import { startFakeCrm } from "./crm/fake-crm.ts";
 import { CHANNEL_ID, TEAM_ID, reply, rootMessage } from "./fixtures/synthetic/teams.ts";

@@ -8,7 +8,7 @@ import { directCrmReadTools } from "../../src/mcp/crm-read/client.ts";
 import { createGraphClient } from "../../src/teams/graph-read.ts";
 import { setLogSink } from "../../src/log.ts";
 import { client, freshDb, opp, seedSnapshot } from "../helpers/db.ts";
-import { deterministicOutput, extractDataBlock, fakeLlm } from "../helpers/fake-llm.ts";
+import { deterministicOutput, extractDataBlock, fakeLlm } from "../../src/demo/fake-llm.ts";
 import { CHANNEL_ID, TEAM_ID, reply, rootMessage } from "../fixtures/synthetic/teams.ts";
 
 const NOW = new Date("2026-11-02T01:00:00.000Z"); // 08:00 giờ Việt Nam, thứ Hai

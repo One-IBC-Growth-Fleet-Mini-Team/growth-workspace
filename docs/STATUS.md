@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật lần cuối: 02/11/2026 (phiên 05). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+Cập nhật lần cuối: 02/11/2026 (phiên 06). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
 
 ## Trạng thái hiện tại
 
@@ -39,18 +39,25 @@ Cập nhật lần cuối: 02/11/2026 (phiên 05). Quy ước: agent hoặc ngư
   - Chưa làm: thêm `nba_priority`, `cost_usd`, `compute_confidence` vào `docs/spec/metric-definitions.md` (CLAUDE.md quy tắc 3; đổi định nghĩa cần PR riêng, Mark duyệt).
   - `bun test`: 208 pass, 0 fail.
 
-- **Phiên 05 (02/11/2026)**: CI và gom việc chờ người.
+- **Phiên 05 xong (PR #8, #9 đã merge)**: CI và gom việc chờ người.
   - CI GitHub Actions `.github/workflows/test.yml`: `bun test` và `tsc --strict` trên mỗi PR vào `main`; typecheck cài `typescript` tạm trong job, không đổi `package.json` (D-18).
   - Sổ quyết định D-14 tới D-22: `docs/context/so-quyet-dinh-mo.md`; `@harveyng710-source` đã chốt cả 9 theo đề xuất, cùng K-01 và K-02 (ghi ở `docs/context/decisions.md`).
   - Câu hỏi mở gom theo người nhận (MobCEC, admin tenant, Amy, Mark, kỹ thuật): `docs/context/cau-hoi-mo-lat-cat-01.md`.
   - PR #8 đã merge. Ghi quyết định D-14 tới D-22 vào `decisions.md` và thêm `nba_priority`, `cost_usd`, `compute_confidence` vào `docs/spec/metric-definitions.md` (D-22, CLAUDE.md quy tắc 3) đi chung một PR tài liệu, chờ duyệt.
 
+- **Phiên 06 (02/11/2026)**: bản demo và bộ triển khai không Docker (D-23, chưa chốt nhà cung cấp E-01).
+  - Bản demo `bun run demo` (`src/demo/`): Hàng chờ trên máy cá nhân với dữ liệu tổng hợp, LLM, CRM, Teams và đăng nhập đều giả; chỉ nghe trên 127.0.0.1. Hướng dẫn: `docs/huong-dan-demo.md`.
+  - `deploy/`: `setup.sh` (cài Bun 1.4.4 từ GitHub có kiểm SHA-256, user `growth`, systemd cho web và 5 lịch job theo giờ Việt Nam, Caddy lo HTTPS, rclone đẩy backup có mã hoá ra ngoài máy), `README.md` viết cho người không làm kỹ thuật. Bỏ `Dockerfile`.
+  - Backup Growth DB: `src/db/backup.ts`, job `backup-db` (VACUUM INTO, giữ 14 bản).
+  - Chạy thử `setup.sh` trên máy Ubuntu 24.04 giả lập có systemd: lần một dừng chờ cấu hình, lần hai dựng xong, lần ba chạy lại không hỏng; HTTPS qua Caddy; web chỉ nghe 127.0.0.1. `bun test`: 212 pass, 0 fail.
+
 ## Việc tiếp theo
 
-1. Gửi `docs/context/cau-hoi-mo-lat-cat-01.md` cho MobCEC, admin tenant, Amy (phần của Mark đã chốt).
-2. Merge PR định nghĩa chỉ số (D-22). Bật `test` và `typecheck` thành check bắt buộc cho `main`.
-3. Khi có câu trả lời: sửa giá trị tạm theo cột "Mặc định hiện tại", làm checklist bật cho Amy ở `docs/runbook/lat-cat-01.md` mục 2.
-4. Bật Secret scanning và Push protection cho repo. Người làm: admin repo.
+1. Chọn nhà cung cấp (E-01): đề xuất Azure gói miễn phí 12 tháng; nếu cần 0 đồng lâu dài thì Oracle Always Free, kèm backup ra ngoài máy. Làm theo `deploy/README.md`.
+2. Làm giao diện thẻ Hàng chờ dễ đọc (hiện đang hiện dữ liệu thô) trước khi đưa Amy dùng.
+3. Gửi `docs/context/cau-hoi-mo-lat-cat-01.md` cho MobCEC, admin tenant, Amy.
+4. Khi có câu trả lời: sửa giá trị tạm theo cột "Mặc định hiện tại", làm checklist bật cho Amy ở `docs/runbook/lat-cat-01.md` mục 2.
+5. Bật Secret scanning và Push protection cho repo (E-02).
 
 ## Đang bị chặn
 
@@ -68,4 +75,4 @@ Cập nhật lần cuối: 02/11/2026 (phiên 05). Quy ước: agent hoặc ngư
 
 ## PR đang mở
 
-- PR phiên 05 phần 2 (nhánh `claude/dreamy-faraday-sw7jto`): ghi quyết định D-14 tới D-22 và định nghĩa chỉ số D-22; chờ `@harveyng710-source` duyệt. PR #8 đã merge.
+- PR #10 (nhánh `claude/dreamy-faraday-sw7jto`): bản demo, bộ triển khai không Docker, backup Growth DB; chờ `@harveyng710-source` duyệt. PR #9 đã merge.

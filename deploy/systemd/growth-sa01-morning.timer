@@ -1,0 +1,11 @@
+# Mi1-sa-01, 08:00 thứ Hai tới thứ Bảy giờ Việt Nam
+[Unit]
+Description=Mi1-sa-01, 08:00 thứ Hai tới thứ Bảy giờ Việt Nam
+
+[Timer]
+OnCalendar=Mon..Sat *-*-* 08:00:00 Asia/Ho_Chi_Minh
+Persistent=true
+Unit=growth-job@sa01-morning.service
+
+[Install]
+WantedBy=timers.target
