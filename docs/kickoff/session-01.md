@@ -7,6 +7,13 @@ Dán toàn bộ phần dưới đây vào Claude Code làm tin nhắn đầu ti�
 Bạn là fleet kỹ thuật xây Growth Workspace cho One IBC. Đọc theo thứ tự trước khi làm gì khác:
 `CLAUDE.md`, `docs/context/decisions.md`, `docs/spec/growth-workspace-spec-v0.3.2.md` (mục 0, 2, 6, 9, 11, 13, 14), `docs/spec/metric-definitions.md`, `docs/spec/rejection-reason-codes.md`, `docs/spec/data-contract-mobcec.md`.
 
+**Bối cảnh môi trường (cài đặt xong ngày 02/11/2026):**
+- Repo `One-IBC-Growth-Fleet-Mini-Team/growth-workspace` là **public**. Mọi file commit đều công khai ngay. Không đưa vào repo: mẫu tự báo RM thật, tên hay lời khách gắn với người cụ thể, token, URL hoặc schema nội bộ chưa công bố của CRM và Internal Control. Dùng dữ liệu tổng hợp; chỗ nào phụ thuộc schema thật thì ghi "cần đối chiếu schema thật".
+- Nhánh `main` có branch protection: cần 1 approve của code owner `@harveyng710-source`, áp dụng cả admin, cấm force push và xoá nhánh. Làm trên nhánh riêng (gợi ý `docs/slice-01-design`), mở PR bằng `/ship`.
+- Công cụ trên máy: git, gh (đăng nhập `markng-byte`), Bun 1.4.2, Python 3.9.6 (bản hệ thống, đã cũ). Chưa có Node, Docker, Homebrew. Tính đến điều này khi đề xuất stack ở bước 5; cần cài thêm thì hỏi trước.
+- gstack 1.92.56.0 đã cài. `/cso` chỉ chạy phân tích tĩnh vì máy chưa có Docker.
+- Nếu `git push` báo thiếu thông tin đăng nhập, nhắc người dùng tự chạy `gh auth setup-git`.
+
 **Mục tiêu phiên này: chỉ thiết kế, chưa viết code sản phẩm.**
 
 Lát cắt cần thiết kế: Amy (Sales Admin) mỗi sáng mở một Hàng chờ thấy (a) bản nháp tự báo RM của hôm trước đã được cấu trúc hoá, (b) đề xuất mã lý do từ chối, (c) danh sách NBA theo 5 luật trong spec mục 11, và bấm xác nhận, sửa hoặc bác từng mục. Mọi thao tác của Amy được ghi nhật ký.

@@ -20,6 +20,8 @@ File này thay cho việc chia sẻ lịch sử chat. Claude Code không đọc 
 
 - Mọi tài khoản dùng mail quản lý chung của One IBC (kể cả quyền BM). Repo đặt trong GitHub organization của One IBC.
 - Bàn giao từ nhân sự cũ đã hoàn tất (02/11/2026).
+- Repo `One-IBC-Growth-Fleet-Mini-Team/growth-workspace` chuyển sang **public** (02/11/2026) để bật được branch protection trên gói GitHub Free; thay cho yêu cầu "private" trong `docs/kickoff/setup.md`. Hệ quả: quy tắc không PII và không secret áp dụng như với nội dung xuất bản công khai.
+- Người chịu trách nhiệm kỹ thuật, reviewer bắt buộc qua CODEOWNERS: `@harveyng710-source`.
 
 ## Lát cắt đầu tiên (Giai đoạn 0 và 1)
 
@@ -41,5 +43,5 @@ Giới hạn công cụ đọc: reply trong thread chỉ trả khoảng 1.000 k�
 ## Đang chờ (giả định đã thoả khi bắt đầu build)
 
 - MobCEC xác nhận Data Contract và mở API GET Internal Control.
-- Có người chịu trách nhiệm kỹ thuật duyệt PR.
+- Có người chịu trách nhiệm kỹ thuật duyệt PR. (Đã có: `@harveyng710-source`, 02/11/2026.)
 - Chốt xử lý "banking", "finance" trong bộ từ cấm (không ảnh hưởng lát cắt đầu).
