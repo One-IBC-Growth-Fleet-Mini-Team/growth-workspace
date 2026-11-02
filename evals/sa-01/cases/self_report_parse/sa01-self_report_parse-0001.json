@@ -1,0 +1,34 @@
+{
+  "case_id": "sa01-self_report_parse-0001",
+  "task": "self_report_parse",
+  "rules_checked": [
+    "PARSE_SECTIONS",
+    "PARSE_COUNTS"
+  ],
+  "gate": "scored",
+  "input": {
+    "report_date": "2026-10-31",
+    "author_rm_id": "RM_A",
+    "message_html": "[31/10] [RM] RM_A\nTIẾP CẬN: 12 lead qua LinkedIn\nĐĂNG BÀI: 1\nHỘI THOẠI: 4\nBÁO GIÁ: 2 báo giá WS IBC01\nKHÁCH NÓI: khách thấy phí ổn\nCHƯA LÊN HỆ THỐNG: 2\nCẦN HỖ TRỢ: bảng so sánh phí"
+  },
+  "expected": {
+    "sections": {
+      "outreach": {
+        "count": 12
+      },
+      "posts": {
+        "count": 1
+      },
+      "conversations": {
+        "count": 4
+      },
+      "not_in_crm": {
+        "count": 2
+      }
+    },
+    "flags": []
+  },
+  "notes": "Mẫu chuẩn 7 nhãn.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}

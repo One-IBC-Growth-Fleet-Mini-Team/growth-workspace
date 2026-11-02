@@ -7,6 +7,15 @@
   },
   "scripts": {
     "test": "bun test",
-    "db:migrate": "bun run src/db/migrate.ts"
+    "db:migrate": "bun run src/db/migrate.ts",
+    "eval:sa01": "bun run src/agents/sa-01/eval/main.ts",
+    "job:etl-crm": "bun run src/jobs/etl-crm.ts",
+    "job:sa01-morning": "bun run src/jobs/sa01-morning.ts",
+    "queue:serve": "bun run src/queue/server.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
   }
 }

@@ -1,0 +1,71 @@
+{
+  "case_id": "sa01-nba-0003",
+  "task": "nba",
+  "rules_checked": [
+    "NBA_R3"
+  ],
+  "gate": "hard",
+  "input": {
+    "today": "2026-11-02",
+    "period": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "snapshot": {
+      "opportunities": [
+        {
+          "opportunity_id": "O1",
+          "client_id": null,
+          "owner_rm_id": "RM_A",
+          "stage": "Negotiation",
+          "close_date": "2026-11-15",
+          "last_modified_at": null,
+          "has_next_step": 0,
+          "jurisdiction_code": null,
+          "service_family": null,
+          "industry_code": "FOREX",
+          "rejection_reason_code": null
+        },
+        {
+          "opportunity_id": "O2",
+          "client_id": null,
+          "owner_rm_id": "RM_A",
+          "stage": "Negotiation",
+          "close_date": "2026-11-15",
+          "last_modified_at": null,
+          "has_next_step": 0,
+          "jurisdiction_code": null,
+          "service_family": null,
+          "industry_code": null,
+          "rejection_reason_code": null
+        }
+      ],
+      "clients": [],
+      "client_services": []
+    }
+  },
+  "expected": {
+    "must_include": [
+      {
+        "subject_ref": "O1",
+        "action": "follow_up"
+      },
+      {
+        "subject_ref": "O2",
+        "action": "follow_up"
+      }
+    ],
+    "order": [
+      [
+        "O2",
+        "O1"
+      ]
+    ],
+    "never_raised_by": [
+      "NBA_R3"
+    ]
+  },
+  "notes": "Ngành Forex chỉ bị hạ ưu tiên, không bị loại.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}

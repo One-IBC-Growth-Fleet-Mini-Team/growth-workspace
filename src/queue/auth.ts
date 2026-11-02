@@ -1,0 +1,185 @@
+// Đăng nhập Hàng chờ (D-04): Microsoft Entra ID (OIDC, authorization code + PKCE), dùng chung app đăng ký với Graph.
+// Phiên là cookie ký HMAC-SHA256 bằng SESSION_SECRET; actor lấy từ phiên, không từ form (design doc mục 9).
+// Danh sách người dùng cố định: Amy (duyệt), Mark (xem, nhận escalate). Q-16 chờ Mark về quyền thêm.
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+
+export type QueueUser = { id: "amy" | "mark"; role: "approver" | "viewer" };
+export type Session = { sub: QueueUser["id"]; csrf: string; exp: number };
+
+export const SESSION_COOKIE = "gw_session";
+export const OIDC_COOKIE = "gw_oidc";
+const SESSION_TTL_MS = 12 * 3600 * 1000;
+
+function sign(secret: string, data: string): string {
+  return createHmac("sha256", secret).update(data).digest("base64url");
+}
+
+export function sealValue(secret: string, value: unknown): string {
+  const data = Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${data}.${sign(secret, data)}`;
+}
+
+export function unsealValue<T>(secret: string, sealed: string | undefined): T | null {
+  if (!sealed) return null;
+  const [data, mac] = sealed.split(".");
+  if (!data || !mac) return null;
+  const expected = Buffer.from(sign(secret, data));
+  const given = Buffer.from(mac);
+  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+  try {
+    return JSON.parse(Buffer.from(data, "base64url").toString("utf8")) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function cookieValue(req: Request, name: string): string | undefined {
+  for (const part of (req.headers.get("cookie") ?? "").split(";")) {
+    const [k, ...v] = part.trim().split("=");
+    if (k === name) return v.join("=");
+  }
+  return undefined;
+}
+
+function cookie(name: string, value: string, maxAgeSeconds: number, path = "/"): string {
+  return `${name}=${value}; Path=${path}; Max-Age=${maxAgeSeconds}; HttpOnly; Secure; SameSite=Strict`;
+}
+
+export function createSessionCookie(secret: string, s: Session): string {
+  return `${SESSION_COOKIE}=${sealValue(secret, s)}`;
+}
+
+export function newSession(user: QueueUser, now: Date): Session {
+  return { sub: user.id, csrf: randomBytes(24).toString("base64url"), exp: now.getTime() + SESSION_TTL_MS };
+}
+
+export function sessionSetCookie(secret: string, s: Session): string {
+  return cookie(SESSION_COOKIE, sealValue(secret, s), Math.floor(SESSION_TTL_MS / 1000));
+}
+
+export function clearCookie(name: string): string {
+  return cookie(name, "", 0);
+}
+
+export function readSession(req: Request, secret: string, now: Date): Session | null {
+  const s = unsealValue<Session>(secret, cookieValue(req, SESSION_COOKIE));
+  if (!s || typeof s.exp !== "number" || s.exp <= now.getTime()) return null;
+  if (s.sub !== "amy" && s.sub !== "mark") return null;
+  return s;
+}
+
+export function csrfMatches(s: Session, token: string | null): boolean {
+  if (!token) return false;
+  const a = Buffer.from(s.csrf);
+  const b = Buffer.from(token);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+// Trạng thái tạm của luồng OIDC (state, nonce, code_verifier), ký và hết hạn sau 10 phút.
+export type OidcPending = { state: string; nonce: string; verifier: string; exp: number };
+
+export function newOidcPending(now: Date): OidcPending {
+  return {
+    state: randomBytes(16).toString("base64url"),
+    nonce: randomBytes(16).toString("base64url"),
+    verifier: randomBytes(32).toString("base64url"),
+    exp: now.getTime() + 10 * 60 * 1000,
+  };
+}
+
+export function oidcSetCookie(secret: string, p: OidcPending): string {
+  return cookie(OIDC_COOKIE, sealValue(secret, p), 600, "/auth");
+}
+
+export function pkceChallenge(verifier: string): string {
+  return createHash("sha256").update(verifier).digest("base64url");
+}
+
+export type OidcProvider = {
+  authorizationUrl(p: { state: string; nonce: string; codeChallenge: string }): string;
+  // Đổi code lấy id_token đã kiểm chữ ký; trả oid (AAD object id) và nonce trong token.
+  exchange(code: string, codeVerifier: string, expectedNonce: string): Promise<{ oid: string; nonce: string }>;
+};
+
+type Jwk = { kid?: string; kty?: string; n?: string; e?: string; alg?: string; use?: string };
+
+// Kiểm id_token RS256: chữ ký theo JWKS, iss, aud, exp, nbf, nonce. Không nhận alg khác.
+export async function verifyIdToken(
+  token: string,
+  opts: { jwks: readonly Jwk[]; issuer: string; audience: string; nonce: string; nowSeconds: number },
+): Promise<{ oid: string; nonce: string }> {
+  const parts = token.split(".");
+  if (parts.length !== 3) throw new Error("ID_TOKEN_FORMAT");
+  const [h, p, sig] = parts as [string, string, string];
+  const header = JSON.parse(Buffer.from(h, "base64url").toString("utf8")) as { alg?: string; kid?: string };
+  if (header.alg !== "RS256") throw new Error("ID_TOKEN_ALG");
+  const jwk = opts.jwks.find((k) => k.kid === header.kid && k.kty === "RSA");
+  if (!jwk) throw new Error("ID_TOKEN_KID");
+  const key = await crypto.subtle.importKey("jwk", { kty: "RSA", n: jwk.n, e: jwk.e, alg: "RS256", ext: true }, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+  const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, Buffer.from(sig, "base64url"), new TextEncoder().encode(`${h}.${p}`));
+  if (!ok) throw new Error("ID_TOKEN_SIGNATURE");
+  const c = JSON.parse(Buffer.from(p, "base64url").toString("utf8")) as Record<string, unknown>;
+  const skew = 120;
+  if (c.iss !== opts.issuer) throw new Error("ID_TOKEN_ISS");
+  if (c.aud !== opts.audience) throw new Error("ID_TOKEN_AUD");
+  if (typeof c.exp !== "number" || c.exp + skew < opts.nowSeconds) throw new Error("ID_TOKEN_EXP");
+  if (typeof c.nbf === "number" && c.nbf - skew > opts.nowSeconds) throw new Error("ID_TOKEN_NBF");
+  if (c.nonce !== opts.nonce) throw new Error("ID_TOKEN_NONCE");
+  if (typeof c.oid !== "string") throw new Error("ID_TOKEN_OID");
+  return { oid: c.oid, nonce: c.nonce as string };
+}
+
+// Provider thật cho Entra ID. Gọi login.microsoftonline.com (không phải CRM); test dùng provider giả.
+export function createEntraOidc(cfg: {
+  tenantId: string;
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  fetchImpl?: typeof fetch;
+}): OidcProvider {
+  const base = `https://login.microsoftonline.com/${encodeURIComponent(cfg.tenantId)}`;
+  const doFetch = cfg.fetchImpl ?? fetch;
+  return {
+    authorizationUrl({ state, nonce, codeChallenge }) {
+      const u = new URL(`${base}/oauth2/v2.0/authorize`);
+      u.search = new URLSearchParams({
+        client_id: cfg.clientId,
+        response_type: "code",
+        redirect_uri: cfg.redirectUri,
+        response_mode: "query",
+        scope: "openid",
+        state,
+        nonce,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
+      }).toString();
+      return u.href;
+    },
+    async exchange(code, codeVerifier, expectedNonce) {
+      const res = await doFetch(`${base}/oauth2/v2.0/token`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: cfg.clientId,
+          client_secret: cfg.clientSecret,
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: cfg.redirectUri,
+          code_verifier: codeVerifier,
+        }).toString(),
+        redirect: "manual",
+      });
+      if (!res.ok) throw new Error("OIDC_TOKEN_EXCHANGE");
+      const body = (await res.json()) as { id_token?: string };
+      if (!body.id_token) throw new Error("OIDC_NO_ID_TOKEN");
+      const keys = (await (await doFetch(`${base}/discovery/v2.0/keys`, { redirect: "manual" })).json()) as { keys: Jwk[] };
+      return verifyIdToken(body.id_token, {
+        jwks: keys.keys,
+        issuer: `${base}/v2.0`,
+        audience: cfg.clientId,
+        nonce: expectedNonce,
+        nowSeconds: Math.floor(Date.now() / 1000),
+      });
+    },
+  };
+}

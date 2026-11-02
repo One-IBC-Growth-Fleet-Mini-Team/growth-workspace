@@ -1,0 +1,59 @@
+{
+  "case_id": "sa01-nba-0001",
+  "task": "nba",
+  "rules_checked": [
+    "NBA_R1"
+  ],
+  "gate": "hard",
+  "input": {
+    "today": "2026-11-02",
+    "period": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "snapshot": {
+      "opportunities": [],
+      "clients": [
+        {
+          "client_id": "C1",
+          "is_reseller_end_client": 0,
+          "industry_code": null,
+          "first_won_at": "2025-03-01"
+        },
+        {
+          "client_id": "C2",
+          "is_reseller_end_client": 0,
+          "industry_code": null,
+          "first_won_at": "2025-03-01"
+        }
+      ],
+      "client_services": [
+        {
+          "client_id": "C1",
+          "product_family": "IBC01"
+        },
+        {
+          "client_id": "C2",
+          "product_family": "IBC13"
+        }
+      ]
+    }
+  },
+  "expected": {
+    "must_include": [
+      {
+        "subject_ref": "C1",
+        "action": "upsell_bank"
+      }
+    ],
+    "must_exclude": [
+      {
+        "subject_ref": "C2",
+        "action": "upsell_bank"
+      }
+    ]
+  },
+  "notes": "Khách cũ chưa có Bank được chào Bank; khách đã có Bank thì không.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}

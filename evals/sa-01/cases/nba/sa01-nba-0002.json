@@ -1,0 +1,54 @@
+{
+  "case_id": "sa01-nba-0002",
+  "task": "nba",
+  "rules_checked": [
+    "NBA_R2"
+  ],
+  "gate": "hard",
+  "input": {
+    "today": "2026-11-02",
+    "period": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "snapshot": {
+      "opportunities": [],
+      "clients": [
+        {
+          "client_id": "C1",
+          "is_reseller_end_client": null,
+          "industry_code": null,
+          "first_won_at": "2025-03-01"
+        },
+        {
+          "client_id": "C2",
+          "is_reseller_end_client": 1,
+          "industry_code": null,
+          "first_won_at": "2025-03-01"
+        }
+      ],
+      "client_services": []
+    }
+  },
+  "expected": {
+    "must_include": [
+      {
+        "subject_ref": "C1",
+        "action": "confirm_reseller_flag"
+      }
+    ],
+    "must_exclude": [
+      {
+        "subject_ref": "C1",
+        "action": "upsell_bank"
+      },
+      {
+        "subject_ref": "C2",
+        "action": "upsell_bank"
+      }
+    ]
+  },
+  "notes": "Cờ reseller chưa rõ thì nhờ RM xác nhận (D-06); reseller thì không upsell.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}

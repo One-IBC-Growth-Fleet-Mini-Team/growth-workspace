@@ -1,0 +1,24 @@
+{
+  "case_id": "sa01-reason_code-0001",
+  "task": "reason_code",
+  "rules_checked": [
+    "RC_CATALOG",
+    "RC_PRIMARY",
+    "RC_IS_FINAL"
+  ],
+  "gate": "scored",
+  "input": {
+    "report_date": "2026-10-31",
+    "customer_said": "Cost wise its expensive",
+    "context": "Khách Samoa IBC01, đã gửi báo giá."
+  },
+  "expected": {
+    "acceptable_primary": [
+      "PRICE_TOO_HIGH"
+    ],
+    "is_final": true
+  },
+  "notes": "Chê giá cao, đã dứt khoát.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}

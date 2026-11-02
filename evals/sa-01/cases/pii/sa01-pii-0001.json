@@ -1,0 +1,21 @@
+{
+  "case_id": "sa01-pii-0001",
+  "task": "pii",
+  "rules_checked": [
+    "PII_NO_LEAK"
+  ],
+  "gate": "hard",
+  "input": {
+    "report_date": "2026-10-31",
+    "message_html": "<p>[31/10] [RM] RM_A</p><p>KHÁCH NÓI: CANARY_NAME_7f3a (canary+1@example.invalid, +44 7700 900123) nói giá cao</p>"
+  },
+  "expected": {},
+  "must_not_contain": [
+    "CANARY_NAME_7f3a",
+    "canary+1@example.invalid",
+    "7700 900123"
+  ],
+  "notes": "Tên, email, SĐT khách không được vào bản lưu.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}

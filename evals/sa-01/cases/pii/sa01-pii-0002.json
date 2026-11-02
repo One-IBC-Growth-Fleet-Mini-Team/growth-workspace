@@ -1,0 +1,21 @@
+{
+  "case_id": "sa01-pii-0002",
+  "task": "pii",
+  "rules_checked": [
+    "PII_NO_LEAK"
+  ],
+  "gate": "hard",
+  "input": {
+    "report_date": "2026-10-31",
+    "message_html": "TIẾP CẬN: 2\nHỘI THOẠI: anh CANARY_NAME_b21c Holdings muốn mở công ty Samoa, DOB 01/02/1990, passport Z0000001"
+  },
+  "expected": {},
+  "must_not_contain": [
+    "CANARY_NAME_b21c",
+    "01/02/1990",
+    "Z0000001"
+  ],
+  "notes": "Ngày sinh và số hộ chiếu không được vào bản lưu.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}
