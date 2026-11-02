@@ -14,6 +14,7 @@ import {
   getQueueConfig,
   getReportSource,
   getTeamsWebhooks,
+  BILLING_PARAMS,
   isLocalBaseUrl,
   WO_PARAMS,
 } from "../config.ts";
@@ -50,7 +51,10 @@ import { ITEM_ACTIONS, recordItemAction, recordQueueOpened, type ItemAction } fr
 import { renderImportPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
 import { buildWoBoard, recordWoTouch, reminderTexts } from "../db/wo.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
-import { importCrmCsv, importMessage, loadColumnMap, type CsvResource } from "../crm/csv-import.ts";
+import { importCrmCsv, importMessage, loadColumnMap, type ColumnMap, type CsvResource } from "../crm/csv-import.ts";
+import { billingImportMessage, importBilling, type BillingFiles } from "../crm/billing-import.ts";
+import { buildBillingBoard, invoiceReminderTexts } from "../db/billing.ts";
+import { renderBillingPage } from "./views/billing.ts";
 import { createPiiHasher } from "../pii/hash.ts";
 import { previousWorkingDay } from "../time.ts";
 
@@ -68,6 +72,8 @@ export type QueueAppDeps = {
   onImport?: (files: Partial<Record<CsvResource, string>>) => Promise<{ ok: boolean; message: string }>;
   // Nạp file Work Order và file ghép PIC cho BK-08 (D-25); có hàm này thì bật trang /wo.
   onWoImport?: (files: { WorkOrder?: string; WorkOrderPic?: string }, actor: string) => Promise<{ ok: boolean; message: string }>;
+  // Bảng ghép cột cho file đơn hàng (D-30); thiếu thì dùng tên cột mặc định.
+  columns?: ColumnMap;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
@@ -117,6 +123,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     PASSWORD_USERS[s.sub] ?? [...deps.users.values()].find((u) => u.id === s.sub)!;
   // Đếm lần đăng nhập sai theo người dùng, trong bộ nhớ (khởi động lại thì xoá, chấp nhận được với 2 người dùng).
   const fails = new Map<string, { count: number; until: number }>();
+
+  function billingPage(session: Session, message: string | null): string {
+    const board = buildBillingBoard(deps.db, now());
+    return renderBillingPage({ board, reminders: invoiceReminderTexts(board.remind), escalateDays: BILLING_PARAMS.escalateOverdueDays, csrf: session.csrf, canImport: userOf(session).role === "approver", message });
+  }
 
   async function handle(req: Request): Promise<Response> {
     const url = new URL(req.url);
@@ -214,6 +225,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(renderImportPage({ csrf: session.csrf, message: null, crm: Boolean(deps.onImport), wo: Boolean(deps.onWoImport) }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/billing") {
+      if (!session) return redirect("/login");
+      return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/wo") {
       if (!session) return redirect("/login");
       if (!deps.onWoImport) return text(404, "Không tìm thấy.");
@@ -232,7 +248,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -261,6 +277,17 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const ok = results.every((r) => r.ok);
         const page = renderImportPage({ csrf: session.csrf, message: results.map((r) => r.message).join(" "), crm: Boolean(deps.onImport), wo: Boolean(deps.onWoImport) });
         return respond(page, ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      if (path === "/billing") {
+        if (userOf(session).role !== "approver") return text(403, "Không có quyền.");
+        const files: BillingFiles = {};
+        for (const [field, resource] of [["salesorder", "SalesOrder"], ["purchaseorder", "PurchaseOrder"], ["invoice", "Invoice"]] as const) {
+          const f = form.get(field);
+          if (f instanceof File && f.size > 0) files[resource] = await f.text();
+        }
+        const r = importBilling(deps.db, files, { columns: deps.columns ?? {}, now: now(), actor: userOf(session).id });
+        return respond(billingPage(session, billingImportMessage(r)), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/wo/touch") {
@@ -380,6 +407,7 @@ if (import.meta.main) {
     onPaste: getReportSource() === "paste" ? onPaste : undefined,
     onImport: getCrmSource() === "csv" ? onImport : undefined,
     onWoImport,
+    columns,
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
   Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });
