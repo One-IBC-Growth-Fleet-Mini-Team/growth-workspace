@@ -48,6 +48,34 @@ describe("T-Q-02 mỗi nút ghi đúng một sự kiện", () => {
   });
 });
 
+describe("T-Q-02 trạng thái chặn thao tác lặp", () => {
+  test("T-Q-02 mục đã báo PII không thao tác được nữa; bấm lặp cùng quyết định bị từ chối", async () => {
+    const { app } = makeApp(db);
+    const s = session(AMY);
+    const flagged = seedItem(db);
+    await post(app, act(flagged, "pii_flag"), { csrf: s.csrf }, s.cookie);
+    for (const a of ["confirm", "pii_flag", "escalate"]) {
+      expect((await post(app, act(flagged, a), { csrf: s.csrf }, s.cookie)).status).toBe(409);
+    }
+    expect((await post(app, act(flagged, "edit"), { csrf: s.csrf, action: "follow_up" }, s.cookie)).status).toBe(409);
+    const twice = seedItem(db);
+    expect((await post(app, act(twice, "confirm"), { csrf: s.csrf }, s.cookie)).status).toBe(303);
+    expect((await post(app, act(twice, "confirm"), { csrf: s.csrf }, s.cookie)).status).toBe(409);
+    expect(events(db, twice).length).toBe(1);
+  });
+
+  test("T-Q-10 escalate trả về ngay, không chờ webhook Teams", async () => {
+    const { app } = makeApp(db, { notifyEscalation: () => new Promise(() => {}) });
+    const s = session(AMY);
+    const id = seedItem(db, { confidence: 0.5 });
+    const res = await Promise.race([
+      post(app, act(id, "escalate"), { csrf: s.csrf }, s.cookie),
+      new Promise<Response>((r) => setTimeout(() => r(new Response(null, { status: 599 })), 500)),
+    ]);
+    expect(res.status).toBe(303);
+  });
+});
+
 describe("T-Q-03 mở trang", () => {
   test("T-Q-03 mở trang ghi queue_opened với actor từ phiên", async () => {
     const { app } = makeApp(db);
@@ -121,11 +149,17 @@ describe("T-Q-06 đăng nhập", () => {
     const login = await get(app, "/login");
     expect(login.status).toBe(302);
     const state = new URL(login.headers.get("location")!).searchParams.get("state")!;
-    const oidcCookie = login.headers.get("set-cookie")!.split(";")[0]!;
+    const oidcSet = login.headers.get("set-cookie")!;
+    // Cookie OIDC phải là Lax: Entra chuyển về /auth/callback bằng điều hướng khác site, Strict sẽ bị bỏ.
+    expect(oidcSet).toMatch(/SameSite=Lax/);
+    const oidcCookie = oidcSet.split(";")[0]!;
     expect((await get(app, `/auth/callback?code=code-amy&state=wrong`, oidcCookie)).status).toBe(400);
     expect((await get(app, `/auth/callback?code=code-stranger&state=${state}`, oidcCookie)).status).toBe(403);
     const ok = await get(app, `/auth/callback?code=code-amy&state=${state}`, oidcCookie);
-    expect(ok.status).toBe(302);
+    // Trả trang cùng site rồi mới chuyển sang /queue, để cookie phiên Strict được gửi ở bước kế.
+    expect(ok.status).toBe(200);
+    expect(await ok.text()).toContain('http-equiv="refresh" content="0;url=/queue"');
+    expect(ok.headers.getSetCookie().some((c) => c.startsWith("gw_oidc=;") && c.includes("Path=/auth"))).toBe(true);
     const setCookie = ok.headers.getSetCookie().find((c) => c.startsWith("gw_session="))!;
     expect(setCookie).toMatch(/HttpOnly/);
     expect(setCookie).toMatch(/Secure/);

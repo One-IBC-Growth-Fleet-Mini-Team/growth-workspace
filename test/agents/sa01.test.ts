@@ -97,6 +97,26 @@ describe("T-SA-01 sai schema", () => {
   });
 });
 
+describe("T-SA-01 lỗi LLM tạm thời", () => {
+  test("T-SA-01 LLM lỗi mạng: không ghi rm_reports, có mục hệ thống; lượt sau đọc lại được", async () => {
+    seedFresh();
+    const broken = fakeLlm(() => { throw new Error("timeout"); });
+    const clean = graphFor([reply("r1", "aad_a", "TIẾP CẬN: 5 lead")]);
+    await runSa01("2026-11-02", deps({ llm: broken, graph: clean }));
+    expect(db.query("SELECT COUNT(*) AS n FROM rm_reports").get()).toEqual({ n: 0 });
+    expect(items("self_report")).toEqual([]);
+    expect(items("system_notice").map((i) => JSON.parse(i.payload).kind)).toContain("llm_error");
+    await runSa01("2026-11-02", deps({ graph: clean, now: () => new Date("2026-11-02T02:00:00.000Z") }));
+    expect(JSON.parse(items("self_report")[0]!.payload).status).toBe("ok");
+  });
+
+  test("T-SA-01 parse_failed không lưu nội dung và đánh dấu pii_check blocked (không có gì được kiểm)", async () => {
+    seedFresh();
+    await runSa01("2026-11-02", deps({ llm: fakeLlm(() => "{}") }));
+    expect(db.query("SELECT parsed, pii_check FROM rm_reports").all()).toEqual([{ parsed: null, pii_check: "blocked" }]);
+  });
+});
+
 describe("T-SA-02 danh mục mã lý do", () => {
   const parsed = { headerDate: "31/10", sections: { customer_said: ["x"] }, unlabeled: [], flags: [] as "unstructured"[], redactionStats: { email: 0, phone: 0, id_doc: 0, dob: 0, url: 0 } };
   const withProposal = (p: Record<string, unknown>) => (req: { user: string }) => {
@@ -171,6 +191,26 @@ describe("T-SA-04 nhật ký phiên và trần chi phí", () => {
     const llm = fakeLlm();
     await runSa01("2026-11-02", deps({ llm }));
     expect(llm.calls.length).toBe(1);
+  });
+});
+
+describe("T-SA-04 lỗi giữa chừng", () => {
+  test("T-SA-04 lỗi sau khi đã gọi LLM vẫn ghi agent_runs với token đã tiêu (trần chi phí không bị đếm thiếu)", async () => {
+    seedFresh();
+    const crm = directCrmReadTools(db);
+    const failing = { ...crm, getPipelineByCloseDate: async () => { throw new TypeError("boom"); } };
+    await expect(runSa01("2026-11-02", deps({ crm: failing }))).rejects.toThrow();
+    expect(db.query("SELECT status, input_tokens FROM agent_runs").all()).toEqual([{ status: "failed", input_tokens: 1000 }]);
+  });
+
+  test("T-SA-04 cờ reseller lấy từ cùng snapshot với pipeline, không gọi MCP từng khách", async () => {
+    seedFresh();
+    const crm = directCrmReadTools(db);
+    let calls = 0;
+    const counting = { ...crm, checkResellerFlag: async (a: { client_id: string }) => { calls = calls + 1; return crm.checkResellerFlag(a); } };
+    await runSa01("2026-11-02", deps({ crm: counting }));
+    expect(calls).toBe(0);
+    expect(items("nba").length).toBeGreaterThan(0);
   });
 });
 

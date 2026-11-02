@@ -18,7 +18,7 @@ import { log } from "../../log.ts";
 import type { CrmReadTools } from "../../mcp/crm-read/client.ts";
 import { computeConfidence, fieldCoverage, type ConfidenceFlag } from "../../metrics/confidence.ts";
 import { computeCostUsd, monthToDateCostUsd, sumUsage, type TokenPrice, type TokenUsage } from "../../metrics/cost.ts";
-import type { ResellerFlag } from "../../metrics/reseller-flag.ts";
+import { isResellerEndClient, type ResellerFlag } from "../../metrics/reseller-flag.ts";
 import { servicesPurchased } from "../../metrics/services-purchased.ts";
 import { guardOutput } from "../../pii/name-guard.ts";
 import { readDailyThread, sourceMessageRef, type GraphClient } from "../../teams/graph-read.ts";
@@ -116,6 +116,8 @@ async function handleReport(
   const res = await structureReport(llm, { reportDate: ctx.reportDate, parsed: report.parsed });
   ctx.usages.push(...res.usages);
   if (res.model) ctx.models.push(res.model);
+  // Lỗi gọi API là tạm thời: không ghi rm_reports để lượt sau đọc lại tin này.
+  if (res.status === "llm_error") return notice(ctx, "llm_error", "Không gọi được LLM, lượt sau sẽ đọc lại tự báo");
 
   const reportId = Bun.randomUUIDv7();
   const guard = res.status === "ok" ? guardOutput(res.output, { rmNames: meta.rmNames }) : null;
@@ -128,7 +130,8 @@ async function handleReport(
     source_link: meta.link,
     source_version: meta.version,
     parsed: passed ? JSON.stringify(res.output) : null,
-    pii_check: guard?.pii_check === "blocked" ? "blocked" : "passed",
+    // "passed" chỉ khi có nội dung và đã qua R3; không lưu nội dung thì ghi "blocked".
+    pii_check: passed ? "passed" : "blocked",
     redaction_stats: JSON.stringify({ r1: report.parsed.redactionStats, r3: guard?.stats ?? null }),
     parser_version: PARSER_VERSION,
     agent_run_id: ctx.agentRunId,
@@ -214,7 +217,9 @@ async function nbaItems(ctx: Ctx): Promise<void> {
   let pipeline;
   try {
     pipeline = await deps.crm.getPipelineByCloseDate({ period_start: period.start, period_end: period.end });
-  } catch {
+  } catch (e) {
+    const code = e instanceof Error && "code" in e ? String(e.code) : "";
+    if (code !== "NO_SNAPSHOT") throw e;
     return notice(ctx, "crm_snapshot_missing", "Thiếu dữ liệu CRM: chưa có snapshot thành công");
   }
   const now = (deps.now ?? (() => new Date()))();
@@ -230,8 +235,14 @@ async function nbaItems(ctx: Ctx): Promise<void> {
   const oppById = new Map(opportunities.map((o) => [o.opportunity_id, o]));
   for (const g of pipeline.groups) for (const id of g.opportunity_ids) { const c = oppById.get(id)?.client_id; if (c) clientIds.add(c); }
   for (const c of clients) if (c.first_won_at !== null) clientIds.add(c.client_id);
+  // Cờ reseller đọc từ cùng snapshot với pipeline (cùng etl_run_id), bằng đúng hàm chỉ số mà
+  // tool check_reseller_flag dùng; không gọi MCP từng khách để tránh lệch snapshot giữa chừng.
+  const clientById = new Map(clients.map((c) => [c.client_id, c]));
   const flags = new Map<string, ResellerFlag>();
-  for (const id of clientIds) flags.set(id, (await deps.crm.checkResellerFlag({ client_id: id })).is_reseller_end_client);
+  for (const id of clientIds) {
+    const c = clientById.get(id);
+    flags.set(id, c ? isResellerEndClient(c.is_reseller_end_client) : "unknown");
+  }
 
   const ranked = proposeNba({
     today: ctx.queueDate,
@@ -245,7 +256,7 @@ async function nbaItems(ctx: Ctx): Promise<void> {
   for (const n of ranked) {
     pushItem(ctx, {
       item_type: "nba",
-      dedupe_key: `nba:${ctx.queueDate}:${n.subjectRef}:${n.action}`,
+      dedupe_key: `nba:${ctx.queueDate}:${n.subjectKind}:${n.subjectRef}:${n.action}`,
       subject_ref: n.subjectRef,
       payload: JSON.stringify({
         action: n.action,
@@ -288,12 +299,16 @@ export async function runSa01(queueDate: string, deps: Sa01Deps): Promise<Sa01Re
   log({ event: "sa01.started", run_id: ctx.agentRunId });
   const priorCost = monthToDateCostUsd(agentRunCosts(deps.db, AGENT_ID), startedAt);
 
-  await selfReports(ctx, priorCost);
-  await nbaItems(ctx);
+  let failure: unknown = null;
+  try {
+    await selfReports(ctx, priorCost);
+    await nbaItems(ctx);
+  } catch (e) {
+    failure = e;
+  }
 
   const usage = sumUsage(ctx.usages);
-  let created: boolean[] = [];
-  deps.db.transaction(() => {
+  const runRow = () =>
     insertAgentRun(deps.db, {
       id: ctx.agentRunId,
       agent: AGENT_ID,
@@ -304,16 +319,26 @@ export async function runSa01(queueDate: string, deps: Sa01Deps): Promise<Sa01Re
       input_tokens: usage.inputTokens,
       output_tokens: usage.outputTokens,
       cost_usd: computeCostUsd(usage, deps.pricing),
-      status: "succeeded",
+      status: failure ? "failed" : "succeeded",
       started_at: ctx.createdAt,
       finished_at: now().toISOString(),
     });
+  if (failure) {
+    // Vẫn ghi phiên với token đã tiêu để trần chi phí tháng không bị đếm thiếu; không ghi mục dở.
+    runRow();
+    log({ event: "sa01.failed", run_id: ctx.agentRunId, error_code: "SA01_RUN_FAILED" });
+    throw failure;
+  }
+  let created: boolean[] = [];
+  deps.db.transaction(() => {
+    runRow();
     for (const r of ctx.reports) insertRmReport(deps.db, r);
     created = ctx.items.map((i) => insertQueueItem(deps.db, i));
   })();
   const itemsCreated = created.filter(Boolean).length;
   log({ event: "sa01.finished", run_id: ctx.agentRunId, count: itemsCreated });
 
-  if (deps.notify) await deps.notify(queueDate);
+  // Chạy lại không sinh mục mới thì không nhắn lại Amy.
+  if (deps.notify && itemsCreated > 0) await deps.notify(queueDate);
   return { agentRunId: ctx.agentRunId, reportDate: ctx.reportDate, itemsCreated };
 }

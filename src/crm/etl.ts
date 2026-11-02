@@ -96,6 +96,33 @@ async function pullResource(
   }
 }
 
+// Dò CRM trước khi bật (bước 9): GET đúng trang đầu của mỗi resource, ánh xạ thử từng bản ghi.
+// Kết quả chỉ có mã lỗi và tên trường lệch schema, không có giá trị bản ghi. Không ghi gì vào DB.
+export type ProbeResult = Record<CrmResource, { ok: true } | { ok: false; error_code: string; field?: string }>;
+
+export async function probeCrm(crm: CrmGetOptions, now: Date, pagination: CrmPagination = SYNTHETIC_PAGINATION): Promise<ProbeResult> {
+  const scope = pullScope(now);
+  const probeHasher = { hashEmail: () => null, hashPhone: () => null };
+  const mappers: Record<CrmResource, (raw: unknown) => unknown> = {
+    Opportunity: mapOpportunity,
+    Client: mapClient,
+    Lead: (r) => mapLead(r, probeHasher),
+    OrderItem: mapOrderItem,
+  };
+  const out = {} as ProbeResult;
+  for (const resource of ["Opportunity", "Client", "Lead", "OrderItem"] as const) {
+    try {
+      const query = pagination.firstQuery(resource, scope);
+      const page = pagination.parsePage(await crmGet(resource, query, crm), query);
+      for (const raw of page.records) mappers[resource](raw);
+      out[resource] = { ok: true };
+    } catch (e) {
+      out[resource] = e instanceof CrmMappingError ? { ok: false, error_code: e.code, field: e.field } : { ok: false, error_code: errorCode(e) };
+    }
+  }
+  return out;
+}
+
 function errorCode(e: unknown): string {
   if (e instanceof CrmError || e instanceof CrmMappingError || e instanceof EtlLimitError) return e.code;
   return "ETL_UNKNOWN";

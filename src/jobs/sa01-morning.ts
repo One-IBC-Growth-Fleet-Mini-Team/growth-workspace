@@ -2,7 +2,7 @@
 // crm-read-mcp chạy như tiến trình con qua stdio, mở Growth DB chỉ đọc.
 import { join } from "node:path";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { getDbPath, getEntraConfig, getGraphChannel, getLlmPricing, getQueueConfig, getTeamsWebhooks } from "../config.ts";
+import { getDbPath, getEntraConfig, getEvalResultsDir, getGraphChannel, getLlmPricing, getQueueConfig, getTeamsWebhooks } from "../config.ts";
 import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
 import { readEvalStats } from "../agents/sa-01/eval/runner.ts";
 import { runSa01 } from "../agents/sa-01/run.ts";
@@ -28,7 +28,7 @@ const crm = await connectCrmReadMcp(
 );
 const channel = getGraphChannel();
 const pricing = getLlmPricing();
-const { stats, evalVersion } = readEvalStats(join(ROOT, "evals/sa-01/results"));
+const { stats, evalVersion } = readEvalStats(getEvalResultsDir(ROOT));
 const hooks = getTeamsWebhooks();
 const baseUrl = getQueueConfig().baseUrl;
 

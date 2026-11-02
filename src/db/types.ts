@@ -1,4 +1,4 @@
-// Kiểu dòng của các bảng snapshot CRM, khớp src/db/schema.sql (design doc mục 4.1).
+// Kiểu dòng của các bảng snapshot CRM, khớp src/db/migrations/001-schema.sql (design doc mục 4.1).
 // Mọi tên cột là [ĐỐI CHIẾU SCHEMA], chờ tài liệu API CRM (Q-01).
 
 export type OpportunityRow = {

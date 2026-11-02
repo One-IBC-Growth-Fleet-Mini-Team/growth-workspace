@@ -41,8 +41,8 @@ export function cookieValue(req: Request, name: string): string | undefined {
   return undefined;
 }
 
-function cookie(name: string, value: string, maxAgeSeconds: number, path = "/"): string {
-  return `${name}=${value}; Path=${path}; Max-Age=${maxAgeSeconds}; HttpOnly; Secure; SameSite=Strict`;
+function cookie(name: string, value: string, maxAgeSeconds: number, path = "/", sameSite: "Strict" | "Lax" = "Strict"): string {
+  return `${name}=${value}; Path=${path}; Max-Age=${maxAgeSeconds}; HttpOnly; Secure; SameSite=${sameSite}`;
 }
 
 export function createSessionCookie(secret: string, s: Session): string {
@@ -57,8 +57,8 @@ export function sessionSetCookie(secret: string, s: Session): string {
   return cookie(SESSION_COOKIE, sealValue(secret, s), Math.floor(SESSION_TTL_MS / 1000));
 }
 
-export function clearCookie(name: string): string {
-  return cookie(name, "", 0);
+export function clearCookie(name: string, path = "/"): string {
+  return cookie(name, "", 0, path);
 }
 
 export function readSession(req: Request, secret: string, now: Date): Session | null {
@@ -87,8 +87,10 @@ export function newOidcPending(now: Date): OidcPending {
   };
 }
 
+// Lax, không Strict: Entra chuyển về /auth/callback bằng điều hướng khởi phát từ site khác,
+// trình duyệt bỏ cookie Strict ở bước này. Cookie chỉ sống 10 phút, chỉ có path /auth, đã ký.
 export function oidcSetCookie(secret: string, p: OidcPending): string {
-  return cookie(OIDC_COOKIE, sealValue(secret, p), 600, "/auth");
+  return cookie(OIDC_COOKIE, sealValue(secret, p), 600, "/auth", "Lax");
 }
 
 export function pkceChallenge(verifier: string): string {

@@ -79,7 +79,9 @@ describe("T-Q-09 chạy lại không sinh mục trùng", () => {
   test("T-Q-09 chạy sa01-morning hai lần cùng ngày không sinh mục trùng, không gọi lại LLM cho tin đã xử lý", async () => {
     const before = (db.query("SELECT COUNT(*) AS n FROM queue_items").get() as { n: number }).n;
     const llm = fakeLlm();
-    const r = await runSa01("2026-11-02", { ...deps, llm });
+    let notified = 0;
+    const r = await runSa01("2026-11-02", { ...deps, llm, notify: async () => { notified = notified + 1; } });
+    expect(notified).toBe(0);
     expect(r.itemsCreated).toBe(0);
     expect(llm.calls.length).toBe(0);
     expect((db.query("SELECT COUNT(*) AS n FROM queue_items").get() as { n: number }).n).toBe(before);

@@ -1,0 +1,9 @@
+node_modules
+.git
+.env
+.env.*
+*.sqlite*
+evals/*/results
+test
+docs
+.claude
