@@ -41,14 +41,14 @@ Cập nhật lần cuối: 02/11/2026 (phiên 05). Quy ước: agent hoặc ngư
 
 - **Phiên 05 (02/11/2026)**: CI và gom việc chờ người.
   - CI GitHub Actions `.github/workflows/test.yml`: `bun test` và `tsc --strict` trên mỗi PR vào `main`; typecheck cài `typescript` tạm trong job, không đổi `package.json` (D-18).
-  - Sổ quyết định còn mở D-14 tới D-22: `docs/context/so-quyet-dinh-mo.md`.
+  - Sổ quyết định D-14 tới D-22: `docs/context/so-quyet-dinh-mo.md`; `@harveyng710-source` đã chốt cả 9 theo đề xuất, cùng K-01 và K-02 (ghi ở `docs/context/decisions.md`).
   - Câu hỏi mở gom theo người nhận (MobCEC, admin tenant, Amy, Mark, kỹ thuật): `docs/context/cau-hoi-mo-lat-cat-01.md`.
-  - PR riêng tiếp theo: thêm `nba_priority`, `cost_usd`, `compute_confidence` vào `docs/spec/metric-definitions.md` (D-22, CLAUDE.md quy tắc 3).
+  - PR #8 đã merge. Ghi quyết định D-14 tới D-22 vào `decisions.md` và thêm `nba_priority`, `cost_usd`, `compute_confidence` vào `docs/spec/metric-definitions.md` (D-22, CLAUDE.md quy tắc 3) đi chung một PR tài liệu, chờ duyệt.
 
 ## Việc tiếp theo
 
-1. Mark gửi `docs/context/cau-hoi-mo-lat-cat-01.md` cho từng người nhận, trả lời Sổ quyết định D-14 tới D-22.
-2. Merge PR định nghĩa chỉ số (D-22).
+1. Gửi `docs/context/cau-hoi-mo-lat-cat-01.md` cho MobCEC, admin tenant, Amy (phần của Mark đã chốt).
+2. Merge PR định nghĩa chỉ số (D-22). Bật `test` và `typecheck` thành check bắt buộc cho `main`.
 3. Khi có câu trả lời: sửa giá trị tạm theo cột "Mặc định hiện tại", làm checklist bật cho Amy ở `docs/runbook/lat-cat-01.md` mục 2.
 4. Bật Secret scanning và Push protection cho repo. Người làm: admin repo.
 
@@ -68,4 +68,4 @@ Cập nhật lần cuối: 02/11/2026 (phiên 05). Quy ước: agent hoặc ngư
 
 ## PR đang mở
 
-- PR phiên 05 (nhánh `claude/dreamy-faraday-sw7jto`): CI, sổ quyết định còn mở, gói câu hỏi; chờ `@harveyng710-source` duyệt. PR #7 (phiên 04) đã merge. PR định nghĩa chỉ số mở sau khi PR này merge.
+- PR phiên 05 phần 2 (nhánh `claude/dreamy-faraday-sw7jto`): ghi quyết định D-14 tới D-22 và định nghĩa chỉ số D-22; chờ `@harveyng710-source` duyệt. PR #8 đã merge.

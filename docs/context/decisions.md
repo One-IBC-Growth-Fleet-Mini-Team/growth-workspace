@@ -63,3 +63,19 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
 - **D-11** Thông báo Teams qua Workflows hoặc Incoming Webhook tới chat của Amy, chỉ có ngày và link.
 - **D-12** Xoá có kiểm soát trên bảng chỉ thêm bằng script chạy tay (design doc mục 7.5), không chạy được từ web hay agent.
 - **D-13** Ca eval dựng từ dữ liệu thật để ngoài repo public, đọc qua biến `SA01_PRIVATE_EVAL_DIR`; trong repo chỉ có ca synthetic.
+
+## Quyết định lát cắt 01, chốt ở PR #8
+
+`@harveyng710-source` chốt toàn bộ Sổ quyết định còn mở (`docs/context/so-quyet-dinh-mo.md`) theo cột "Đang làm", và chốt thay Mark hai câu K-01, K-02, ngày 02/11/2026.
+
+- **D-14** Cookie của luồng đăng nhập OIDC là `SameSite=Lax` (path `/auth`, 10 phút, có ký); cookie phiên giữ `Strict` (lệch design doc mục 9 có chủ đích).
+- **D-15** R3 giữ như hiện tại (phương án A): tên khách một từ đứng đầu câu dựa vào lớp R2 và R4; theo dõi số `pii_flag` mỗi tuần.
+- **D-16** NBA đọc trường bổ sung và cờ reseller thẳng từ snapshot chỉ đọc, cùng `etl_run_id` với `get_pipeline_by_close_date`; MCP giữ đúng 3 tool.
+- **D-17** `NBA_X_DUP` để chưa kích hoạt cho tới khi MobCEC trả lời M-03 (liên kết Lead với Client).
+- **D-18** Typecheck trên CI cài `typescript` và `@types/bun` tạm trong job; `package.json` giữ đúng D-01.
+- **D-19** Mỗi cờ `truncated`, `unstructured` nhân điểm tự tin với 0,8 (hai cờ thành 0,64).
+- **D-20** Lớp R1 xoá mọi URL, không chỉ URL có tham số (chặt hơn design doc mục 7.3).
+- **D-21** Gọi Claude API bật `fallbacks: "default"` cho các model hỗ trợ.
+- **D-22** Thêm `nba_priority`, `cost_usd`, `compute_confidence` vào `docs/spec/metric-definitions.md` bằng PR riêng, đúng như code hiện tại.
+- **K-01 (Q-03)** Được gửi văn bản tự báo đã qua R1 sang Claude API.
+- **K-02 (Q-16)** Mark chỉ xem và nhận escalate trên Hàng chờ.
