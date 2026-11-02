@@ -75,7 +75,7 @@ export function getLlmPricing(env: Env = process.env): LlmPricing {
 }
 
 // Hàng chờ (design doc mục 5.7, D-04). SESSION_SECRET ký cookie phiên, tối thiểu 32 ký tự.
-export type QueueConfig = { sessionSecret: string; baseUrl: string; amyOid: string; markOid: string; host: string; port: number };
+export type QueueConfig = { sessionSecret: string; baseUrl: string; host: string; port: number };
 
 export function getQueueConfig(env: Env = process.env): QueueConfig {
   const sessionSecret = required(env, "SESSION_SECRET");
@@ -86,7 +86,32 @@ export function getQueueConfig(env: Env = process.env): QueueConfig {
   if (!Number.isInteger(port)) throw new ConfigError("PORT");
   // Mặc định chỉ nghe trong máy; Caddy đứng trước nhận HTTPS từ Internet (D-23).
   const host = optional(env, "HOST") ?? "127.0.0.1";
-  return { sessionSecret, baseUrl, amyOid: required(env, "AMY_ENTRA_OID"), markOid: required(env, "MARK_ENTRA_OID"), host, port };
+  return { sessionSecret, baseUrl, host, port };
+}
+
+// Cách đăng nhập (D-24): "password" (mặc định, tạm khi chưa có app Entra) hoặc "entra" (D-04).
+export type AuthConfig =
+  | { mode: "password"; hashes: Map<string, string> }
+  | { mode: "entra"; amyOid: string; markOid: string };
+
+export function getAuthConfig(env: Env = process.env): AuthConfig {
+  const mode = optional(env, "AUTH_MODE") ?? "password";
+  if (mode === "entra") return { mode, amyOid: required(env, "AMY_ENTRA_OID"), markOid: required(env, "MARK_ENTRA_OID") };
+  if (mode !== "password") throw new ConfigError("AUTH_MODE");
+  const hashes = new Map<string, string>();
+  for (const [user, name] of [["amy", "AMY_PASSWORD_HASH"], ["mark", "MARK_PASSWORD_HASH"]] as const) {
+    const h = required(env, name);
+    if (!h.startsWith("$argon2")) throw new ConfigError(name);
+    hashes.set(user, h);
+  }
+  return { mode, hashes };
+}
+
+// Nguồn tự báo (D-24): "paste" (mặc định, Amy dán) hoặc "graph" (đọc channel Teams, cần quyền Q-02).
+export function getReportSource(env: Env = process.env): "paste" | "graph" {
+  const v = optional(env, "REPORT_SOURCE") ?? "paste";
+  if (v !== "paste" && v !== "graph") throw new ConfigError("REPORT_SOURCE");
+  return v;
 }
 
 // App đăng ký Entra dùng chung cho đăng nhập Hàng chờ và đọc Graph (D-04). Quyền cụ thể chờ admin tenant (Q-02).

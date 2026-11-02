@@ -2,7 +2,7 @@
 // crm-read-mcp chạy như tiến trình con qua stdio, mở Growth DB chỉ đọc.
 import { join } from "node:path";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { getDbPath, getEntraConfig, getEvalResultsDir, getGraphChannel, getLlmPricing, getQueueConfig, getTeamsWebhooks } from "../config.ts";
+import { getDbPath, getEntraConfig, getEvalResultsDir, getGraphChannel, getLlmPricing, getQueueConfig, getReportSource, getTeamsWebhooks } from "../config.ts";
 import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
 import { readEvalStats } from "../agents/sa-01/eval/runner.ts";
 import { runSa01 } from "../agents/sa-01/run.ts";
@@ -26,7 +26,9 @@ const crm = await connectCrmReadMcp(
     env: { GROWTH_DB_PATH: dbPath, PATH: process.env.PATH ?? "" },
   }),
 );
-const channel = getGraphChannel();
+// Chế độ dán (D-24): tự báo do Amy dán trên trang, lượt 08:00 chỉ làm NBA.
+const pasteMode = getReportSource() === "paste";
+const channel = pasteMode ? null : getGraphChannel();
 const pricing = getLlmPricing();
 const { stats, evalVersion } = readEvalStats(getEvalResultsDir(ROOT));
 const hooks = getTeamsWebhooks();
@@ -42,6 +44,7 @@ try {
     evalStats: stats,
     evalVersion,
     trigger: "cron-05",
+    parts: { selfReports: !pasteMode, nba: true },
     notify: hooks.amy ? (d) => postTeams(hooks.amy!, queueReadyMessage(d, baseUrl)) : undefined,
   });
 } finally {

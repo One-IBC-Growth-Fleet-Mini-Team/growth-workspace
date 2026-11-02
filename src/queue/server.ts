@@ -1,7 +1,20 @@
 // Server Hàng chờ (design doc mục 5.7, 9). Bun.serve, HTML render phía server, không framework.
 // Mọi route trừ /health và luồng đăng nhập cần phiên hợp lệ; mọi POST cần CSRF token và Origin đúng.
 import type { Database } from "bun:sqlite";
-import { getDbPath, getEntraConfig, getQueueConfig, getTeamsWebhooks } from "../config.ts";
+import {
+  getAuthConfig,
+  getDbPath,
+  getEntraConfig,
+  getEvalResultsDir,
+  getLlmPricing,
+  getQueueConfig,
+  getReportSource,
+  getTeamsWebhooks,
+} from "../config.ts";
+import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
+import { readEvalStats } from "../agents/sa-01/eval/runner.ts";
+import { runSa01 } from "../agents/sa-01/run.ts";
+import { directCrmReadTools } from "../mcp/crm-read/client.ts";
 import { latestSucceededSnapshot } from "../db/crm-read.ts";
 import { latestEditPayload, listItemEvents, listQueueItems, listRmDirectory } from "../db/queue.ts";
 import { migrate } from "../db/migrate.ts";
@@ -28,19 +41,28 @@ import {
   type Session,
 } from "./auth.ts";
 import { ITEM_ACTIONS, recordItemAction, recordQueueOpened, type ItemAction } from "./items.ts";
-import { renderQueuePage, type SourceStatus } from "./views/page.ts";
+import { renderLoginPage, renderPastePage, renderQueuePage, type SourceStatus } from "./views/page.ts";
+import { previousWorkingDay } from "../time.ts";
 
 export type QueueAppDeps = {
   db: Database;
   sessionSecret: string;
   baseUrl: string; // https://..., dùng cho link và kiểm Origin
-  users: Map<string, QueueUser>; // AAD object id → người dùng
+  users: Map<string, QueueUser>; // AAD object id → người dùng (chế độ Entra)
   oidc: OidcProvider;
+  // Chế độ mật khẩu tạm (D-24) khi chưa có app Entra: mã băm argon2 theo id người dùng ("amy", "mark").
+  passwordHashes?: Map<string, string>;
+  // Xử lý văn bản tự báo Amy dán (D-24); trả số mục mới.
+  onPaste?: (text: string, reportDate: string) => Promise<{ created: number }>;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
 
 const MAX_BODY = 16 * 1024;
+const MAX_PASTE_BODY = 128 * 1024;
+const LOGIN_MAX_FAILS = 5;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
+const PASSWORD_USERS: Record<string, QueueUser> = { amy: { id: "amy", role: "approver" }, mark: { id: "mark", role: "viewer" } };
 const SECURITY_HEADERS = {
   "content-security-policy":
     "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; script-src 'none'",
@@ -73,13 +95,42 @@ function sourceStatus(db: Database, queueDate: string, now: Date): { status: Sou
 export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promise<Response> } {
   const now = deps.now ?? (() => new Date());
   const origin = new URL(deps.baseUrl).origin;
-  const userOf = (s: Session): QueueUser => [...deps.users.values()].find((u) => u.id === s.sub)!;
+  const userOf = (s: Session): QueueUser =>
+    PASSWORD_USERS[s.sub] ?? [...deps.users.values()].find((u) => u.id === s.sub)!;
+  // Đếm lần đăng nhập sai theo người dùng, trong bộ nhớ (khởi động lại thì xoá, chấp nhận được với 2 người dùng).
+  const fails = new Map<string, { count: number; until: number }>();
 
   async function handle(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const path = url.pathname;
 
     if (req.method === "GET" && path === "/health") return text(200, "ok");
+
+    if (deps.passwordHashes && path === "/login") {
+      if (req.method === "GET") return respond(renderLoginPage(null), 200, { "content-type": "text/html; charset=utf-8" });
+      if (req.method !== "POST") return text(405, "Không hỗ trợ.");
+      if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
+      if (Number(req.headers.get("content-length") ?? "0") > MAX_BODY) return text(413, "Quá lớn.");
+      const form = await req.formData();
+      const who = String(form.get("user") ?? "");
+      const pw = String(form.get("password") ?? "");
+      const f = fails.get(who);
+      if (f && f.until > now().getTime()) {
+        return respond(renderLoginPage("Đăng nhập sai quá nhiều lần, thử lại sau 15 phút."), 429, { "content-type": "text/html; charset=utf-8" });
+      }
+      const hash = deps.passwordHashes.get(who);
+      const ok = hash !== undefined && PASSWORD_USERS[who] !== undefined && (await Bun.password.verify(pw, hash));
+      if (!ok) {
+        if (PASSWORD_USERS[who]) {
+          const count = (f && f.until <= now().getTime() && f.count >= LOGIN_MAX_FAILS ? 0 : (f?.count ?? 0)) + 1;
+          fails.set(who, { count, until: count >= LOGIN_MAX_FAILS ? now().getTime() + LOGIN_LOCK_MS : 0 });
+        }
+        log({ event: "queue.login_failed", error_code: "PASSWORD_INVALID" });
+        return respond(renderLoginPage("Sai tên hoặc mật khẩu."), 401, { "content-type": "text/html; charset=utf-8" });
+      }
+      fails.delete(who);
+      return redirect("/queue", [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()))], 303);
+    }
 
     if (req.method === "GET" && path === "/login") {
       const p = newOidcPending(now());
@@ -128,17 +179,37 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         effectivePayload: latestEditPayload(deps.db, i.id) ?? i.payload,
       }));
       const src = sourceStatus(deps.db, queueDate, now());
-      const page = renderQueuePage({ queueDate, items, user, csrf: session.csrf, now: now(), ...src });
+      const page = renderQueuePage({ queueDate, items, user, csrf: session.csrf, now: now(), canPaste: Boolean(deps.onPaste), ...src });
+      return respond(page, 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/paste") {
+      if (!session) return redirect("/login");
+      if (userOf(session).role !== "approver" || !deps.onPaste) return text(403, "Không có quyền.");
+      const page = renderPastePage({ csrf: session.csrf, reportDate: previousWorkingDay(vnDate(now())), message: null });
       return respond(page, 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      if (Number(req.headers.get("content-length") ?? "0") > MAX_BODY) return text(413, "Quá lớn.");
+      const limit = path === "/paste" ? MAX_PASTE_BODY : MAX_BODY;
+      if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
       if (path === "/logout") return redirect("/login", [clearCookie("gw_session")], 303);
+
+      if (path === "/paste") {
+        if (userOf(session).role !== "approver" || !deps.onPaste) return text(403, "Không có quyền.");
+        const reportDate = String(form.get("report_date") ?? "");
+        const body = String(form.get("text") ?? "");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate) || body.trim() === "" || body.length > 100_000) {
+          return text(422, "Ngày hoặc nội dung dán không hợp lệ.");
+        }
+        // Văn bản thô chỉ đi qua hàm xử lý trong bộ nhớ, không ghi DB hay log.
+        await deps.onPaste(body, reportDate);
+        return redirect(`/queue?date=${vnDate(now())}`, [], 303);
+      }
 
       const m = /^\/queue\/items\/([A-Za-z0-9-]{1,64})\/([a-z_]+)$/.exec(path);
       if (!m || !(ITEM_ACTIONS as readonly string[]).includes(m[2]!)) return text(404, "Không tìm thấy.");
@@ -169,21 +240,48 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
 if (import.meta.main) {
   const cfg = getQueueConfig();
-  const entra = getEntraConfig();
+  const auth = getAuthConfig();
   const hooks = getTeamsWebhooks();
   const db = openReadWrite(getDbPath());
   migrate(db);
+  const root = new URL("../../", import.meta.url).pathname;
+  // Lượt dán (D-24): chỉ làm phần tự báo và mã lý do; NBA do cron 08:00 làm.
+  const onPaste = async (text: string, reportDate: string) => {
+    const pricing = getLlmPricing();
+    const { stats, evalVersion } = readEvalStats(getEvalResultsDir(root));
+    const r = await runSa01(vnDate(new Date()), {
+      db,
+      crm: directCrmReadTools(db),
+      graph: null,
+      pasted: { text, reportDate },
+      parts: { selfReports: true, nba: false },
+      llm: createAnthropicLlm({ model: pricing.model }),
+      pricing,
+      evalStats: stats,
+      evalVersion,
+      trigger: "paste",
+    });
+    return { created: r.itemsCreated };
+  };
   const app = createQueueApp({
     db,
     sessionSecret: cfg.sessionSecret,
     baseUrl: cfg.baseUrl,
-    users: new Map([
-      [cfg.amyOid, { id: "amy", role: "approver" }],
-      [cfg.markOid, { id: "mark", role: "viewer" }],
-    ]),
-    oidc: createEntraOidc({ ...entra, redirectUri: `${cfg.baseUrl}/auth/callback` }),
+    users:
+      auth.mode === "entra"
+        ? new Map([
+            [auth.amyOid, { id: "amy", role: "approver" }],
+            [auth.markOid, { id: "mark", role: "viewer" }],
+          ])
+        : new Map(),
+    oidc:
+      auth.mode === "entra"
+        ? createEntraOidc({ ...getEntraConfig(), redirectUri: `${cfg.baseUrl}/auth/callback` })
+        : { authorizationUrl: () => "/login", exchange: async () => { throw new Error("OIDC_DISABLED"); } },
+    passwordHashes: auth.mode === "password" ? auth.hashes : undefined,
+    onPaste: getReportSource() === "paste" ? onPaste : undefined,
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
-  Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_BODY });
+  Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_PASTE_BODY });
   log({ event: "queue.listening", count: cfg.port });
 }
