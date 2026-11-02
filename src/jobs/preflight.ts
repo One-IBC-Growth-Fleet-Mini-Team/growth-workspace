@@ -8,6 +8,8 @@ import {
   getCrmConfig,
   getDbPath,
   getAuthConfig,
+  getCrmColumnsPath,
+  getCrmSource,
   getEntraConfig,
   getEvalResultsDir,
   getReportSource,
@@ -21,6 +23,7 @@ import {
 } from "../config.ts";
 import { readEvalStats } from "../agents/sa-01/eval/runner.ts";
 import { probeCrm } from "../crm/etl.ts";
+import { loadColumnMap } from "../crm/csv-import.ts";
 import { listRmDirectory } from "../db/queue.ts";
 import { SCHEMA_VERSION } from "../db/migrate.ts";
 import { openReadOnly } from "../db/open.ts";
@@ -46,10 +49,15 @@ export function checkConfig(env: Env): Check[] {
   const out: Check[] = [];
   out.push(...attempt("GROWTH_DB_PATH", () => getDbPath(env)));
   out.push(...attempt("PII_HASH_KEY", () => getPiiHashKey(env)));
-  out.push(...attempt("CRM_API_BASE", () => {
-    const c = getCrmConfig(env);
-    if (!c.baseUrl.startsWith("https://")) throw new ConfigError("CRM_API_BASE");
-  }));
+  out.push(...attempt("CRM_SOURCE", () => getCrmSource(env)));
+  if ((env.CRM_SOURCE ?? "").trim() === "api") {
+    out.push(...attempt("CRM_API_BASE", () => {
+      const c = getCrmConfig(env);
+      if (!c.baseUrl.startsWith("https://")) throw new ConfigError("CRM_API_BASE");
+    }));
+  } else {
+    out.push(...attempt("CRM_CSV_COLUMNS_PATH", () => loadColumnMap(getCrmColumnsPath(env))));
+  }
   out.push(...attempt("LLM_MODEL", () => getLlmPricing(env)));
   out.push(...attempt("QUEUE_BASE_URL", () => getQueueConfig(env)));
   out.push(...attempt("AUTH_MODE", () => getAuthConfig(env)));
@@ -102,7 +110,7 @@ async function main(): Promise<number> {
   checks.push(...checkEval(readEvalStats(evalDir).stats, existsSync(join(evalDir, "latest.json"))));
 
   if (process.argv.includes("--network")) {
-    if (checks.find((c) => c.name === "CRM_API_BASE")?.ok) {
+    if (getCrmSource() === "api" && checks.find((c) => c.name === "CRM_API_BASE")?.ok) {
       const probe = await probeCrm(getCrmConfig(), new Date());
       for (const [resource, r] of Object.entries(probe)) {
         checks.push({ name: `crm.${resource}`, ok: r.ok, error_code: r.ok ? undefined : r.field ? `${r.error_code}:${r.field}` : r.error_code });

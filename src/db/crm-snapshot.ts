@@ -11,7 +11,7 @@ export type CrmSnapshot = {
 
 export type SnapshotRowCounts = { opportunity: number; client: number; lead: number; client_service: number };
 
-export function insertEtlRun(db: Database, id: string, source: "crm", startedAt: string): void {
+export function insertEtlRun(db: Database, id: string, source: "crm" | "crm_csv", startedAt: string): void {
   db.run("INSERT INTO etl_runs (id, source, started_at) VALUES (?, ?, ?)", [id, source, startedAt]);
 }
 

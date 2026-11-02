@@ -188,6 +188,7 @@ export function renderQueuePage(args: {
   snapshotAt: string | null;
   status: SourceStatus;
   canPaste?: boolean;
+  canImport?: boolean;
 }): string {
   const visible = args.items.filter((i) => i.state !== "pii_flag");
   const statusText =
@@ -195,7 +196,7 @@ export function renderQueuePage(args: {
   const body = html`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hàng chờ ${ddmm(args.queueDate)}</title><style>${new SafeHtml(STYLE)}</style></head><body>
 <h1>Hàng chờ ngày ${ddmm(args.queueDate)}</h1>
-${args.canPaste && args.user.role === "approver" ? html`<nav><a href="/paste">Dán tự báo của RM</a></nav>` : ""}
+${args.user.role === "approver" && (args.canPaste || args.canImport) ? html`<nav>${args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}</nav>` : ""}
 <div class="status ${args.status}">${statusText} · Snapshot CRM: ${args.snapshotAt ?? "chưa có"} · Người dùng: ${args.user.id}</div>
 ${GROUPS.map((g) => {
     const list = visible.filter((i) => i.item_type === g.type);
@@ -228,4 +229,18 @@ ${args.message ? html`<p class="warn">${args.message}</p>` : ""}
 <label>Ngày tự báo <input type="date" name="report_date" value="${args.reportDate}" required></label>
 <label>Nội dung <textarea name="text" required maxlength="100000"></textarea></label>
 <button type="submit">Xử lý</button> <a href="/queue">Quay lại Hàng chờ</a></form>`);
+}
+
+export function renderImportPage(args: { csrf: string; message: string | null }): string {
+  const file = (name: string, label: string, note: string) =>
+    html`<label>${label} <input type="file" name="${name}" accept=".csv,text/csv"> <span class="meta">${note}</span></label>`;
+  return shell("Nạp dữ liệu CRM", html`<h1>Nạp dữ liệu CRM (CSV)</h1>
+<p>Xuất danh sách từ trang quản trị CRM. Nếu file là Excel, mở bằng Excel rồi chọn "Lưu thành", định dạng "CSV UTF-8". File Opportunity là bắt buộc; ba file còn lại có thì nạp. Chỉ những cột cần cho NBA được đọc; email và số điện thoại được mã hoá ngay khi nạp; file gốc không được lưu. Nạp xong, NBA của hôm nay được sinh lại từ dữ liệu mới.</p>
+${args.message ? html`<p class="warn">${args.message}</p>` : ""}
+<form method="post" action="/import" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
+${file("opportunity", "Opportunity", "bắt buộc")}
+${file("client", "Client (Account)", "để biết khách cũ, cờ reseller")}
+${file("lead", "Lead", "để cảnh báo trùng khách")}
+${file("orderitem", "Order hoặc OrderItem", "để biết khách đã mua dịch vụ gì")}
+<button type="submit">Nạp</button> <a href="/queue">Quay lại Hàng chờ</a></form>`);
 }

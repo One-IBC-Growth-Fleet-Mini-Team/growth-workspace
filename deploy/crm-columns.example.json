@@ -1,0 +1,29 @@
+{
+  "Opportunity": {
+    "Id": "Opportunity ID",
+    "AccountId": "Account ID",
+    "OwnerId": "Owner ID",
+    "StageName": "Stage",
+    "CloseDate": { "column": "Close Date", "format": "dd/mm/yyyy" },
+    "LastModifiedDate": { "column": "Last Modified Date", "format": "dd/mm/yyyy hh:mm" },
+    "NextStep": "Next Step",
+    "Industry__c": "Industry"
+  },
+  "Client": {
+    "Id": "Account ID",
+    "Is_Reseller_End_Client__c": "Reseller End Client",
+    "First_Won_Date__c": { "column": "First Won Date", "format": "dd/mm/yyyy" }
+  },
+  "Lead": {
+    "Id": "Lead ID",
+    "OwnerId": "Owner ID",
+    "CreatedDate": { "column": "Created Date", "format": "dd/mm/yyyy hh:mm" },
+    "Status": "Lead Status",
+    "Email": "Email",
+    "Phone": "Phone"
+  },
+  "OrderItem": {
+    "Order.AccountId": "Account ID",
+    "Product2.Family": "Product Family"
+  }
+}
