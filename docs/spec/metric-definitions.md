@@ -12,6 +12,9 @@ Trạng thái: bản nháp từ ghi chú vận hành, cần đối chiếu lại
 | `rm_active_on_deal` | RM đang thật sự chăm deal | LastModifiedDate lẻ, riêng biệt hoặc NextStep có nội dung | LastModifiedDate trùng hàng loạt tới từng giây | Cập nhật hàng loạt không tính |
 | `id_coverage` | Tỷ lệ phiên web hoặc WhatsApp nối được tới Contact | Sự kiện contact_captured / phiên có session_id | Ước lượng | Mốc 25/09/2026: 19% phiên WhatsApp |
 | `win_rate` | Close Won / (Close Won + Lost) theo Close Date trong kỳ, đã lọc reseller | CRM Opportunity | Gồm deal còn mở | Hiển thị kèm cỡ mẫu |
+| `nba_priority` | Điểm xếp hạng một mục NBA: (trọng số Stage × 10 + độ gần Close Date + 2 nếu RM không chăm deal) × hệ số. Độ gần Close Date = (30 − số ngày tới Close Date, chặn trong 0 tới 30) / 30 × 3. Hệ số trong (0, 1]; luật 3 (ngành hạn chế) đặt hệ số 0,5 | Snapshot Opportunity, `rm_active_on_deal`, tham số `NBA_PARAMS` | LLM xếp hạng; hệ số lớn hơn 1 | `src/metrics/nba-priority.ts`. Trọng số Stage tạm, chờ Amy (Q-09). Luật 3 không bao giờ làm điểm tăng (test thuộc tính) |
+| `cost_usd` | Chi phí một phiên agent = (input_tokens × giá input + output_tokens × giá output) / 1.000.000. Chi phí tháng = tổng `cost_usd` các phiên bắt đầu trong tháng dương lịch (UTC) | `usage` do Claude API trả; bảng giá trong biến môi trường | Số chi phí do LLM tự báo | `src/metrics/cost.ts`. Trần 100 USD/tháng (spec mục 10); chạm trần thì dừng gọi LLM |
+| `compute_confidence` | Điểm tự tin của một mục hàng chờ = tỷ lệ pass eval × độ phủ trường × min(1, số ca eval / 30) × 0,8 cho mỗi cờ `truncated`, `unstructured`. Độ phủ trường = số trường cần thiết đã biết / tổng số trường cần thiết. Dưới 0,8 thì có nút Escalate | Kết quả eval gần nhất của đúng prompt và danh mục; các trường của mục | Điểm do model tự chấm | `src/metrics/confidence.ts`, D-07, D-19 (mỗi cờ nhân 0,8) |
 
 ## Bẫy dữ liệu đã biết
 
