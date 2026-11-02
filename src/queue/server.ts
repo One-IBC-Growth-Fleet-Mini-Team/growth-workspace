@@ -47,7 +47,8 @@ import {
   type Session,
 } from "./auth.ts";
 import { ITEM_ACTIONS, recordItemAction, recordQueueOpened, type ItemAction } from "./items.ts";
-import { renderImportPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
+import { renderImportPage, renderLeadDupPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
+import { findDuplicateLeads } from "../mcp/crm-read/tools.ts";
 import { buildWoBoard, recordWoTouch, reminderTexts } from "../db/wo.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
 import { importCrmCsv, importMessage, loadColumnMap, type CsvResource } from "../crm/csv-import.ts";
@@ -212,6 +213,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       if (!session) return redirect("/login");
       if (userOf(session).role !== "approver" || !(deps.onImport || deps.onWoImport)) return text(403, "Không có quyền.");
       return respond(renderImportPage({ csrf: session.csrf, message: null, crm: Boolean(deps.onImport), wo: Boolean(deps.onWoImport) }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/leads") {
+      if (!session) return redirect("/login");
+      const snap = latestSucceededSnapshot(deps.db);
+      const groups = snap ? findDuplicateLeads(deps.db, {}).groups : [];
+      return respond(renderLeadDupPage({ snapshotAt: snap?.snapshot_at ?? null, groups }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/wo") {
