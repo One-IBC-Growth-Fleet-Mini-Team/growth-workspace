@@ -57,5 +57,5 @@ Sau khi có token: chạy `bun run preflight -- --network`, lệnh tự báo tê
 
 | Mã | Câu hỏi | Đang chặn | Mặc định hiện tại |
 |---|---|---|---|
-| E-01 (Q-13) | Nền tảng host container (có cron, ổ bền); mã hoá ổ đĩa và backup file SQLite | Triển khai (D-03) | `Dockerfile`, ổ bền gắn vào `/data` |
+| E-01 (Q-13) | Nhà cung cấp máy chủ Ubuntu (ổ bền gắn trực tiếp); mã hoá ổ đĩa và backup | Triển khai (D-03, D-23) | `deploy/` chạy được trên Azure, Oracle hay máy Ubuntu 24.04 khác; đề xuất Azure gói miễn phí 12 tháng |
 | E-02 | Bật Secret scanning và Push protection cho repo | An toàn repo public | Chưa bật |

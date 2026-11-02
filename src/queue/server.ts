@@ -184,6 +184,6 @@ if (import.meta.main) {
     oidc: createEntraOidc({ ...entra, redirectUri: `${cfg.baseUrl}/auth/callback` }),
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
-  Bun.serve({ port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_BODY });
+  Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_BODY });
   log({ event: "queue.listening", count: cfg.port });
 }

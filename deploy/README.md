@@ -1,70 +1,138 @@
-# Dựng Growth Workspace trên một máy Linux
+# Đưa Growth Workspace lên một máy chủ
 
-Bộ này chạy được trên bất kỳ máy Ubuntu 22.04 hoặc 24.04 nào: Azure (gói miễn phí 12 tháng), Oracle Cloud Always Free, hay máy khác. Chọn nhà cung cấp là câu E-01 (Q-13) trong `docs/context/cau-hoi-mo-lat-cat-01.md`; bộ này không phụ thuộc lựa chọn đó.
+Viết cho người không làm kỹ thuật. Mỗi bước có "làm gì" và "xong khi nào". Không dùng Docker (D-23): ứng dụng chạy thẳng trên máy Ubuntu, `setup.sh` lo hết phần cài đặt.
 
-Gồm: `docker-compose.yml` (ứng dụng và Caddy tự lo HTTPS), `Caddyfile`, `systemd/` (lịch job theo giờ Việt Nam), `setup.sh` (dựng hoặc cập nhật bằng một lệnh). Đã chạy thử đầy đủ bằng Docker ngày 02/11/2026: build image, HTTPS qua Caddy, migration, backup, preflight, các unit systemd hợp lệ.
+Muốn xem thử Hàng chờ trên máy tính của mình trước (không cần máy chủ, không cần tài khoản nào): xem `docs/huong-dan-demo.md`.
 
-## 1. Tạo máy
+> Phải có trước khi Hàng chờ chạy với dữ liệu thật: API CRM chỉ đọc (MobCEC), quyền Teams và app đăng nhập Entra (admin tenant). Xem `docs/context/cau-hoi-mo-lat-cat-01.md`. Làm các bước dưới đây trước cũng được; máy sẽ chạy, chỉ là chưa có dữ liệu.
 
-Yêu cầu tối thiểu: 1 vCPU, 2 GB RAM, ổ 30 GB gắn trực tiếp vào máy (không dùng ổ mạng như Azure Files hay NFS: SQLite có thể hỏng file trên ổ mạng), Ubuntu 22.04 hoặc 24.04 bản x86_64 hay arm64, một địa chỉ IP công khai cố định.
+## Bước 1. Tạo máy chủ (khoảng 15 phút, làm trên trang web của nhà cung cấp)
 
-- **Azure**: tạo Virtual Machine Ubuntu, vùng Southeast Asia, cỡ máy và loại ổ nằm trong danh sách miễn phí 12 tháng của tài khoản (xem trang "free services" của Azure trước khi tạo; chọn sai cỡ máy hoặc loại ổ là bị tính tiền ngay). Bật "Automatic guest OS patching". Network security group mở cổng 22 (chỉ từ IP của người vận hành), 80, 443. Bật Azure Backup cho máy.
-- **Oracle Cloud**: tạo instance Ubuntu, shape Ampere A1, dùng ít hơn hạn mức Always Free (ví dụ 1 OCPU, 6 GB). Security List mở cổng 80, 443. Image Ubuntu của Oracle chặn sẵn 80 và 443 bằng iptables trên máy, phải mở thêm:
+Cần: Ubuntu 24.04, 1 vCPU, 2 GB RAM, ổ 30 GB gắn trực tiếp vào máy (không dùng ổ mạng như Azure Files), địa chỉ IP công khai cố định.
 
-  ```bash
-  sudo iptables -I INPUT 6 -p tcp -m multiport --dports 80,443 -j ACCEPT && sudo netfilter-persistent save
-  ```
+**Azure** (khuyến nghị, gói miễn phí 12 tháng):
+1. portal.azure.com → Virtual machines → Create.
+2. Image: Ubuntu Server 24.04 LTS. Region: Southeast Asia. Size: một cỡ có nhãn miễn phí trong tài khoản (đọc trang "free services" của Azure trước; chọn sai cỡ máy hoặc loại ổ là bị tính tiền ngay).
+3. Authentication: SSH public key. Azure tạo và cho tải file khoá, cất file này cẩn thận.
+4. Inbound ports: mở 22, 80, 443. Sau khi tạo, vào Networking sửa luật cổng 22 chỉ cho IP của bạn.
+5. Sau khi tạo: bật "Automatic guest OS patching" và Backup cho máy.
 
-  Bắt buộc làm mục 5 (backup ra ngoài máy): Oracle có thể tắt máy Always Free khi đổi chính sách.
+**Oracle Cloud** (0 đồng lâu dài):
+1. cloud.oracle.com → Compute → Instances → Create. Image Ubuntu 24.04; shape Ampere A1 với 1 OCPU, 6 GB (ít hơn hạn mức miễn phí).
+2. Security List của mạng: thêm luật cho cổng 80 và 443.
+3. Bắt buộc làm bước 6 (backup ra ngoài máy): Oracle có thể tắt máy miễn phí khi đổi chính sách.
 
-## 2. Trỏ tên miền
+Xong khi: thấy địa chỉ IP công khai của máy trên trang quản lý.
 
-Tạo bản ghi DNS A (ví dụ `hangcho.<tên miền của One IBC>`) trỏ tới IP công khai của máy. Địa chỉ này cũng là redirect URI của app Entra: `https://<tên miền>/auth/callback` (câu AD-03).
+## Bước 2. Trỏ tên miền (khoảng 5 phút, người quản lý tên miền của One IBC làm)
 
-## 3. Chạy setup lần đầu
+Tạo bản ghi DNS loại A, ví dụ `hangcho.<tên miền One IBC>`, trỏ tới IP ở bước 1. Gửi admin tenant địa chỉ `https://hangcho.<tên miền>/auth/callback` để đăng ký vào app Entra (câu AD-03).
+
+Xong khi: vài phút sau, gõ tên miền vào trình duyệt không còn báo "không tìm thấy" (có thể báo lỗi kết nối, chưa sao).
+
+## Bước 3. Vào máy và chạy setup lần đầu (khoảng 5 phút)
+
+Trên Azure: trang của máy → Connect → "SSH using Azure CLI" hoặc "Serial console" để mở cửa sổ lệnh ngay trên trình duyệt. Trên Oracle: trang của máy → "Cloud Shell" hoặc "Console connection".
+
+Dán hai lệnh này, Enter sau mỗi lệnh:
 
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/One-IBC-Growth-Fleet-Mini-Team/growth-workspace/main/deploy/setup.sh
+```
+
+```bash
 sudo bash setup.sh
 ```
 
-Lần đầu, lệnh tạo hai file rồi dừng để điền (cả hai chỉ root đọc được, không bao giờ đưa vào repo):
+Xong khi: dòng cuối báo "Đã tạo /etc/growth/growth.env và /etc/growth/caddy.env".
 
-- `/etc/growth/caddy.env`: `QUEUE_DOMAIN` là tên miền ở mục 2, `ACME_EMAIL` là email nhận thông báo chứng chỉ.
-- `/etc/growth/growth.env`: các biến trong `.env.example`. Để trống `GROWTH_DB_PATH` và `SA01_EVAL_RESULTS_DIR` (compose tự đặt vào `/data`). `QUEUE_BASE_URL` là `https://<tên miền>`. Biến nào chưa có (token CRM, quyền Graph...) cứ để trống; preflight sẽ báo.
+Riêng Oracle: Ubuntu của Oracle chặn sẵn cổng 80 và 443 ngay trên máy. Dán thêm lệnh này một lần:
 
-Điền xong thì chạy lại `sudo bash setup.sh`. Lệnh cài Docker, build image, chạy ứng dụng, nâng schema DB, cài lịch job, chạy preflight. Mở `https://<tên miền>/health` thấy `ok` là xong phần máy.
+```bash
+sudo iptables -I INPUT 6 -p tcp -m multiport --dports 80,443 -j ACCEPT && sudo netfilter-persistent save
+```
 
-## 4. Các bước sau
+## Bước 4. Điền cấu hình (khoảng 10 phút)
 
-| Việc | Lệnh |
+Mở file bằng trình soạn thảo trong cửa sổ lệnh (dùng phím mũi tên để di chuyển; Ctrl+O rồi Enter để lưu; Ctrl+X để thoát):
+
+```bash
+sudo nano /etc/growth/caddy.env
+```
+
+Điền `QUEUE_DOMAIN=hangcho.<tên miền>` (không có https://) và `ACME_EMAIL=<email nhận thông báo chứng chỉ>`.
+
+```bash
+sudo nano /etc/growth/growth.env
+```
+
+Điền những gì đã có; chưa có thì để trống, chương trình sẽ báo. Tối thiểu cho lần đầu:
+
+| Biến | Điền gì |
 |---|---|
-| Nạp danh bạ RM | `sudo docker compose -f /opt/growth-workspace/deploy/docker-compose.yml exec -T growth bun run scripts/load-rm-directory.ts /data/rm-directory.json` (chép file JSON vào `/srv/growth/data/` trước, xoá đi sau khi nạp) |
-| Kiểm trước khi bật | `... exec -T growth bun run src/jobs/preflight.ts --network` |
-| Chạy eval | `... exec -T growth bun run src/agents/sa-01/eval/main.ts` |
-| Xem lịch job | `systemctl list-timers 'growth-*'` |
-| Xem log một job | `journalctl -u growth-job@sa01-morning.service` |
-| Chạy tay một job | `sudo systemctl start growth-job@etl-crm.service` |
-| Cập nhật lên `main` mới nhất | `sudo bash /opt/growth-workspace/deploy/setup.sh` |
+| `QUEUE_BASE_URL` | `https://hangcho.<tên miền>` |
+| `SESSION_SECRET`, `PII_HASH_KEY` | mỗi biến một chuỗi ngẫu nhiên dài; tạo bằng lệnh `openssl rand -hex 32` (mỗi biến chạy một lần, chép kết quả vào) |
+| `TEAMS_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `AMY_ENTRA_OID`, `MARK_ENTRA_OID` | admin tenant gửi (câu AD-03, AD-04) |
+| `CRM_API_BASE`, `CRM_API_TOKEN` | MobCEC gửi (câu M-01, M-02) |
+| `LLM_MODEL`, `LLM_PRICE_*`, `ANTHROPIC_API_KEY` | `LLM_MODEL=claude-sonnet-5-5`; giá và API key lấy từ tài khoản Claude của One IBC |
+
+Không gửi nội dung hai file này qua chat hay email; chúng chứa khoá bí mật. Cất bản sao ở kho bí mật của tổ chức.
+
+## Bước 5. Chạy setup lần hai
+
+```bash
+sudo bash setup.sh
+```
+
+Xong khi: thấy "Hàng chờ đang chạy." và mở `https://hangcho.<tên miền>/health` trên trình duyệt thấy chữ `ok`. Dòng "Preflight còn mục chưa đạt" là bình thường khi chưa có CRM, Teams và eval.
+
+Từ giờ, mỗi lần có bản mới trên `main`, chỉ cần chạy lại đúng lệnh này.
+
+## Bước 6. Backup ra ngoài máy (khoảng 15 phút, nên làm ngay)
+
+Máy tự backup lúc 06:15 mỗi ngày vào `/srv/growth/data/backups`, giữ 14 bản. Để có bản sao ở nơi khác (phòng khi mất máy):
+
+```bash
+sudo rclone config --config /etc/growth/rclone.conf
+```
+
+Làm theo câu hỏi trên màn hình:
+1. Tạo remote tới kho lưu trữ của nhà cung cấp: Azure Blob Storage (chọn `azureblob`) hoặc Oracle Object Storage (chọn `s3`, provider Oracle).
+2. Tạo thêm remote tên đúng là **`growth-backup`**, loại `crypt`, bọc remote ở bước 1. Đặt mật khẩu mạnh, cất ở kho bí mật của tổ chức. Backup được mã hoá trước khi rời máy.
+
+Xong khi: lệnh `sudo systemctl start growth-offsite-backup.service` chạy không báo lỗi. Từ đó máy tự đẩy backup lúc 06:20 mỗi ngày.
+
+## Các việc thường gặp
+
+| Muốn | Lệnh |
+|---|---|
+| Xem lịch chạy | `systemctl list-timers 'growth-*'` |
+| Xem Hàng chờ có chạy không | `systemctl status growth-queue` |
+| Xem log một job | `journalctl -u growth-job@sa01-morning -n 50` |
+| Chạy tay một job | `sudo systemctl start growth-job@etl-crm` |
+| Kiểm trước khi bật cho Amy | `sudo systemctl start growth-job@preflight` rồi xem log của nó |
 | Tắt khẩn cấp phần agent | `sudo systemctl disable --now growth-sa01-morning.timer` |
+| Cập nhật lên bản mới | `sudo bash setup.sh` |
 
-`...` là `sudo docker compose -f /opt/growth-workspace/deploy/docker-compose.yml`. Checklist bật cho Amy ở `docs/runbook/lat-cat-01.md` mục 2.
+Nạp danh bạ RM, chạy eval, xoá có kiểm soát: xem `docs/runbook/lat-cat-01.md`. Lệnh `bun run <file>` trong runbook chạy trên máy chủ bằng `sudo growth-run <file>`, ví dụ:
 
-## 5. Backup
+```bash
+sudo growth-run scripts/load-rm-directory.ts /srv/growth/data/rm-directory.json
+```
 
-- 06:15 hằng ngày, job `backup-db` tạo một bản SQLite nhất quán trong `/srv/growth/data/backups`, giữ 14 bản gần nhất.
-- 06:20, timer `growth-offsite-backup` đẩy thư mục đó ra kho lưu trữ ngoài máy bằng rclone, chỉ khi đã có `/etc/growth/rclone.conf`. Kho chỉ giữ bản trong 15 ngày, khớp D-09 và D-12: nội dung đã xoá có kiểm soát tự biến khỏi backup.
+## Khôi phục từ backup
 
-Cấu hình rclone một lần (`sudo rclone config --config /etc/growth/rclone.conf`):
+1. `sudo systemctl stop growth-queue`
+2. Chép bản backup muốn dùng thành `/srv/growth/data/growth.sqlite`, rồi `sudo chown growth:growth /srv/growth/data/growth.sqlite`
+3. `sudo bash setup.sh`
 
-1. Tạo remote tới kho của nhà cung cấp: Azure Blob Storage (loại `azureblob`) hoặc Oracle Object Storage (loại `s3`, provider Oracle).
-2. Tạo remote mã hoá loại `crypt` tên **`growth-backup`** bọc remote ở bước 1, đặt mật khẩu mạnh và cất mật khẩu ở kho bí mật của tổ chức. Backup chứa snapshot CRM và tự báo đã ẩn danh, nên chỉ đẩy ra ngoài khi đã mã hoá.
-3. `sudo chmod 600 /etc/growth/rclone.conf`, rồi thử `sudo systemctl start growth-offsite-backup.service`.
+## Đã kiểm
 
-Khôi phục: dừng ứng dụng (`... stop growth`), chép một bản backup thành `/srv/growth/data/growth.sqlite` (chủ sở hữu uid 1000), chạy lại `setup.sh`.
+Ngày 02/11/2026, trên một máy Ubuntu 24.04 giả lập (systemd đầy đủ):
+- lần một tạo file cấu hình rồi dừng; lần hai dựng xong; lần ba chạy lại không hỏng gì;
+- Bun 1.4.4 tải từ GitHub, kiểm SHA-256 khớp;
+- Hàng chờ chỉ nghe trên 127.0.0.1, ra ngoài qua Caddy (HTTPS, HSTS);
+- 5 lịch đúng giờ Việt Nam; job backup ghi đúng chủ sở hữu `growth`;
+- preflight chỉ báo các mục chưa có nguồn thật.
 
-## 6. An toàn
-
-- Không mở cổng nào khác ngoài 22, 80, 443; cổng 22 chỉ cho IP của người vận hành.
-- Secret chỉ nằm trong `/etc/growth/*.env` (quyền 600) hoặc kho bí mật của nhà cung cấp, không bao giờ trong repo hay trong lệnh gõ trên máy (lịch sử shell).
-- `unattended-upgrades` do `setup.sh` bật sẵn để vá bảo mật hệ điều hành tự động.
+Chưa kiểm: trên máy Azure hoặc Oracle thật, và rclone với kho thật.

@@ -1,6 +1,6 @@
-// LLM giả xác định cho test và eval: không gọi Claude API thật.
+// LLM giả xác định cho test, eval và bản demo: không gọi Claude API thật.
 // Đọc khối dữ liệu đã ẩn danh trong user prompt và dựng đầu ra theo luật đơn giản.
-import type { LlmClient, LlmRequest, LlmResponse } from "../../src/agents/sa-01/llm.ts";
+import type { LlmClient, LlmRequest, LlmResponse } from "../agents/sa-01/llm.ts";
 
 type Parsed = {
   report_date: string;

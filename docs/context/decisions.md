@@ -79,3 +79,7 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
 - **D-22** Thêm `nba_priority`, `cost_usd`, `compute_confidence` vào `docs/spec/metric-definitions.md` bằng PR riêng, đúng như code hiện tại.
 - **K-01 (Q-03)** Được gửi văn bản tự báo đã qua R1 sang Claude API.
 - **K-02 (Q-16)** Mark chỉ xem và nhận escalate trên Hàng chờ.
+
+## Quyết định sau PR #9
+
+- **D-23** (`@harveyng710-source`, 02/11/2026): không dùng Docker. Ứng dụng chạy thẳng trên một máy Ubuntu 24.04 bằng Bun 1.4.4 (cài từ bản phát hành GitHub, có kiểm SHA-256) dưới user hệ thống `growth`; systemd giữ web và lịch job; Caddy lo HTTPS. Thay phần "1 container" của D-03; phần "nền tảng có cron và ổ bền, nền tảng gọi `bun run jobs/...`, không thư viện cron trong tiến trình" giữ nguyên.

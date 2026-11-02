@@ -1,10 +1,19 @@
-# Chạy một job của Growth Workspace trong container đang chạy: %i là tên file trong src/jobs (không có .ts).
+# Chạy một job của Growth Workspace: %i là tên file trong src/jobs (không có .ts).
 [Unit]
 Description=Growth Workspace job %i
-Requires=docker.service
-After=docker.service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
-EnvironmentFile=-/etc/growth/host.env
-ExecStart=/usr/bin/docker compose -f /opt/growth-workspace/deploy/docker-compose.yml exec -T growth bun run src/jobs/%i.ts
+User=growth
+Group=growth
+WorkingDirectory=/opt/growth-workspace
+EnvironmentFile=/etc/growth/growth.env
+EnvironmentFile=/opt/growth-workspace/deploy/paths.env
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/srv/growth
+ExecStart=/opt/bun/bin/bun run src/jobs/%i.ts

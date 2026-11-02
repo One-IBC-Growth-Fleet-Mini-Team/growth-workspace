@@ -75,7 +75,7 @@ export function getLlmPricing(env: Env = process.env): LlmPricing {
 }
 
 // Hàng chờ (design doc mục 5.7, D-04). SESSION_SECRET ký cookie phiên, tối thiểu 32 ký tự.
-export type QueueConfig = { sessionSecret: string; baseUrl: string; amyOid: string; markOid: string; port: number };
+export type QueueConfig = { sessionSecret: string; baseUrl: string; amyOid: string; markOid: string; host: string; port: number };
 
 export function getQueueConfig(env: Env = process.env): QueueConfig {
   const sessionSecret = required(env, "SESSION_SECRET");
@@ -84,7 +84,9 @@ export function getQueueConfig(env: Env = process.env): QueueConfig {
   if (!baseUrl.startsWith("https://")) throw new ConfigError("QUEUE_BASE_URL");
   const port = Number(optional(env, "PORT") ?? "3000");
   if (!Number.isInteger(port)) throw new ConfigError("PORT");
-  return { sessionSecret, baseUrl, amyOid: required(env, "AMY_ENTRA_OID"), markOid: required(env, "MARK_ENTRA_OID"), port };
+  // Mặc định chỉ nghe trong máy; Caddy đứng trước nhận HTTPS từ Internet (D-23).
+  const host = optional(env, "HOST") ?? "127.0.0.1";
+  return { sessionSecret, baseUrl, amyOid: required(env, "AMY_ENTRA_OID"), markOid: required(env, "MARK_ENTRA_OID"), host, port };
 }
 
 // App đăng ký Entra dùng chung cho đăng nhập Hàng chờ và đọc Graph (D-04). Quyền cụ thể chờ admin tenant (Q-02).

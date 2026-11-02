@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadCases, readEvalStats, runEval, writeResults, type EvalCase } from "../../src/agents/sa-01/eval/runner.ts";
-import { fakeLlm } from "../helpers/fake-llm.ts";
+import { fakeLlm } from "../../src/demo/fake-llm.ts";
 
 const CASES_DIR = new URL("../../evals/sa-01/cases", import.meta.url).pathname;
 

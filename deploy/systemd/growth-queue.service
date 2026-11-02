@@ -1,0 +1,23 @@
+# Web Hàng chờ, chạy liên tục; chỉ nghe trên 127.0.0.1:3000, Caddy đứng trước lo HTTPS.
+[Unit]
+Description=Growth Workspace: Hàng chờ
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=growth
+Group=growth
+WorkingDirectory=/opt/growth-workspace
+EnvironmentFile=/etc/growth/growth.env
+EnvironmentFile=/opt/growth-workspace/deploy/paths.env
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/srv/growth
+ExecStart=/opt/bun/bin/bun run src/queue/server.ts
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,13 +1,14 @@
-# HTTPS cho Hàng chờ. Caddy tự xin và gia hạn chứng chỉ cho QUEUE_DOMAIN (cổng 80 và 443 phải mở).
+# HTTPS cho Hàng chờ. setup.sh thay __QUEUE_DOMAIN__ và __ACME_EMAIL__ rồi chép vào /etc/caddy/Caddyfile.
+# Caddy tự xin và gia hạn chứng chỉ (cổng 80 và 443 phải mở).
 {
-	email {$ACME_EMAIL}
+	email __ACME_EMAIL__
 }
 
-{$QUEUE_DOMAIN} {
+__QUEUE_DOMAIN__ {
 	encode gzip
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		-Server
 	}
-	reverse_proxy growth:3000
+	reverse_proxy 127.0.0.1:3000
 }

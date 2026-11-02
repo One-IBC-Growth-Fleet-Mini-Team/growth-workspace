@@ -16,7 +16,8 @@
     "preflight": "bun run src/jobs/preflight.ts",
     "ops:redact-row": "bun run scripts/redact-row.ts",
     "ops:load-rm-directory": "bun run scripts/load-rm-directory.ts",
-    "job:backup-db": "bun run src/jobs/backup-db.ts"
+    "job:backup-db": "bun run src/jobs/backup-db.ts",
+    "demo": "bun run src/demo/server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",
