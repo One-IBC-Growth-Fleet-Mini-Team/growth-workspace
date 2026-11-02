@@ -223,6 +223,8 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       const w = url.searchParams.get("week");
       const week = w && /^\d{4}-\d{2}-\d{2}$/.test(w) ? mondayOf(w) : mondayOf(vnDate(new Date(now().getTime() - 7 * 86_400_000)));
       return respond(renderDigestPage(buildDigest(deps.db, week, now())), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/leads") {
       if (!session) return redirect("/login");
       const snap = latestSucceededSnapshot(deps.db);

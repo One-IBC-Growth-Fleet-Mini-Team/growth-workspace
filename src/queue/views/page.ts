@@ -320,6 +320,8 @@ export function renderDigestPage(d: Digest): string {
 <tr><td>Lượt ghi nhận WO</td><td>${d.woTouches}</td></tr>
 <tr><td>Chi phí Claude API</td><td>${d.costUsd.toFixed(2)} USD</td></tr></table></section>
 <section><h2>Ngâm lâu nhất</h2>${d.longest.length ? html`<table class="kv">${d.longest.map((l) => html`<tr><td><a href="/queue?date=${l.queueDate}#item-${l.id}">${TYPE_TEXT[l.type] ?? l.type} ngày ${ddmm(l.queueDate)}</a></td><td>${hours(l.ageHours)}</td><td>${DECISION_TEXT[l.state] ?? l.state}</td></tr>`)}</table>` : html`<p class="meta">Không có mục.</p>`}</section>`);
+}
+
 export type LeadDupGroup = { match_on: "email" | "phone"; lead_ids: string[]; owner_rm_ids: string[] };
 
 // Lead trùng (spec mục 11, Mi1-sa-01; D-29): chỉ xem. Amy quyết gộp và gộp trên CRM; Growth không ghi vào CRM.
