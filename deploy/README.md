@@ -4,7 +4,7 @@ Viết cho người không làm kỹ thuật. Mỗi bước có "làm gì" và "
 
 Muốn xem thử Hàng chờ trên máy tính của mình trước (không cần máy chủ, không cần tài khoản nào): xem `docs/huong-dan-demo.md`.
 
-> Phải có trước khi Hàng chờ chạy với dữ liệu thật: API CRM chỉ đọc (MobCEC), quyền Teams và app đăng nhập Entra (admin tenant). Xem `docs/context/cau-hoi-mo-lat-cat-01.md`. Làm các bước dưới đây trước cũng được; máy sẽ chạy, chỉ là chưa có dữ liệu.
+> Chạy được ngay, không chờ ai (D-24): đăng nhập bằng mật khẩu, Amy dán tự báo trên trang. Chỉ cần máy chủ (bước 1 tới 5) và API key Claude. Phần NBA cần dữ liệu CRM: tạm thời nạp file CSV xuất từ CRM (đang làm), sau này đổi sang API của MobCEC. Khi có app Entra và quyền Teams thì đổi `AUTH_MODE=entra`, `REPORT_SOURCE=graph`.
 
 ## Bước 1. Tạo máy chủ (khoảng 15 phút, làm trên trang web của nhà cung cấp)
 
@@ -72,19 +72,31 @@ sudo nano /etc/growth/growth.env
 |---|---|
 | `QUEUE_BASE_URL` | `https://hangcho.<tên miền>` |
 | `SESSION_SECRET`, `PII_HASH_KEY` | mỗi biến một chuỗi ngẫu nhiên dài; tạo bằng lệnh `openssl rand -hex 32` (mỗi biến chạy một lần, chép kết quả vào) |
-| `TEAMS_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `AMY_ENTRA_OID`, `MARK_ENTRA_OID` | admin tenant gửi (câu AD-03, AD-04) |
-| `CRM_API_BASE`, `CRM_API_TOKEN` | MobCEC gửi (câu M-01, M-02) |
-| `LLM_MODEL`, `LLM_PRICE_*`, `ANTHROPIC_API_KEY` | `LLM_MODEL=claude-sonnet-5-5`; giá và API key lấy từ tài khoản Claude của One IBC |
+| `AUTH_MODE` | `password` |
+| `AMY_PASSWORD_HASH`, `MARK_PASSWORD_HASH` | mã băm mật khẩu, tạo ở bước 5 (để trống lúc này) |
+| `REPORT_SOURCE` | `paste` |
+| `LLM_MODEL` | `claude-sonnet-5-5` |
+| `LLM_PRICE_INPUT_USD_PER_MTOK`, `LLM_PRICE_OUTPUT_USD_PER_MTOK` | `2` và `10` (giá Claude Sonnet 5.5 cho 1 triệu token; kiểm lại trên trang giá của Anthropic) |
+| `ANTHROPIC_API_KEY` | API key Claude của One IBC |
+| Các biến Entra, Teams, CRM API | để trống cho tới khi có |
 
 Không gửi nội dung hai file này qua chat hay email; chúng chứa khoá bí mật. Cất bản sao ở kho bí mật của tổ chức.
 
-## Bước 5. Chạy setup lần hai
+## Bước 5. Chạy setup lần hai và đặt mật khẩu
 
 ```bash
 sudo bash setup.sh
 ```
 
-Xong khi: thấy "Hàng chờ đang chạy." và mở `https://hangcho.<tên miền>/health` trên trình duyệt thấy chữ `ok`. Dòng "Preflight còn mục chưa đạt" là bình thường khi chưa có CRM, Teams và eval.
+Tạo mật khẩu cho Amy (ít nhất 12 ký tự): chạy lệnh dưới, gõ mật khẩu, Enter, rồi Ctrl+D. Lệnh in ra một chuỗi bắt đầu bằng `$argon2id$`.
+
+```bash
+sudo growth-run scripts/hash-password.ts
+```
+
+Chép chuỗi đó vào `AMY_PASSWORD_HASH` trong `/etc/growth/growth.env` (`sudo nano /etc/growth/growth.env`). Làm lại cho Mark (`MARK_PASSWORD_HASH`). Rồi chạy lại `sudo bash setup.sh`. Gửi mật khẩu cho Amy và Mark trực tiếp, không qua kênh lưu lại lịch sử.
+
+Xong khi: thấy "Hàng chờ đang chạy.", mở `https://hangcho.<tên miền>/health` thấy chữ `ok`, và đăng nhập được bằng mật khẩu của Amy ở `https://hangcho.<tên miền>/login`. Dòng "Preflight còn mục chưa đạt" là bình thường khi chưa có CRM, Teams và eval.
 
 Từ giờ, mỗi lần có bản mới trên `main`, chỉ cần chạy lại đúng lệnh này.
 
@@ -106,6 +118,7 @@ Xong khi: lệnh `sudo systemctl start growth-offsite-backup.service` chạy kh�
 
 | Muốn | Lệnh |
 |---|---|
+| Đổi mật khẩu của Amy hoặc Mark | tạo mã băm mới (bước 5), thay trong `growth.env`, `sudo systemctl restart growth-queue` |
 | Xem lịch chạy | `systemctl list-timers 'growth-*'` |
 | Xem Hàng chờ có chạy không | `systemctl status growth-queue` |
 | Xem log một job | `journalctl -u growth-job@sa01-morning -n 50` |

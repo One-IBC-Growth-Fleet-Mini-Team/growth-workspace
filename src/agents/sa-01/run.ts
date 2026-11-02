@@ -21,7 +21,8 @@ import { computeCostUsd, monthToDateCostUsd, sumUsage, type TokenPrice, type Tok
 import { isResellerEndClient, type ResellerFlag } from "../../metrics/reseller-flag.ts";
 import { servicesPurchased } from "../../metrics/services-purchased.ts";
 import { guardOutput } from "../../pii/name-guard.ts";
-import { readDailyThread, sourceMessageRef, type GraphClient } from "../../teams/graph-read.ts";
+import { readDailyThread, sourceMessageRef, type DailyThread, type GraphClient } from "../../teams/graph-read.ts";
+import { splitPastedThread } from "../../teams/paste-report.ts";
 import { PARSER_VERSION, parseDailyReplies, resolveRmId, type AuthorReport } from "../../teams/parse-report.ts";
 import { ddmm, endOfVnWorkday, monthPeriod, previousWorkingDay } from "../../time.ts";
 import { CATALOG_VERSION } from "./catalog.ts";
@@ -38,6 +39,10 @@ export type Sa01Deps = {
   db: Database;
   crm: CrmReadTools;
   graph: { client: GraphClient; teamId: string; channelId: string } | null;
+  // Nguồn thay Graph (D-24): văn bản Amy dán; có giá trị thì dùng thay cho graph.
+  pasted?: { text: string; reportDate: string };
+  // Chạy riêng từng phần: lượt dán chỉ làm tự báo; cron ở chế độ dán chỉ làm NBA.
+  parts?: { selfReports?: boolean; nba?: boolean };
   llm: LlmClient | null;
   pricing: TokenPrice & { model: string };
   evalStats: EvalStats;
@@ -174,18 +179,28 @@ async function handleReport(
 
 async function selfReports(ctx: Ctx, priorCost: number): Promise<void> {
   const { deps } = ctx;
-  if (!deps.graph) return notice(ctx, "teams_unavailable", "Không đọc được Teams");
-  let thread;
-  try {
-    thread = await readDailyThread(deps.graph.client, { teamId: deps.graph.teamId, channelId: deps.graph.channelId, reportDate: ctx.reportDate });
-  } catch (e) {
-    log({ event: "sa01.teams_failed", run_id: ctx.agentRunId, error_code: e instanceof Error && "code" in e ? String(e.code) : "GRAPH_UNKNOWN" });
-    return notice(ctx, "teams_unavailable", "Không đọc được Teams");
+  const directory = listRmDirectory(deps.db);
+  let thread: DailyThread | null;
+  let pastedRm: Map<string, string | null> | null = null;
+  let refScope: { teamId: string; channelId: string };
+  if (deps.pasted) {
+    const split = splitPastedThread(deps.pasted.text, ctx.reportDate, directory);
+    thread = split.reports.length ? { rootId: `paste-${ctx.reportDate}`, rootWebUrl: "", replies: split.reports.map((r) => r.message) } : null;
+    pastedRm = new Map(split.reports.map((r) => [r.message.messageId, r.rmId]));
+    refScope = { teamId: "paste", channelId: "paste" };
+  } else {
+    if (!deps.graph) return notice(ctx, "teams_unavailable", "Không đọc được Teams");
+    refScope = { teamId: deps.graph.teamId, channelId: deps.graph.channelId };
+    try {
+      thread = await readDailyThread(deps.graph.client, { ...refScope, reportDate: ctx.reportDate });
+    } catch (e) {
+      log({ event: "sa01.teams_failed", run_id: ctx.agentRunId, error_code: e instanceof Error && "code" in e ? String(e.code) : "GRAPH_UNKNOWN" });
+      return notice(ctx, "teams_unavailable", "Không đọc được Teams");
+    }
   }
   if (!thread) return notice(ctx, "no_self_report", `Không có tự báo ngày ${ddmm(ctx.reportDate)}`);
   if (!deps.llm) return notice(ctx, "llm_unavailable", "Chưa cấu hình LLM, chưa đọc được tự báo");
 
-  const directory = listRmDirectory(deps.db);
   const rmNames = directory.map((d) => d.display_name);
   const byId = new Map(thread.replies.map((m) => [m.messageId, m]));
   for (const report of parseDailyReplies(thread.replies)) {
@@ -193,10 +208,10 @@ async function selfReports(ctx: Ctx, priorCost: number): Promise<void> {
     const first = msgs[0]!;
     const lastModified = msgs.map((m) => m.lastModifiedAt).sort().at(-1)!;
     const meta = {
-      ref: sourceMessageRef(deps.graph.teamId, deps.graph.channelId, first.messageId),
+      ref: sourceMessageRef(refScope.teamId, refScope.channelId, first.messageId),
       version: `${lastModified}#${msgs.length}`,
       link: first.webUrl,
-      rmId: resolveRmId(report.authorTeamsUserId, directory),
+      rmId: pastedRm ? (pastedRm.get(first.messageId) ?? null) : resolveRmId(report.authorTeamsUserId, directory),
       rmNames,
     };
     if (rmReportExists(deps.db, meta.ref, meta.version)) continue;
@@ -288,7 +303,7 @@ export async function runSa01(queueDate: string, deps: Sa01Deps): Promise<Sa01Re
   const ctx: Ctx = {
     deps,
     queueDate,
-    reportDate: previousWorkingDay(queueDate),
+    reportDate: deps.pasted?.reportDate ?? previousWorkingDay(queueDate),
     agentRunId: Bun.randomUUIDv7(),
     createdAt: startedAt.toISOString(),
     items: [],
@@ -301,8 +316,8 @@ export async function runSa01(queueDate: string, deps: Sa01Deps): Promise<Sa01Re
 
   let failure: unknown = null;
   try {
-    await selfReports(ctx, priorCost);
-    await nbaItems(ctx);
+    if (deps.parts?.selfReports !== false) await selfReports(ctx, priorCost);
+    if (deps.parts?.nba !== false) await nbaItems(ctx);
   } catch (e) {
     failure = e;
   }

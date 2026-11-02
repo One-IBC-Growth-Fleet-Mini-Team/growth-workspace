@@ -1,6 +1,10 @@
 # Trạng thái dự án
 
-Cập nhật lần cuối: 02/11/2026 (phiên 06). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+Cập nhật lần cuối: 02/11/2026 (phiên 07). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+
+## Mục tiêu tối thượng
+
+Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng710-source`, 02/11/2026). Mỗi phiên ưu tiên việc rút ngắn đường tới lúc Amy dùng được với dữ liệu thật; chỗ nào phải chờ người ngoài thì tìm đường tạm an toàn (D-24) thay vì chờ.
 
 ## Trạng thái hiện tại
 
@@ -45,19 +49,24 @@ Cập nhật lần cuối: 02/11/2026 (phiên 06). Quy ước: agent hoặc ngư
   - Câu hỏi mở gom theo người nhận (MobCEC, admin tenant, Amy, Mark, kỹ thuật): `docs/context/cau-hoi-mo-lat-cat-01.md`.
   - PR #8 đã merge. Ghi quyết định D-14 tới D-22 vào `decisions.md` và thêm `nba_priority`, `cost_usd`, `compute_confidence` vào `docs/spec/metric-definitions.md` (D-22, CLAUDE.md quy tắc 3) đi chung một PR tài liệu, chờ duyệt.
 
-- **Phiên 06 (02/11/2026)**: bản demo và bộ triển khai không Docker (D-23, chưa chốt nhà cung cấp E-01).
+- **Phiên 06 xong (PR #10 đã merge)**: bản demo và bộ triển khai không Docker (D-23, chưa chốt nhà cung cấp E-01).
   - Bản demo `bun run demo` (`src/demo/`): Hàng chờ trên máy cá nhân với dữ liệu tổng hợp, LLM, CRM, Teams và đăng nhập đều giả; chỉ nghe trên 127.0.0.1. Hướng dẫn: `docs/huong-dan-demo.md`.
   - `deploy/`: `setup.sh` (cài Bun 1.4.4 từ GitHub có kiểm SHA-256, user `growth`, systemd cho web và 5 lịch job theo giờ Việt Nam, Caddy lo HTTPS, rclone đẩy backup có mã hoá ra ngoài máy), `README.md` viết cho người không làm kỹ thuật. Bỏ `Dockerfile`.
   - Backup Growth DB: `src/db/backup.ts`, job `backup-db` (VACUUM INTO, giữ 14 bản).
   - Chạy thử `setup.sh` trên máy Ubuntu 24.04 giả lập có systemd: lần một dừng chờ cấu hình, lần hai dựng xong, lần ba chạy lại không hỏng; HTTPS qua Caddy; web chỉ nghe 127.0.0.1. `bun test`: 212 pass, 0 fail.
 
+- **Phiên 07 (02/11/2026)**: đường chạy thật sớm (D-24).
+  - Thẻ Hàng chờ dễ đọc: tự báo thành bảng số và lời khách nói, mã lý do kèm nghĩa tiếng Việt, NBA thành câu giải thích; dữ liệu kỹ thuật thu gọn.
+  - Trang "Dán tự báo của RM" (`/paste`, chỉ Amy): tách theo dòng tiêu đề mẫu, xử lý qua đủ các lớp lọc PII như nguồn Graph; `REPORT_SOURCE=paste`.
+  - Đăng nhập bằng mật khẩu (`AUTH_MODE=password`, argon2id, khoá sau 5 lần sai); `scripts/hash-password.ts`.
+  - Bản demo có thêm trang dán. `bun test`: 220 pass, 0 fail.
+
 ## Việc tiếp theo
 
-1. Chọn nhà cung cấp (E-01): đề xuất Azure gói miễn phí 12 tháng; nếu cần 0 đồng lâu dài thì Oracle Always Free, kèm backup ra ngoài máy. Làm theo `deploy/README.md`.
-2. Làm giao diện thẻ Hàng chờ dễ đọc (hiện đang hiện dữ liệu thô) trước khi đưa Amy dùng.
-3. Gửi `docs/context/cau-hoi-mo-lat-cat-01.md` cho MobCEC, admin tenant, Amy.
-4. Khi có câu trả lời: sửa giá trị tạm theo cột "Mặc định hiện tại", làm checklist bật cho Amy ở `docs/runbook/lat-cat-01.md` mục 2.
-5. Bật Secret scanning và Push protection cho repo (E-02).
+1. Harvey: tạo tài khoản Azure, dựng máy theo `deploy/README.md` (chế độ mật khẩu và dán), đặt API key Claude. Xong bước này là Amy dùng được phần tự báo và mã lý do với dữ liệu thật.
+2. Harvey gửi dòng tiêu đề cột (không có dữ liệu) của file xuất Opportunity, Client, Lead, Order từ CRM; fleet làm chức năng nạp CSV cho NBA.
+3. Amy xác nhận khoảng 30 ca eval để điểm tự tin không còn thấp.
+4. Song song, không chặn: gửi câu hỏi cho MobCEC (API), admin tenant (Entra, Graph); bật Secret scanning (E-02).
 
 ## Đang bị chặn
 
@@ -75,4 +84,4 @@ Cập nhật lần cuối: 02/11/2026 (phiên 06). Quy ước: agent hoặc ngư
 
 ## PR đang mở
 
-- PR #10 (nhánh `claude/dreamy-faraday-sw7jto`): bản demo, bộ triển khai không Docker, backup Growth DB; chờ `@harveyng710-source` duyệt. PR #9 đã merge.
+- PR phiên 07 (nhánh `claude/dreamy-faraday-sw7jto`): thẻ dễ đọc, dán tự báo, đăng nhập mật khẩu (D-24); chờ `@harveyng710-source` duyệt. PR #10 đã merge.

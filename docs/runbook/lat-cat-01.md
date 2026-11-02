@@ -19,6 +19,14 @@ Một máy Ubuntu, dữ liệu trên ổ bền `/srv/growth/data`. systemd của
 
 Biến môi trường: xem `.env.example`. Đường dẫn dữ liệu, kết quả eval và backup trên ổ bền đặt sẵn trong `deploy/paths.env`. Secret chỉ đặt trong kho bí mật của nền tảng, không bao giờ trong repo.
 
+## 1b. Việc hằng ngày của Amy (chế độ dán, D-24)
+
+1. Sáng thứ Hai tới thứ Bảy, đăng nhập Hàng chờ bằng mật khẩu.
+2. Bấm "Dán tự báo của RM", mở thread tự báo của ngày hôm trước trong Teams, chọn toàn bộ các trả lời, sao chép, dán vào ô, chọn đúng ngày, bấm "Xử lý". Chờ khoảng nửa phút.
+3. Duyệt từng mục: Xác nhận, Sửa, Bác (kèm lý do), Báo PII nếu thấy còn thông tin khách. NBA (khi đã có dữ liệu CRM) do hệ thống tự sinh lúc 08:00.
+
+Dán lại cùng một nội dung không sinh mục trùng; RM sửa tự báo rồi dán lại thì có mục mới cho bản sửa.
+
 ## 2. Checklist bật cho Amy (bước 9)
 
 Làm theo thứ tự; mục nào chưa xong thì chưa bật (spec mục 6, quy tắc vận hành 3; design doc C5).

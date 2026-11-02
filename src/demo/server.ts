@@ -111,6 +111,21 @@ export async function createDemo(now: Date = new Date()) {
       authorizationUrl: ({ state }) => `/auth/callback?state=${state}`,
       exchange: async (code) => ({ oid: code, nonce: "demo" }),
     },
+    // Thử trang dán tự báo với LLM giả.
+    onPaste: async (text, reportDate) => {
+      const r = await runSa01(queueDate, {
+        db,
+        crm: directCrmReadTools(db),
+        graph: null,
+        pasted: { text, reportDate },
+        parts: { selfReports: true, nba: false },
+        llm: fakeLlm(),
+        pricing: { model: "demo-fake-llm", inputUsdPerMTok: 0, outputUsdPerMTok: 0 },
+        evalStats: { self_report_parse: { passRate: 1, caseCount: 2 }, reason_code: { passRate: 1, caseCount: 2 }, nba: { passRate: 1, caseCount: 4 } },
+        trigger: "demo-paste",
+      });
+      return { created: r.itemsCreated };
+    },
   });
 
   // /login?as=amy|mark: chạy luôn cả luồng đăng nhập giả, trả cookie phiên.

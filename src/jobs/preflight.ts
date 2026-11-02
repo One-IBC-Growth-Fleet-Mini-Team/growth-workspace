@@ -7,8 +7,10 @@ import {
   ConfigError,
   getCrmConfig,
   getDbPath,
+  getAuthConfig,
   getEntraConfig,
   getEvalResultsDir,
+  getReportSource,
   getGraphChannel,
   getLlmPricing,
   getPiiHashKey,
@@ -50,8 +52,12 @@ export function checkConfig(env: Env): Check[] {
   }));
   out.push(...attempt("LLM_MODEL", () => getLlmPricing(env)));
   out.push(...attempt("QUEUE_BASE_URL", () => getQueueConfig(env)));
-  out.push(...attempt("ENTRA_CLIENT_ID", () => getEntraConfig(env)));
-  out.push({ name: "GRAPH_CHANNEL", ok: getGraphChannel(env) !== null, error_code: getGraphChannel(env) ? undefined : "CONFIG_MISSING_OR_INVALID" });
+  out.push(...attempt("AUTH_MODE", () => getAuthConfig(env)));
+  if ((env.AUTH_MODE ?? "").trim() === "entra") out.push(...attempt("ENTRA_CLIENT_ID", () => getEntraConfig(env)));
+  out.push(...attempt("REPORT_SOURCE", () => getReportSource(env)));
+  if ((env.REPORT_SOURCE ?? "").trim() === "graph") {
+    out.push({ name: "GRAPH_CHANNEL", ok: getGraphChannel(env) !== null, error_code: getGraphChannel(env) ? undefined : "CONFIG_MISSING_OR_INVALID" });
+  }
   const hooks = getTeamsWebhooks(env);
   for (const [who, url] of [["TEAMS_WEBHOOK_URL_AMY", hooks.amy], ["TEAMS_WEBHOOK_URL_MARK", hooks.mark]] as const) {
     out.push({ name: who, ok: url !== undefined && isAllowedWebhook(url), error_code: url !== undefined && isAllowedWebhook(url) ? undefined : "WEBHOOK_MISSING_OR_NOT_ALLOWED" });
@@ -102,7 +108,7 @@ async function main(): Promise<number> {
         checks.push({ name: `crm.${resource}`, ok: r.ok, error_code: r.ok ? undefined : r.field ? `${r.error_code}:${r.field}` : r.error_code });
       }
     }
-    const channel = getGraphChannel();
+    const channel = getReportSource() === "graph" ? getGraphChannel() : null;
     if (channel && checks.find((c) => c.name === "ENTRA_CLIENT_ID")?.ok) {
       try {
         const client = createGraphClient({ getToken: createGraphTokenProvider(getEntraConfig()) });
