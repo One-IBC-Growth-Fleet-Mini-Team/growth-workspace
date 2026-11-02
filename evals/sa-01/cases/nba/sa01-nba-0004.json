@@ -1,0 +1,99 @@
+{
+  "case_id": "sa01-nba-0004",
+  "task": "nba",
+  "rules_checked": [
+    "NBA_R5",
+    "NBA_R4"
+  ],
+  "gate": "hard",
+  "input": {
+    "today": "2026-11-02",
+    "period": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "snapshot": {
+      "opportunities": [
+        {
+          "opportunity_id": "O_IN",
+          "client_id": null,
+          "owner_rm_id": "RM_A",
+          "stage": "Quotation",
+          "close_date": "2026-11-20",
+          "last_modified_at": null,
+          "has_next_step": 0,
+          "jurisdiction_code": null,
+          "service_family": null,
+          "industry_code": null,
+          "rejection_reason_code": null
+        },
+        {
+          "opportunity_id": "O_OUT",
+          "client_id": null,
+          "owner_rm_id": "RM_A",
+          "stage": "Quotation",
+          "close_date": "2026-12-20",
+          "last_modified_at": null,
+          "has_next_step": 0,
+          "jurisdiction_code": null,
+          "service_family": null,
+          "industry_code": null,
+          "rejection_reason_code": null
+        },
+        {
+          "opportunity_id": "O_PAST",
+          "client_id": null,
+          "owner_rm_id": "RM_A",
+          "stage": "Quotation",
+          "close_date": "2026-10-01",
+          "last_modified_at": null,
+          "has_next_step": 0,
+          "jurisdiction_code": null,
+          "service_family": null,
+          "industry_code": null,
+          "rejection_reason_code": null
+        },
+        {
+          "opportunity_id": "O_WON",
+          "client_id": null,
+          "owner_rm_id": "RM_A",
+          "stage": "Closed Won",
+          "close_date": "2026-11-10",
+          "last_modified_at": null,
+          "has_next_step": 0,
+          "jurisdiction_code": null,
+          "service_family": null,
+          "industry_code": null,
+          "rejection_reason_code": null
+        }
+      ],
+      "clients": [],
+      "client_services": []
+    }
+  },
+  "expected": {
+    "must_include": [
+      {
+        "subject_ref": "O_IN",
+        "action": "follow_up"
+      }
+    ],
+    "must_exclude": [
+      {
+        "subject_ref": "O_OUT",
+        "action": "follow_up"
+      },
+      {
+        "subject_ref": "O_PAST",
+        "action": "follow_up"
+      },
+      {
+        "subject_ref": "O_WON",
+        "action": "follow_up"
+      }
+    ]
+  },
+  "notes": "Chỉ Opportunity mở có Close Date trong kỳ.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}

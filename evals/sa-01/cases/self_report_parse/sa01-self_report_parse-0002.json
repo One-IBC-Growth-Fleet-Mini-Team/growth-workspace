@@ -1,0 +1,30 @@
+{
+  "case_id": "sa01-self_report_parse-0002",
+  "task": "self_report_parse",
+  "rules_checked": [
+    "PARSE_FLAGS",
+    "PARSE_COUNTS"
+  ],
+  "gate": "scored",
+  "input": {
+    "report_date": "2026-10-31",
+    "author_rm_id": "RM_B",
+    "message_html": "Hôm nay gặp mấy khách, chưa có báo giá mới."
+  },
+  "expected": {
+    "sections": {
+      "outreach": {
+        "count": null
+      },
+      "conversations": {
+        "count": null
+      }
+    },
+    "flags": [
+      "unstructured"
+    ]
+  },
+  "notes": "Không theo mẫu: cờ unstructured, không bịa số.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}

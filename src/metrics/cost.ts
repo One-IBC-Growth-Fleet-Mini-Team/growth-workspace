@@ -15,3 +15,24 @@ export function computeCostUsd(usage: TokenUsage, price: TokenPrice): number {
   }
   return (usage.inputTokens * price.inputUsdPerMTok + usage.outputTokens * price.outputUsdPerMTok) / 1_000_000;
 }
+
+// Tổng token của nhiều lượt gọi trong một phiên (để ghi agent_runs).
+export function sumUsage(usages: readonly TokenUsage[]): TokenUsage {
+  let inputTokens = 0;
+  let outputTokens = 0;
+  for (const u of usages) {
+    assertTokens("inputTokens", u.inputTokens);
+    assertTokens("outputTokens", u.outputTokens);
+    inputTokens += u.inputTokens;
+    outputTokens += u.outputTokens;
+  }
+  return { inputTokens, outputTokens };
+}
+
+// Chi phí LLM từ đầu tháng (UTC) tới nay, so với trần tháng (spec mục 10, C7).
+export function monthToDateCostUsd(runs: readonly { cost_usd: number; started_at: string }[], now: Date): number {
+  const month = now.toISOString().slice(0, 7);
+  let total = 0;
+  for (const r of runs) if (r.started_at.slice(0, 7) === month) total += r.cost_usd;
+  return total;
+}

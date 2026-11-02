@@ -68,6 +68,42 @@ export function getLlmPricing(env: Env = process.env): LlmPricing {
   };
 }
 
+// Hàng chờ (design doc mục 5.7, D-04). SESSION_SECRET ký cookie phiên, tối thiểu 32 ký tự.
+export type QueueConfig = { sessionSecret: string; baseUrl: string; amyOid: string; markOid: string; port: number };
+
+export function getQueueConfig(env: Env = process.env): QueueConfig {
+  const sessionSecret = required(env, "SESSION_SECRET");
+  if (sessionSecret.length < 32) throw new ConfigError("SESSION_SECRET");
+  const baseUrl = required(env, "QUEUE_BASE_URL").replace(/\/+$/, "");
+  if (!baseUrl.startsWith("https://")) throw new ConfigError("QUEUE_BASE_URL");
+  const port = Number(optional(env, "PORT") ?? "3000");
+  if (!Number.isInteger(port)) throw new ConfigError("PORT");
+  return { sessionSecret, baseUrl, amyOid: required(env, "AMY_ENTRA_OID"), markOid: required(env, "MARK_ENTRA_OID"), port };
+}
+
+// App đăng ký Entra dùng chung cho đăng nhập Hàng chờ và đọc Graph (D-04). Quyền cụ thể chờ admin tenant (Q-02).
+export type EntraConfig = { tenantId: string; clientId: string; clientSecret: string };
+
+export function getEntraConfig(env: Env = process.env): EntraConfig {
+  return {
+    tenantId: required(env, "TEAMS_TENANT_ID"),
+    clientId: required(env, "ENTRA_CLIENT_ID"),
+    clientSecret: required(env, "ENTRA_CLIENT_SECRET"),
+  };
+}
+
+// Channel "Đồng bộ dữ liệu". [ĐỐI CHIẾU SCHEMA] id team, id channel (design doc mục 5.3).
+export function getGraphChannel(env: Env = process.env): { teamId: string; channelId: string } | null {
+  const teamId = optional(env, "GRAPH_TEAM_ID");
+  const channelId = optional(env, "GRAPH_CHANNEL_ID");
+  return teamId && channelId ? { teamId, channelId } : null;
+}
+
+// Webhook Teams (D-11): tới chat của Amy, và tin escalate tới Mark. Không bắt buộc.
+export function getTeamsWebhooks(env: Env = process.env): { amy?: string; mark?: string } {
+  return { amy: optional(env, "TEAMS_WEBHOOK_URL_AMY"), mark: optional(env, "TEAMS_WEBHOOK_URL_MARK") };
+}
+
 // Tham số của hàm chỉ số. Đổi giá trị phải qua PR, Mark duyệt (metric-definitions.md).
 export const METRIC_PARAMS = {
   // rm_active_on_deal: số Opportunity có last_modified_at trùng tới từng giây từ mức này trở lên
@@ -78,3 +114,22 @@ export const METRIC_PARAMS = {
   evalMinCaseCount: 30,
   flagPenalty: 0.8,
 } as const;
+
+// Tham số NBA (design doc mục 5.5). Mọi giá trị dưới đây là TẠM, đổi qua PR.
+export const NBA_PARAMS = {
+  // Stage coi là đã đóng (không thuộc "Opportunity mở"). [ĐỐI CHIẾU SCHEMA] tên Stage thật của CRM.
+  closedStages: ["Closed Won", "Closed Lost"] as readonly string[],
+  // Trọng số ưu tiên theo Stage, gần chốt cao hơn. Chờ Amy cho thứ tự (Q-09); Stage lạ lấy unknownStageWeight.
+  stageWeights: { Negotiation: 3, Quotation: 2, Qualification: 1, Prospecting: 0.5 } as Readonly<Record<string, number>>,
+  unknownStageWeight: 0.5,
+  // Giới hạn số mục NBA mỗi sáng. Đề xuất 20, chờ Amy (Q-10).
+  maxItemsPerMorning: 20,
+  // Luật 3: mã ngành bị hạ ưu tiên. [ĐỐI CHIẾU SCHEMA] trường ngành trên CRM (Q-14).
+  restrictedIndustryCodes: ["FOREX", "MARKETS", "FINANCIAL_BROKER"] as readonly string[],
+  restrictedIndustryFactor: 0.5,
+  // Ca eval NBA (hard) phải pass 100% mới được sinh NBA (design doc mục 12.4).
+  requiredNbaPassRate: 1,
+} as const;
+
+// Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
+export const LLM_MONTHLY_CAP_USD = 100;

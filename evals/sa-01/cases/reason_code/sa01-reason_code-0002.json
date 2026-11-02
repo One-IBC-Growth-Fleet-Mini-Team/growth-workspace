@@ -1,0 +1,24 @@
+{
+  "case_id": "sa01-reason_code-0002",
+  "task": "reason_code",
+  "rules_checked": [
+    "RC_CATALOG",
+    "RC_PRIMARY",
+    "RC_IS_FINAL"
+  ],
+  "gate": "scored",
+  "input": {
+    "report_date": "2026-10-31",
+    "customer_said": "We are still comparing with other providers",
+    "context": "Khách chưa quyết, hẹn tuần sau."
+  },
+  "expected": {
+    "acceptable_primary": [
+      "PRICE_COMPARING"
+    ],
+    "is_final": false
+  },
+  "notes": "Đang so giá: chưa phải từ chối.",
+  "provenance": "synthetic",
+  "catalog_version": "v0.1"
+}
