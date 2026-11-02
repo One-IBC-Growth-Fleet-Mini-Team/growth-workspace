@@ -8,3 +8,9 @@ __pycache__/
 # gstack: chỉ commit mã nguồn ở .claude/skills/gstack; các skill do ./setup render ra thì bỏ qua
 .claude/skills/*
 !.claude/skills/gstack/
+# Kết quả chạy eval, không commit (design doc mục 12.1)
+evals/*/results/
+# File Growth DB cục bộ
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

@@ -865,21 +865,23 @@ Repo public nên ca `derived` (dựng từ tự báo thật, kể cả đã ẩn
 
 Người duyệt trả lời ở PR bằng mã: "D-01 đồng ý", "D-02 chọn B", v.v. Cột "Đề xuất" là mặc định nếu không có phản hồi khác; chưa duyệt thì chưa build phần đó.
 
+Cập nhật 02/11/2026: Mark Ng đồng ý cả 13 quyết định theo cột "Đề xuất" sau khi PR #4 merge; ghi ở `docs/context/decisions.md`, mục "Quyết định lát cắt 01, chốt sau PR #4".
+
 | Mã | Quyết định | Đề xuất | Lựa chọn khác | Người chốt | Trạng thái |
 |---|---|---|---|---|---|
-| D-01 | Stack | TypeScript trên Bun 1.4.x | Python 3.12+ (cài thêm) | Mark, người chịu trách nhiệm kỹ thuật | chờ |
-| D-02 | Growth DB của lát này | SQLite (`bun:sqlite`) trên ổ bền; Neo4j để lát sau | Postgres có quản lý; ghi thẳng Neo4j AuraDB chung | Mark, người chịu trách nhiệm kỹ thuật | chờ |
-| D-03 | Nơi chạy và lập lịch | 1 container trên nền tảng có cron và ổ bền; nền tảng gọi `bun run jobs/...` | Lịch trong tiến trình | Người chịu trách nhiệm kỹ thuật | chờ |
-| D-04 | Đăng nhập Hàng chờ | Microsoft Entra ID (OIDC), dùng chung app đăng ký với quyền Graph | Lớp truy cập của nền tảng host; mật khẩu riêng | Admin tenant, Mark | chờ |
-| D-05 | Thuật toán băm email, SĐT | HMAC-SHA256, khoá trong kho bí mật | SHA-256 trần như spec ghi | Mark (lệch spec, cần duyệt) | chờ |
-| D-06 | Cờ reseller `"unknown"` | Không upsell; sinh hành động "nhờ RM xác nhận cờ" | Coi như `false` | Amy | chờ |
-| D-07 | Công thức điểm tự tin và ngưỡng eval | Mục 5.6; ngưỡng ca `scored` 0,8 | Công thức khác | Mark (spec: chỉ Mark đổi ngưỡng, trọng số) | chờ |
-| D-08 | Ai gọi Mi1-sa-01 trong lát này | Cron gọi thẳng `runSa01`; Mi1 gọi sau | Dựng Mi1 tối giản ngay | Mark | chờ |
-| D-09 | Phạm vi kéo CRM và thời gian giữ snapshot | Mục 5.1; giữ 14 ngày | Khác | Mark, Amy | chờ |
-| D-10 | Cách đo Cổng 2 | Mục 1.8 | Khác | Mark | chờ |
-| D-11 | Kênh gửi thông báo Teams | Workflows hoặc Incoming Webhook tới chat của Amy | Bot qua Graph (cần quyền gửi) | Admin tenant | chờ |
-| D-12 | Xoá có kiểm soát trên bảng chỉ thêm | Script tay, mục 7.5 | Không cho xoá | Mark, người chịu trách nhiệm kỹ thuật | chờ |
-| D-13 | Ca eval từ dữ liệu thật | Để ngoài repo public | Đưa vào repo sau khi ẩn danh | Mark | chờ |
+| D-01 | Stack | TypeScript trên Bun 1.4.x | Python 3.12+ (cài thêm) | Mark, người chịu trách nhiệm kỹ thuật | đã chốt |
+| D-02 | Growth DB của lát này | SQLite (`bun:sqlite`) trên ổ bền; Neo4j để lát sau | Postgres có quản lý; ghi thẳng Neo4j AuraDB chung | Mark, người chịu trách nhiệm kỹ thuật | đã chốt |
+| D-03 | Nơi chạy và lập lịch | 1 container trên nền tảng có cron và ổ bền; nền tảng gọi `bun run jobs/...` | Lịch trong tiến trình | Người chịu trách nhiệm kỹ thuật | đã chốt |
+| D-04 | Đăng nhập Hàng chờ | Microsoft Entra ID (OIDC), dùng chung app đăng ký với quyền Graph | Lớp truy cập của nền tảng host; mật khẩu riêng | Admin tenant, Mark | đã chốt |
+| D-05 | Thuật toán băm email, SĐT | HMAC-SHA256, khoá trong kho bí mật | SHA-256 trần như spec ghi | Mark (lệch spec, cần duyệt) | đã chốt |
+| D-06 | Cờ reseller `"unknown"` | Không upsell; sinh hành động "nhờ RM xác nhận cờ" | Coi như `false` | Amy | đã chốt |
+| D-07 | Công thức điểm tự tin và ngưỡng eval | Mục 5.6; ngưỡng ca `scored` 0,8 | Công thức khác | Mark (spec: chỉ Mark đổi ngưỡng, trọng số) | đã chốt |
+| D-08 | Ai gọi Mi1-sa-01 trong lát này | Cron gọi thẳng `runSa01`; Mi1 gọi sau | Dựng Mi1 tối giản ngay | Mark | đã chốt |
+| D-09 | Phạm vi kéo CRM và thời gian giữ snapshot | Mục 5.1; giữ 14 ngày | Khác | Mark, Amy | đã chốt |
+| D-10 | Cách đo Cổng 2 | Mục 1.8 | Khác | Mark | đã chốt |
+| D-11 | Kênh gửi thông báo Teams | Workflows hoặc Incoming Webhook tới chat của Amy | Bot qua Graph (cần quyền gửi) | Admin tenant | đã chốt |
+| D-12 | Xoá có kiểm soát trên bảng chỉ thêm | Script tay, mục 7.5 | Không cho xoá | Mark, người chịu trách nhiệm kỹ thuật | đã chốt |
+| D-13 | Ca eval từ dữ liệu thật | Để ngoài repo public | Đưa vào repo sau khi ẩn danh | Mark | đã chốt |
 
 ---
 
