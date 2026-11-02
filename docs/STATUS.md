@@ -75,7 +75,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 1. Harvey: dựng máy Azure theo `deploy/README.md` (bước 1 tới 7). Xong là Amy dùng thật cả tự báo, mã lý do và NBA.
 2. Harvey gửi dòng tiêu đề cột của các file xuất CRM; fleet viết bảng ghép (`deploy/README.md` bước 7).
 3. Amy xác nhận khoảng 30 ca eval để điểm tự tin không còn thấp.
-4. Amy chốt ngưỡng WO tồn đọng (tạm 7 và 14 ngày) và cách tính 24 giờ cho BK-13; thêm `wo_idle_days` vào `docs/spec/metric-definitions.md` bằng PR riêng (Mark duyệt).
+4. Amy chốt ngưỡng WO tồn đọng (tạm 7 và 14 ngày) và cách tính 24 giờ cho BK-13.
 5. Song song, không chặn: câu hỏi cho MobCEC (API), admin tenant (Entra, Graph); bật Secret scanning (E-02).
 
 ## Đang bị chặn
@@ -94,4 +94,4 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## PR đang mở
 
-- PR trang WO tồn đọng (D-25, nhánh `claude/dreamy-faraday-sw7jto`): chờ `@harveyng710-source` duyệt. PR #12 (nạp CSV cho NBA) đã merge.
+- PR tài liệu thêm `wo_idle_days` vào `docs/spec/metric-definitions.md` (nhánh `claude/dreamy-faraday-sw7jto`): chờ duyệt. PR #12 (nạp CSV cho NBA) và PR #13 (WO tồn đọng) đã merge.
