@@ -15,6 +15,7 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | LLM | `LLM_MODEL`, `ANTHROPIC_API_KEY`, `LLM_PRICE_*` | Claude API qua `@anthropic-ai/sdk` | LLM giả cho demo và test (không chọn bằng biến, chỉ dùng trong `src/demo` và `test/`) | | `src/agents/sa-01/llm.ts`, `src/demo/fake-llm.ts` |
 | Lưu trữ (Growth DB) | `GROWTH_DB_PATH` | SQLite (`bun:sqlite`, D-02) | | Neo4j cho đồ thị (`NEO4J_*`, GĐ sau) | `src/db/` |
 | Sao lưu | `GROWTH_BACKUP_DIR` | thư mục trên máy (`~/Growth-backup` ở bản cài máy Ubuntu) | | đẩy ra ngoài máy bằng rclone (chỉ ở bộ máy chủ, để sau) | `src/db/backup.ts` |
+| Đơn hàng và invoice (Mi1-sa-01, D-30) | `CRM_CSV_COLUMNS_PATH` (mục `SalesOrder`, `PurchaseOrder`, `Invoice`) | tải file ở `/billing` | | API Order và Invoice của CRM (chờ MobCEC) | `src/crm/billing-import.ts` |
 | Đối tác và deal giới thiệu (Mi1-ptn-01, D-31) | `CRM_CSV_COLUMNS_PATH` (mục `Partner`, `Referral`) | tải file ở `/partners` | | Partner Portal trên web OCC, trường A4 trên CRM | `src/crm/partner-import.ts` |
 | Work Order Bank Team (BK-08, tạm dừng) | không có biến | tải file ở `/import` | | | `src/crm/wo-import.ts` |
 
