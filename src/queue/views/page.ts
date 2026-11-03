@@ -3,6 +3,7 @@ import { METRIC_PARAMS } from "../../config.ts";
 import { REASON_CODES, REASON_LABELS, type ReasonCode } from "../../agents/sa-01/catalog.ts";
 import type { QueueEventRow, QueueItemRow } from "../../db/queue.ts";
 import { WO_TOUCH_REASONS, type WoBoardRow } from "../../db/wo.ts";
+import type { Brief, Digest } from "../../mi1/core.ts";
 import { ddmm } from "../../time.ts";
 import type { QueueUser } from "../auth.ts";
 import { NBA_ACTIONS, RM_OUTCOMES } from "../items.ts";
@@ -31,6 +32,7 @@ const STATE_TEXT: Record<string, string> = {
   edit: "đã sửa",
   reject: "đã bác",
   escalate: "đã escalate",
+  default_applied: "quá hạn, giữ nháp",
 };
 
 const STYLE = `body{font-family:system-ui,sans-serif;margin:0;padding:16px;max-width:960px;margin-inline:auto;color:#1b1b1b;background:#fafafa}
@@ -198,7 +200,7 @@ export function renderQueuePage(args: {
   const body = html`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hàng chờ ${ddmm(args.queueDate)}</title><style>${new SafeHtml(STYLE)}</style></head><body>
 <h1>Hàng chờ ngày ${ddmm(args.queueDate)}</h1>
-<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}<a href="/leads">Lead trùng</a>${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}<a href="/partners">Đối tác</a><a href="/billing">Đơn hàng và invoice</a></nav>
+<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}<a href="/leads">Lead trùng</a>${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}<a href="/partners">Đối tác</a><a href="/billing">Đơn hàng và invoice</a><a href="/brief">Brief sáng</a><a href="/digest">Digest tuần</a></nav>
 <div class="status ${args.status}">${statusText} · Snapshot CRM: ${args.snapshotAt ?? "chưa có"} · Người dùng: ${args.user.id}</div>
 ${GROUPS.map((g) => {
     const list = visible.filter((i) => i.item_type === g.type);
@@ -283,6 +285,41 @@ export function renderWoPage(args: {
 ${args.reminders.length ? html`<details><summary>Tin nhắc theo từng PIC (chép rồi gửi)</summary>${args.reminders.map((r) => html`<p><strong>${r.pic}</strong></p><textarea readonly rows="6" style="min-height:0">${r.text}</textarea>`)}</details>` : ""}</section>
 <section><h2>Tồn từ trước, chưa rà (${args.backlog.length})</h2><p class="meta">WO đã mở trước lượt nạp đầu tiên và chưa ai ghi nhận; cũ nhất lên đầu. Rà dần, bấm "Đã cập nhật" để đưa ra khỏi danh sách.</p>${woTable(args.backlog, args.canAct, args.csrf)}</section>
 <p class="meta">WO đang mở khác, còn trong hạn: ${args.okCount}.</p>`);
+}
+
+const TYPE_TEXT: Record<string, string> = { self_report: "Tự báo RM", reason_code: "Mã lý do", nba: "NBA", system_notice: "Thông báo hệ thống" };
+const DECISION_TEXT: Record<string, string> = { ...STATE_TEXT, pii_flag: "báo PII" };
+const hours = (h: number | null) => (h === null ? "không có" : h < 48 ? `${Math.round(h)} giờ` : `${Math.round(h / 24)} ngày`);
+const pct = (r: number | null) => (r === null ? "không có mục" : `${Math.round(r * 100)}%`);
+
+export function renderBriefPage(b: Brief): string {
+  return shell("Brief sáng", html`<h1>Brief sáng ${ddmm(b.date)}</h1>
+<p><a href="/queue">Mở Hàng chờ</a></p>
+<section><h2>Hàng chờ hôm nay</h2>
+${b.today.length ? html`<table class="kv">${b.today.map((t) => html`<tr><td>${TYPE_TEXT[t.type] ?? t.type}</td><td>${t.total} mục</td><td>${t.pending} chờ duyệt</td></tr>`)}</table>` : html`<p class="meta">Chưa có mục nào hôm nay.</p>`}
+<p>Tổng ${b.todayTotal.total} mục, ${b.todayTotal.pending} chờ duyệt. Dự kiến mỗi ngày làm việc khoảng ${b.forecastItems} mục (trung bình 7 ngày qua).</p></section>
+<section><h2>Cần chú ý</h2><ul>
+<li>Còn chờ từ ngày trước: <strong>${b.carryover.count}</strong> mục${b.carryover.oldestHours !== null ? html`, lâu nhất ${hours(b.carryover.oldestHours)}` : ""}.</li>
+<li>Quá hạn đã áp mặc định "giữ nháp" trong 24 giờ qua: ${b.defaultsLast24h} mục (Amy vẫn quyết lại được).</li>
+<li>Đã escalate lên Mark trong 7 ngày qua: <strong>${b.escalatedWaiting}</strong> mục.</li>
+<li>WO tồn đọng: báo Amy ${b.wo.escalate}, nhắc PIC ${b.wo.remind}, tồn từ trước chưa rà ${b.wo.backlog}${b.wo.importedAt ? "" : " (chưa nạp file Work Order)"}.</li>
+<li>Chi phí Claude API tháng này: ${b.monthCostUsd.toFixed(2)} trên trần ${b.monthCapUsd} USD.</li>
+</ul></section>`);
+}
+
+export function renderDigestPage(d: Digest): string {
+  return shell("Digest tuần", html`<h1>Digest tuần ${ddmm(d.weekStart)} tới ${ddmm(d.weekEnd)}</h1>
+<p><a href="/queue">Mở Hàng chờ</a> · <a href="/digest?week=${d.prevWeek}">Tuần trước</a></p>
+<div class="status ${d.gate2 ? "green" : "yellow"}">Cổng 2 tuần này: ${d.gate2 ? "đạt" : "chưa đạt"} (Amy mở Hàng chờ ${d.openDays} ngày, cần 3; quyết ${pct(d.decisionRate)} mục, cần 80%).</div>
+<section><h2>Mục và quyết định</h2><table class="kv">
+<tr><td>Mục được tạo</td><td>${d.created.length ? d.created.map((c) => `${TYPE_TEXT[c.type] ?? c.type} ${c.count}`).join(", ") : "không có"}</td></tr>
+<tr><td>Quyết định của người</td><td>${d.decisions.length ? d.decisions.map((c) => `${DECISION_TEXT[c.action] ?? c.action} ${c.count}`).join(", ") : "không có"}</td></tr>
+<tr><td>Quá hạn, áp mặc định</td><td>${d.defaultsApplied}</td></tr>
+<tr><td>Tuổi quyết định</td><td>trung vị ${hours(d.medianAgeHours)}, lâu nhất ${hours(d.maxAgeHours)}</td></tr>
+<tr><td>Phản hồi RM cho NBA</td><td>${d.nbaOutcomes.length ? d.nbaOutcomes.map((o) => `${OUTCOME_TEXT[o.outcome as keyof typeof OUTCOME_TEXT] ?? o.outcome} ${o.count}`).join(", ") : "chưa có"}</td></tr>
+<tr><td>Lượt ghi nhận WO</td><td>${d.woTouches}</td></tr>
+<tr><td>Chi phí Claude API</td><td>${d.costUsd.toFixed(2)} USD</td></tr></table></section>
+<section><h2>Ngâm lâu nhất</h2>${d.longest.length ? html`<table class="kv">${d.longest.map((l) => html`<tr><td><a href="/queue?date=${l.queueDate}#item-${l.id}">${TYPE_TEXT[l.type] ?? l.type} ngày ${ddmm(l.queueDate)}</a></td><td>${hours(l.ageHours)}</td><td>${DECISION_TEXT[l.state] ?? l.state}</td></tr>`)}</table>` : html`<p class="meta">Không có mục.</p>`}</section>`);
 }
 
 export type LeadDupGroup = { match_on: "email" | "phone"; lead_ids: string[]; owner_rm_ids: string[] };
