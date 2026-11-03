@@ -201,5 +201,8 @@ export const BILLING_PARAMS = {
   escalateOverdueDays: 14,
 } as const;
 
+// Đối tác (Mi1-ptn-01, D-31). Stage coi là đã chốt thắng; TẠM, [ĐỐI CHIẾU SCHEMA].
+export const PARTNER_PARAMS = { wonStages: ["Closed Won"] as readonly string[] } as const;
+
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;
