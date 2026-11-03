@@ -1,56 +1,83 @@
-// Nạp file cho Mi1-mkt-05 (D-32): trạng thái bảng giá từng tài phán và danh sách file SKD. Có file nào nạp file đó.
-// Cổng "Bảng giá và SKD", adapter tải file. Chỉ đọc file tải lên. [ĐỐI CHIẾU SCHEMA] tên cột mặc định là tên tạm.
-// Allowlist: không đọc số tiền, ghi chú, người phụ trách.
+// Nạp dữ liệu cho Mi1-mkt-05 (D-32, D-33). Cổng "Bảng giá và SKD", adapter tải file và dán tay. Chỉ đọc đầu vào.
+// (1) File CSV xuất từ sheet "FINAL - Gói & Giá năm 2 & năm 3" (Google Sheets: Tệp, Tải xuống, CSV).
+//     Đọc theo vị trí cột sau dòng tiêu đề "Jurisdiction": A tài phán, B loại hình, C tới H sáu cột giá.
+//     Không đọc cột từ I trở đi (thời gian thực hiện, ghi chú).
+// (2) Danh sách tên file trong thư mục Userguide eKYC, mỗi dòng một tên.
 import type { Database } from "bun:sqlite";
 import { log } from "../log.ts";
-import { CsvError } from "./csv.ts";
-import { readCsvRows, type ColumnMap, type ColumnSpec, type Detail } from "./csv-import.ts";
+import { CsvError, parseCsv } from "./csv.ts";
 
-export const DEFAULT_JURISDICTION_COLUMNS: Record<"Price" | "Skd", Record<string, ColumnSpec>> = {
-  Price: { Code: "Jurisdiction Code", Status: "Price Status", Version: "Price Version" },
-  Skd: { Code: "Jurisdiction Code", FileType: "File Type", Status: "Status" },
+// Tên viết khác nhau trong sheet cho cùng một tài phán.
+const ALIASES: Record<string, string> = {
+  "UK": "United Kingdom",
+  "U.S.A": "United States",
+  "USA": "United States",
+  "BVI": "British Virgin Islands",
+  "Cayman": "Cayman Islands",
+  "UAE": "UAE - RAK ICC",
 };
-const cut = (v: unknown, max = 40): string | null => {
-  const s = String(v ?? "").trim();
-  return s === "" ? null : s.slice(0, max);
-};
+export function canonicalJurisdiction(raw: string): string {
+  const s = raw.replace(/\s+/g, " ").trim().replace(/\s*-\s*/g, " - ");
+  return ALIASES[s] ?? s;
+}
+function money(cell: string | undefined): number | null {
+  const s = String(cell ?? "").replace(/[$,\s]/g, "");
+  return /^\d+(\.\d+)?$/.test(s) ? Number(s) : null;
+}
 
-export type JurisdictionImportResult = { importId: string | null; status: "succeeded" | "failed"; prices: number; skd: number; errorCode?: string; detail?: string };
+type Result = { status: "succeeded" | "failed"; count: number; jurisdictions?: number; errorCode?: string };
 
-export function importJurisdictions(db: Database, files: { Price?: string; Skd?: string }, opts: { columns: ColumnMap; now: Date; actor: string }): JurisdictionImportResult {
-  const fail = (code: string, detail = ""): JurisdictionImportResult => ({ importId: null, status: "failed", prices: 0, skd: 0, errorCode: code, detail });
-  if (!files.Price && !files.Skd) return fail("JURISDICTION_FILE_REQUIRED");
+export function importPriceSheet(db: Database, text: string, opts: { now: Date; actor: string }): Result {
   try {
-    const spec = (r: "Price" | "Skd") => opts.columns[r] ?? DEFAULT_JURISDICTION_COLUMNS[r];
-    const prices = files.Price ? readCsvRows("Price", files.Price, spec("Price"), ["Code", "Status"]) : [];
-    const skd = files.Skd ? readCsvRows("Skd", files.Skd, spec("Skd"), ["Code", "FileType", "Status"]) : [];
-    const importId = Bun.randomUUIDv7();
-    let np = 0;
-    let ns = 0;
+    const csv = parseCsv(text);
+    const all = [csv.header, ...csv.rows];
+    const h = all.findIndex((r) => (r[0] ?? "").trim() === "Jurisdiction" && /^starter/i.test((r[2] ?? "").trim()));
+    if (h < 0) return { status: "failed", count: 0, errorCode: "PRICE_HEADER_NOT_FOUND" };
+    const rows = all.slice(h + 1).map((r, i) => ({ r, rowNo: h + i + 2 })).filter(({ r }) => (r[0] ?? "").trim() && (r[1] ?? "").trim() && (r[2] ?? "").trim());
+    if (!rows.length) return { status: "failed", count: 0, errorCode: "PRICE_NO_ROWS" };
+    const id = Bun.randomUUIDv7();
     db.transaction(() => {
-      db.run("INSERT INTO jurisdiction_imports (id, actor, imported_at) VALUES (?, ?, ?)", [importId, opts.actor, opts.now.toISOString()]);
-      const p = db.prepare("INSERT OR IGNORE INTO jurisdiction_prices (import_id, code, price_status, price_version) VALUES (?, ?, ?, ?)");
-      for (const x of prices) {
-        const code = cut(x.Code, 16)?.toUpperCase(); const st = cut(x.Status);
-        if (code && st && p.run(importId, code, st, cut(x.Version)).changes) np++;
-      }
-      const s = db.prepare("INSERT OR IGNORE INTO jurisdiction_skd (import_id, code, file_type, status) VALUES (?, ?, ?, ?)");
-      for (const x of skd) {
-        const code = cut(x.Code, 16)?.toUpperCase(); const ft = cut(x.FileType, 64); const st = cut(x.Status);
-        if (code && ft && st && s.run(importId, code, ft, st).changes) ns++;
-      }
+      db.run("INSERT INTO jurisdiction_imports (id, actor, imported_at) VALUES (?, ?, ?)", [id, opts.actor, opts.now.toISOString()]);
+      const q = db.prepare("INSERT INTO jurisdiction_prices (import_id, row_no, jurisdiction, company_type, starter, grow, premium, renewal, renewal_2y, renewal_3y) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+      for (const { r, rowNo } of rows) q.run(id, rowNo, canonicalJurisdiction(r[0]!).slice(0, 64), r[1]!.replace(/\s+/g, " ").trim().slice(0, 120), ...r.slice(2, 8).map(money));
     })();
-    log({ event: "jurisdiction_import.succeeded", run_id: importId, count: np + ns });
-    return { importId, status: "succeeded", prices: np, skd: ns };
+    const jurisdictions = new Set(rows.map(({ r }) => canonicalJurisdiction(r[0]!))).size;
+    log({ event: "price_import.succeeded", run_id: id, count: rows.length });
+    return { status: "succeeded", count: rows.length, jurisdictions };
   } catch (e) {
-    const d: Detail = e instanceof CsvError ? { code: e.code, detail: "" } : typeof e === "object" && e !== null && "code" in e ? (e as Detail) : { code: "CSV_IMPORT_FAILED", detail: "" };
-    log({ event: "jurisdiction_import.failed", error_code: d.code });
-    return fail(d.code, d.detail);
+    const code = e instanceof CsvError ? e.code : "PRICE_IMPORT_FAILED";
+    log({ event: "price_import.failed", error_code: code });
+    return { status: "failed", count: 0, errorCode: code };
   }
 }
 
-export function jurisdictionImportMessage(r: JurisdictionImportResult): string {
-  if (r.status === "succeeded") return `Đã nạp ${r.prices} tài phán trong bảng giá, ${r.skd} dòng SKD.`;
-  const why: Record<string, string> = { JURISDICTION_FILE_REQUIRED: "Cần ít nhất một file.", CSV_MISSING_COLUMN: "File thiếu cột cần thiết", CSV_INVALID: "File không đúng dạng CSV." };
-  return `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được file."}${r.detail ? `: ${r.detail}` : ""}. Dữ liệu cũ vẫn giữ nguyên.`;
+export function importSkdList(db: Database, text: string, opts: { now: Date; actor: string }): Result {
+  const names = [...new Set(text.split(/\r?\n/).map((n) => n.trim().slice(0, 200)).filter(Boolean))];
+  if (!names.length) return { status: "failed", count: 0, errorCode: "SKD_LIST_EMPTY" };
+  const id = Bun.randomUUIDv7();
+  db.transaction(() => {
+    db.run("INSERT INTO jurisdiction_imports (id, actor, imported_at) VALUES (?, ?, ?)", [id, opts.actor, opts.now.toISOString()]);
+    const q = db.prepare("INSERT INTO skd_files (import_id, file_name) VALUES (?, ?)");
+    for (const n of names) q.run(id, n);
+  })();
+  log({ event: "skd_import.succeeded", run_id: id, count: names.length });
+  return { status: "succeeded", count: names.length };
+}
+
+const WHY: Record<string, string> = {
+  PRICE_HEADER_NOT_FOUND: "Không thấy dòng tiêu đề Jurisdiction, Loại hình công ty, Starter. Hãy tải CSV của sheet FINAL.",
+  PRICE_NO_ROWS: "File không có dòng giá nào.",
+  CSV_INVALID: "File không đúng dạng CSV.",
+  SKD_LIST_EMPTY: "Danh sách file SKD đang trống.",
+};
+export function jurisdictionImportMessage(price: Result | null, skd: Result | null): string {
+  const parts: string[] = [];
+  for (const [r, ok] of [
+    [price, (x: Result) => `Đã nạp ${x.count} dòng giá của ${x.jurisdictions} tài phán.`],
+    [skd, (x: Result) => `Đã nạp danh sách ${x.count} file SKD.`],
+  ] as const) {
+    if (!r) continue;
+    parts.push(r.status === "succeeded" ? ok(r) : `Chưa nạp. ${WHY[r.errorCode ?? ""] ?? "Không nạp được."} Dữ liệu cũ vẫn giữ nguyên.`);
+  }
+  return parts.length ? parts.join(" ") : "Chưa nạp. Cần file giá hoặc danh sách file SKD. Dữ liệu cũ vẫn giữ nguyên.";
 }

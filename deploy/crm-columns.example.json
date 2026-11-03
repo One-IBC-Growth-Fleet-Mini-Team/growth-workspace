@@ -35,15 +35,5 @@
   "WorkOrderPic": {
     "WorkOrderNumber": "Work Order Number",
     "Pic": "PIC Mới"
-  },
-  "Price": {
-    "Code": "Jurisdiction Code",
-    "Status": "Price Status",
-    "Version": "Price Version"
-  },
-  "Skd": {
-    "Code": "Jurisdiction Code",
-    "FileType": "File Type",
-    "Status": "Status"
   }
 }

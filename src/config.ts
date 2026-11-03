@@ -204,15 +204,17 @@ export const BILLING_PARAMS = {
 // Đối tác (Mi1-ptn-01, D-31). Stage coi là đã chốt thắng; TẠM, [ĐỐI CHIẾU SCHEMA].
 export const PARTNER_PARAMS = { wonStages: ["Closed Won"] as readonly string[] } as const;
 
-// Tài phán và SKD (Mi1-mkt-05, D-32). Số tài phán và số file SKD theo spec mục 1; tên trạng thái là TẠM, [ĐỐI CHIẾU SCHEMA].
-// So khớp trạng thái không phân biệt hoa thường.
-export const JURISDICTION_PARAMS = {
-  total: 45,
-  skdFiles: 10,
-  lockedPriceStatuses: ["Approved", "Published", "Đã chốt"] as readonly string[],
-  doneSkdStatuses: ["Done", "Final", "Hoàn thành"] as readonly string[],
-} as const;
-export type JurisdictionParams = { total: number; skdFiles: number; lockedPriceStatuses: readonly string[]; doneSkdStatuses: readonly string[] };
+// Tài phán và SKD (Mi1-mkt-05, D-32, D-33). 45 tài phán theo spec mục 1.
+// Dòng giá lệch công thức gia hạn khi chênh quá max(absTolerance, relTolerance x số kỳ vọng): dòng lấy giá từ website
+// được giảm nhẹ và làm tròn về đuôi 99 (đo trên sheet FINAL 03/11/2026: lệch tới khoảng 2,6%), lỗi thật lệch từ 30%.
+// Bộ SKD eKYC: PDF, HTML và skdClips clip x 2 khổ x 2 bản (sạch, phụ đề) = 10 file; số clip là TẠM (K-04).
+export const JURISDICTION_PARAMS = { total: 45, absTolerance: 150, relTolerance: 0.05, skdFiles: 10, skdClips: 2 } as const;
+export type JurisdictionParams = { total: number; absTolerance: number; relTolerance: number; skdFiles: number; skdClips: number };
+
+// Gợi ý ngân hàng (D-34). Thứ tự EMI ưu tiên theo sheet "GLOBAL EMI" của Bank Team (19/05/2026, TẠM);
+// mục tiêu ít nhất 2 tài khoản cho mỗi khách theo sheet "Read me".
+export const BANK_PARAMS = { priorityEmi: ["Airwallex", "Payoneer", "Aspire"] as readonly string[], minAccounts: 2 } as const;
+export type BankParams = { priorityEmi: readonly string[]; minAccounts: number };
 
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;
