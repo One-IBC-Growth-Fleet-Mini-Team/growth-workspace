@@ -51,7 +51,11 @@ import { renderImportPage, renderLeadDupPage, renderLoginPage, renderPastePage, 
 import { findDuplicateLeads } from "../mcp/crm-read/tools.ts";
 import { buildWoBoard, recordWoTouch, reminderTexts } from "../db/wo.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
-import { importCrmCsv, importMessage, loadColumnMap, type CsvResource } from "../crm/csv-import.ts";
+import { importCrmCsv, importMessage, loadColumnMap, type ColumnMap, type CsvResource } from "../crm/csv-import.ts";
+import { importPartners, partnerImportMessage } from "../crm/partner-import.ts";
+import { buildPartnerBoard } from "../db/partners.ts";
+import { renderPartnersPage } from "./views/partners.ts";
+import { monthPeriod } from "../time.ts";
 import { createPiiHasher } from "../pii/hash.ts";
 import { previousWorkingDay } from "../time.ts";
 
@@ -69,6 +73,8 @@ export type QueueAppDeps = {
   onImport?: (files: Partial<Record<CsvResource, string>>) => Promise<{ ok: boolean; message: string }>;
   // Nạp file Work Order và file ghép PIC cho BK-08 (D-25); có hàm này thì bật trang /wo.
   onWoImport?: (files: { WorkOrder?: string; WorkOrderPic?: string }, actor: string) => Promise<{ ok: boolean; message: string }>;
+  // Bảng ghép cột cho các file tải lên trên trang riêng (đối tác, D-31); thiếu thì dùng tên cột mặc định.
+  columns?: ColumnMap;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
@@ -118,6 +124,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     PASSWORD_USERS[s.sub] ?? [...deps.users.values()].find((u) => u.id === s.sub)!;
   // Đếm lần đăng nhập sai theo người dùng, trong bộ nhớ (khởi động lại thì xoá, chấp nhận được với 2 người dùng).
   const fails = new Map<string, { count: number; until: number }>();
+
+  function partnersPage(session: Session, day: string, message: string | null): string {
+    const period = monthPeriod(day);
+    const shift = (k: number) => new Date(Date.UTC(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1 + k, 1)).toISOString().slice(0, 7);
+    return renderPartnersPage({ board: buildPartnerBoard(deps.db, period), csrf: session.csrf, canImport: userOf(session).role === "approver", message, prevMonth: shift(-1), nextMonth: shift(1) });
+  }
 
   async function handle(req: Request): Promise<Response> {
     const url = new URL(req.url);
@@ -222,6 +234,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(renderLeadDupPage({ snapshotAt: snap?.snapshot_at ?? null, groups }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/partners") {
+      if (!session) return redirect("/login");
+      const m = url.searchParams.get("month");
+      return respond(partnersPage(session, m && /^\d{4}-\d{2}$/.test(m) ? `${m}-01` : vnDate(now()), null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/wo") {
       if (!session) return redirect("/login");
       if (!deps.onWoImport) return text(404, "Không tìm thấy.");
@@ -240,7 +258,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/partners" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -269,6 +287,17 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const ok = results.every((r) => r.ok);
         const page = renderImportPage({ csrf: session.csrf, message: results.map((r) => r.message).join(" "), crm: Boolean(deps.onImport), wo: Boolean(deps.onWoImport) });
         return respond(page, ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      if (path === "/partners") {
+        if (userOf(session).role !== "approver") return text(403, "Không có quyền.");
+        const files: { Partner?: string; Referral?: string } = {};
+        for (const [field, resource] of [["partner", "Partner"], ["referral", "Referral"]] as const) {
+          const f = form.get(field);
+          if (f instanceof File && f.size > 0) files[resource] = await f.text();
+        }
+        const r = importPartners(deps.db, files, { columns: deps.columns ?? {}, now: now(), actor: userOf(session).id });
+        return respond(partnersPage(session, vnDate(now()), partnerImportMessage(r)), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/wo/touch") {
@@ -388,6 +417,7 @@ if (import.meta.main) {
     onPaste: getReportSource() === "paste" ? onPaste : undefined,
     onImport: getCrmSource() === "csv" ? onImport : undefined,
     onWoImport,
+    columns,
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
   Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });

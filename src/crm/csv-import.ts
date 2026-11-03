@@ -21,7 +21,9 @@ export type ColumnSpec = string | { column: string; format?: DateFormat };
 // WorkOrder, WorkOrderPic: file của Bank Team cho BK-08 (D-25), đọc ở wo-import.ts.
 export const WO_RESOURCES = ["WorkOrder", "WorkOrderPic"] as const;
 export type WoResource = (typeof WO_RESOURCES)[number];
-export type ColumnMap = Partial<Record<CsvResource | WoResource, Record<string, ColumnSpec>>>;
+// Partner, Referral: file đối tác cho Mi1-ptn-01 (D-31), đọc ở partner-import.ts.
+export const PARTNER_RESOURCES = ["Partner", "Referral"] as const;
+export type ColumnMap = Partial<Record<CsvResource | WoResource | (typeof PARTNER_RESOURCES)[number], Record<string, ColumnSpec>>>;
 
 // Trường bắt buộc của từng resource (khớp reqString trong mappers.ts).
 const REQUIRED: Record<CsvResource, string[]> = {
@@ -159,7 +161,7 @@ const SpecSchema = z.union([
   z.strictObject({ column: z.string().min(1), format: z.enum(["yyyy-mm-dd", "dd/mm/yyyy", "mm/dd/yyyy", "dd/mm/yyyy hh:mm", "iso"]).optional() }),
 ]);
 const ColumnMapSchema = z.strictObject(
-  Object.fromEntries([...CSV_RESOURCES, ...WO_RESOURCES].map((r) => [r, z.record(z.string(), SpecSchema).optional()])) as Record<CsvResource | WoResource, z.ZodOptional<z.ZodRecord<z.ZodString, typeof SpecSchema>>>,
+  Object.fromEntries([...CSV_RESOURCES, ...WO_RESOURCES, ...PARTNER_RESOURCES].map((r) => [r, z.record(z.string(), SpecSchema).optional()])) as Record<string, z.ZodOptional<z.ZodRecord<z.ZodString, typeof SpecSchema>>>,
 );
 
 // Đọc bảng ghép từ file; không có file thì dùng bảng mặc định. Sai dạng thì ném lỗi khi khởi động.
