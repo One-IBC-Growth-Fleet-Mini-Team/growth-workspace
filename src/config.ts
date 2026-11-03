@@ -204,5 +204,15 @@ export const BILLING_PARAMS = {
 // Đối tác (Mi1-ptn-01, D-31). Stage coi là đã chốt thắng; TẠM, [ĐỐI CHIẾU SCHEMA].
 export const PARTNER_PARAMS = { wonStages: ["Closed Won"] as readonly string[] } as const;
 
+// Tài phán và SKD (Mi1-mkt-05, D-32). Số tài phán và số file SKD theo spec mục 1; tên trạng thái là TẠM, [ĐỐI CHIẾU SCHEMA].
+// So khớp trạng thái không phân biệt hoa thường.
+export const JURISDICTION_PARAMS = {
+  total: 45,
+  skdFiles: 10,
+  lockedPriceStatuses: ["Approved", "Published", "Đã chốt"] as readonly string[],
+  doneSkdStatuses: ["Done", "Final", "Hoàn thành"] as readonly string[],
+} as const;
+export type JurisdictionParams = { total: number; skdFiles: number; lockedPriceStatuses: readonly string[]; doneSkdStatuses: readonly string[] };
+
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;

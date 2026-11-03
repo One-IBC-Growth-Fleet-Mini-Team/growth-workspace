@@ -13,6 +13,7 @@ const FILES: [file: string, marker: string][] = [
   ["004-queue-defaults.sql", "queue_defaults"],
   ["005-billing.sql", "billing_imports"],
   ["006-partners.sql", "partner_imports"],
+  ["007-jurisdictions.sql", "jurisdiction_imports"],
 ];
 const MIGRATIONS: { version: number; marker: string; sql: string }[] = [];
 for (const [name, marker] of FILES) {

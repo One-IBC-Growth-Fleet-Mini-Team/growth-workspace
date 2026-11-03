@@ -52,6 +52,8 @@ Sau khi có token: chạy `bun run preflight -- --network`, lệnh tự báo tê
 | K-01 (Q-03) | Được gửi văn bản tự báo (đã xoá email, SĐT, giấy tờ, ngày sinh, URL; có thể còn tên khách) sang Claude API không? | Toàn bộ phần đọc tự báo bằng LLM | **Đã chốt ở PR #8: có** |
 | K-02 (Q-16) | Ngoài xem và nhận escalate, Mark cần quyền gì trên Hàng chờ? | Phân quyền | **Đã chốt ở PR #8: chỉ xem** |
 | K-03 | Trả lời Sổ quyết định D-14 tới D-22 | Xem `docs/context/so-quyet-dinh-mo.md` | **Đã chốt ở PR #8** |
+| K-04 (D-32) | 10 file SKD của một tài phán là những loại nào? File bảng giá và danh sách SKD đang nằm ở đâu, cột tên gì? | Trang `/jurisdictions` đếm đúng file | Đếm số loại file khác nhau ở trạng thái xong, đủ khi từ 10; cột `Jurisdiction Code`, `Price Status`, `Price Version`, `File Type`, `Status` |
+| K-05 (D-32) | Trạng thái nào của bảng giá là "đã chốt", trạng thái nào của file SKD là "xong"? | Đếm tài phán sẵn sàng | `Approved`, `Published`, `Đã chốt`; `Done`, `Final`, `Hoàn thành` (`JURISDICTION_PARAMS`) |
 
 ## 5. Người chịu trách nhiệm kỹ thuật
 
