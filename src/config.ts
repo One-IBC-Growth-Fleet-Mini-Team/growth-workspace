@@ -192,6 +192,15 @@ export const WO_PARAMS = {
   openStatuses: ["New", "In Progress"] as readonly string[],
 } as const;
 
+// Đối soát đơn hàng (Mi1-sa-01, D-30). Mọi giá trị là TẠM, [ĐỐI CHIẾU SCHEMA] với giá trị Status thật của CRM.
+export const BILLING_PARAMS = {
+  paidInvoiceStatuses: ["Paid", "Đã thanh toán"] as readonly string[],
+  closedInvoiceStatuses: ["Cancelled", "Canceled", "Void"] as readonly string[],
+  closedOrderStatuses: ["Cancelled", "Canceled"] as readonly string[],
+  // Quá hạn từ chừng này ngày thì báo lên Amy thay vì chỉ nhắc RM.
+  escalateOverdueDays: 14,
+} as const;
+
 // Đối tác (Mi1-ptn-01, D-31). Stage coi là đã chốt thắng; TẠM, [ĐỐI CHIẾU SCHEMA].
 export const PARTNER_PARAMS = { wonStages: ["Closed Won"] as readonly string[] } as const;
 
