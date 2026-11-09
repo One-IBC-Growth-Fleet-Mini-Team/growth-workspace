@@ -164,8 +164,29 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
    3. Xong (D-65): `/tasks`: không tính lại toàn bộ bảng sự kiện; chỉ tính độ phủ 7 ngày.
    4. Truy vấn tự viết gắn nhãn "Chưa xác minh" kèm tỷ lệ độ phủ nối (spec mục 4), sau khi eval Mi1 đã chạy thật.
    Không còn việc chờ Mark chốt: mọi giá trị chưa chốt dùng giá trị tạm ở mục "Giá trị tạm đang dùng" (D-67).
-5d. Dừng xây tính năng (Mark 09/11/2026, sau 5 PR của D-67). Phiên tiếp theo chỉ làm: chạy `bun run demo`, đi hết luồng của Amy từ đầu tới cuối bằng dữ liệu tổng hợp, ghi mọi chỗ gãy vào mục "Chỗ gãy khi chạy demo" của file này.
+5d. Dừng xây tính năng (Mark 09/11/2026, sau 5 PR của D-67). Đã chạy demo theo luồng của Amy, kết quả ở mục "Chỗ gãy khi chạy demo". Việc tiếp theo chờ Mark chọn sửa chỗ gãy nào.
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
+
+## Chỗ gãy khi chạy demo
+
+Lần chạy 09/11/2026 (sau PR #49): `bun run demo`, Playwright đi hết luồng của Amy ở bề rộng 375px và 1280px:
+- đăng nhập; trên Hàng chờ bấm Xác nhận, Bác, Escalate;
+- Brief sáng, dán tự báo RM;
+- nạp CSV CRM (Opportunity, Client, Lead, Order), WO, đơn hàng và invoice, đối tác, sheet giá, sự kiện;
+- xem 17 trang còn lại; đăng xuất.
+
+Không có trang lỗi (mọi trang 200), không có lỗi console, nạp file nào cũng ra câu báo đúng số dòng. Lead trùng tìm đúng hai Lead cùng email khác hoa thường. Đề xuất hoa hồng đúng 15% cho đối tác bậc partner. Tầng 3B báo thiếu mẫu (1 asset_view). Đăng xuất được.
+
+Chỗ gãy hoặc dễ gây hiểu nhầm (chưa sửa; sửa ở PR riêng khi Mark cho phép):
+1. **Dán tự báo RM:** gửi xong thì về Hàng chờ, không có câu báo đã tạo bao nhiêu mục. Amy không biết lần dán có ăn không.
+2. **Nạp CSV CRM:** báo "NBA: 0 mục mới" sau khi nạp một Opportunity mới, nhưng không nói vì sao (deal không qua luật NBA nào, hay đã có NBA hôm nay). Amy không phân biệt được đúng hay lỗi.
+3. **Brief sáng:** "Dự kiến mỗi ngày làm việc khoảng 0 mục" trong khi hôm nay có 17 mục. `load_forecast` chỉ tính 7 ngày trước, demo không có lịch sử nên ra 0; câu này dễ hiểu nhầm khi mới cài.
+4. **`/market` tràn ngang khoảng 50px ở 375px** (form nạp có mép phải tới 417px): ô chọn "Loại" có chữ dài (liệt kê tên cột trong option).
+5. **Hỏi Mi1 (`/ask`):** bản demo không có LLM giả cho trang này, nên chỉ thấy "Chưa cấu hình LLM"; chưa thử được luồng hỏi trên demo.
+6. **Demo thiếu dữ liệu mẫu cho các trang Mi1-mkt:** Hook, Creative, ngân sách, quảng cáo tuần, giá đối thủ, thị trường đều trống. Tầng 3B, Win gate, nháp lịch kênh, đóng gói, tên bundle không thấy được trên demo nếu không nạp tay.
+7. **Repo không có file CSV mẫu cho Amy** (CRM, đơn hàng, đối tác, WO, sự kiện, sheet giá, chiến dịch). Tên cột chỉ có trong dòng hướng dẫn trên trang hoặc trong code; lần chạy này phải đọc code để biết tên cột.
+8. **Demo chỉ có Amy và Mark:** `/login?as=` không có Team MKT, BOD, nên chưa thử phân quyền D-63, D-66 trên demo (đã có test HTTP T-ROLE).
+9. **Cần Amy xác nhận:** trên Hàng chờ, thẻ đã Xác nhận vẫn bấm Bác được (quyết định mới nhất thắng). Đúng thiết kế chỉ thêm, nhưng Amy nên biết bấm nhầm thì sửa bằng quyết định mới.
 
 ## Giá trị tạm đang dùng
 
@@ -199,4 +220,4 @@ Mọi giá trị chưa chốt nằm trong một file: [`config/provisional.json`
 
 ## PR đang mở
 
-- growth-workspace: PR #23 tới #48 đã merge; PR nhánh `claude/tender-gates-nn4rif` (D-65, D-66). creative-factory-v2: markng-byte/creative-factory-v2#20 (analyze). creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
+- growth-workspace: PR #23 tới #49 đã merge; PR nhánh `claude/tender-gates-nn4rif` (chỉ STATUS: chỗ gãy khi chạy demo). creative-factory-v2: markng-byte/creative-factory-v2#20 (analyze). creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
