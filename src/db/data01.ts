@@ -53,3 +53,18 @@ export function buildDataBoard(db: Database, now: Date, p: Data01Params = DATA01
     pii: last ? { emailCells: last.email_cells, forbiddenColumns: last.forbidden_columns ? last.forbidden_columns.split(",") : [] } : null,
   };
 }
+
+// Chỉ độ phủ ID 7 ngày (cho /tasks, Brief; D-65): đọc sự kiện trong cửa sổ rồi bỏ trùng theo event_key trong bộ nhớ
+// (lượt nạp mới nhất thắng), thay vì truy vấn bỏ trùng trên toàn bảng như buildDataBoard.
+export function idCoverageWindow(db: Database, now: Date, p: Data01Params = DATA01_PARAMS): DataBoard["window"] {
+  const end = vnDate(now);
+  const start = addDays(end, -(p.windowDays - 1));
+  const rows = db.query(`SELECT e.event_key, e.event_name, e.event_date, e.session_id, e.linked FROM data_events e JOIN data_event_imports i ON i.id = e.import_id
+    WHERE e.event_key IN (SELECT event_key FROM data_events WHERE event_date >= ? AND event_date <= ?) ORDER BY i.imported_at, e.import_id, e.row_no`).all(start, end) as
+    { event_key: string; event_name: string; event_date: string | null; session_id: string | null; linked: number }[];
+  const latest = new Map<string, (typeof rows)[number]>();
+  for (const r of rows) latest.set(r.event_key, r);
+  const inWindow = [...latest.values()].filter((r) => r.event_date !== null && r.event_date >= start && r.event_date <= end);
+  const c = idCoverage(inWindow.map((r) => ({ session_id: r.session_id ?? "", event_name: r.event_name, contact_id: r.linked ? "x" : "" })));
+  return { start, end, ...c, degraded: c.rate !== null && c.rate < p.degradedBelow };
+}

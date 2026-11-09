@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { importPartners } from "../../src/crm/partner-import.ts";
-import { createPartnerServer } from "../../src/mcp/partner/server.ts";
+import { createPartnerServer, MATCH_LIMIT } from "../../src/mcp/partner/server.ts";
 import { callRemoteTools } from "../../src/mcp/remote.ts";
 import { createPiiHasher } from "../../src/pii/hash.ts";
 import { freshDb, seedSnapshot } from "../helpers/db.ts";
@@ -40,5 +40,23 @@ describe("T-PMCP partner-mcp", () => {
     expect(Buffer.from(db.serialize()).equals(Buffer.from(before))).toBe(true);
     const tools = (server as any)._registeredTools as Record<string, unknown>;
     expect(Object.keys(tools).sort()).toEqual(["match_to_contact", "track_referral"]);
+  });
+
+  test("T-PMCP-02 match_to_contact quá MATCH_LIMIT lần mỗi phút thì từ chối; sang phút sau tra lại được", async () => {
+    let t = 0;
+    const server = createPartnerServer(freshDb(), createPiiHasher(KEY), () => t);
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await server.connect(a);
+    const calls = Array.from({ length: MATCH_LIMIT }, (_, i) => ({ tool: "match_to_contact", args: { email: `u${i}@example.com` } }));
+    expect((await callRemoteTools({ transport: b }, calls)).length).toBe(MATCH_LIMIT);
+    const [c, d] = InMemoryTransport.createLinkedPair();
+    await server.close();
+    await server.connect(c);
+    await expect(callRemoteTools({ transport: d }, [{ tool: "match_to_contact", args: { email: "x@example.com" } }])).rejects.toThrow("REMOTE_TOOL_ERROR");
+    t = 61_000;
+    const [e, f] = InMemoryTransport.createLinkedPair();
+    await server.close();
+    await server.connect(e);
+    expect(await callRemoteTools({ transport: f }, [{ tool: "match_to_contact", args: { email: "x@example.com" } }])).toEqual([{ lead_ids: [], matched: false }]);
   });
 });

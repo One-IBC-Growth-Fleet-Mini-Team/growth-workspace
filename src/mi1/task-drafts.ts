@@ -2,7 +2,7 @@
 // mục 8 tầng 3A, 4; D-60). Code soạn nháp từ số đã tính; không gửi đi đâu, không gọi Jira. Người đọc rồi tự tạo việc.
 import type { Database } from "bun:sqlite";
 import { DATA01_PARAMS } from "../config.ts";
-import { buildDataBoard } from "../db/data01.ts";
+import { idCoverageWindow } from "../db/data01.ts";
 import { repeatedRejections, TIER4_PARAMS } from "../db/rejections.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 
@@ -11,7 +11,7 @@ const pct = (v: number | null) => (v === null ? "chưa có" : `${(v * 100).toFix
 
 export function buildTaskDrafts(db: Database, now: Date): TaskDraft[] {
   const out: TaskDraft[] = [];
-  const d = buildDataBoard(db, now);
+  const d = { window: idCoverageWindow(db, now) };
   if (d.window.degraded) {
     out.push({ key: "tracking_degraded", project: "MobCEC", evidence: "/data",
       title: `TRACKING_DEGRADED: độ phủ ID 7 ngày ${pct(d.window.rate)} (${d.window.linked}/${d.window.sessions} phiên), dưới ${pct(DATA01_PARAMS.degradedBelow).replace(".0%", "%")}`,

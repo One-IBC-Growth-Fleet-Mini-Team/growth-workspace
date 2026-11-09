@@ -12,7 +12,7 @@ Chạy `bun run mcp:growth` (stdio). Tool: `search_knowledge`, `propose_hook_car
 
 Chạy `bun run mcp:partner` (stdio, Growth DB chỉ đọc, cần `PII_HASH_KEY` như bản cài). Không ghi gì.
 - `track_referral` (`period_start`, `period_end` dạng yyyy-mm-dd, `partner_id` tuỳ chọn): số giới thiệu, số chốt, lợi nhuận ghi nhận theo đối tác; số khách reseller chưa gắn cờ; `commission: "pending_policy"`.
-- `match_to_contact` (`email` hoặc `phone`): Growth băm ngay khi nhận rồi so với Lead trong snapshot CRM mới nhất; trả `{ lead_ids, matched }`. Không lưu, không ghi log email, SĐT.
+- `match_to_contact` (`email` hoặc `phone`): Growth băm ngay khi nhận rồi so với Lead trong snapshot CRM mới nhất; trả `{ lead_ids, matched }`. Không lưu, không ghi log email, SĐT. Tối đa 30 lần tra mỗi phút; quá thì lỗi `RATE_LIMITED` (D-65).
 - `calc_commission` chưa có, chờ chính sách hoa hồng.
 
 ## Growth gọi ra ngoài
