@@ -234,8 +234,10 @@ export const AD_RULES = {
   maxOpening: 124,
   maxHeadline: 40,
   maxDescription: 30,
+  // Quốc gia Meta yêu cầu verify trước khi chạy quảng cáo dịch vụ tài chính (spec "verify Meta TW/IN"; D-41).
+  metaVerifyRequired: ["Taiwan", "India"],
 } as const;
-export type AdRules = { banned: readonly string[]; review: readonly string[]; brandAllow: readonly string[]; maxOpening: number; maxHeadline: number; maxDescription: number };
+export type AdRules = { banned: readonly string[]; review: readonly string[]; brandAllow: readonly string[]; maxOpening: number; maxHeadline: number; maxDescription: number; metaVerifyRequired?: readonly string[] };
 
 // Mi1-mkt-01 tầng 2 (spec mục 8; D-39): xét quảng cáo từ 3.000 impressions mỗi tuần; Frequency trên 2,5.
 export const ADS_TIER2_PARAMS = { minImpressions: 3000, maxFrequency: 2.5 } as const;
