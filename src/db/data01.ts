@@ -4,6 +4,8 @@ import type { Database } from "bun:sqlite";
 import { DATA01_PARAMS, type Data01Params } from "../config.ts";
 import { chainLinkCoverage, type LinkCoverage } from "../metrics/id-chain.ts";
 import { idCoverage } from "../metrics/id-coverage.ts";
+import { tier3bCheck } from "../metrics/tier3b.ts";
+import { getProvisional } from "../provisional.ts";
 import { addDays, vnDate } from "../time.ts";
 
 type Row = { event_name: string; event_date: string | null; session_id: string | null; linked: number; missing: string | null; known: number; ids: string | null };
@@ -52,4 +54,31 @@ export function buildDataBoard(db: Database, now: Date, p: Data01Params = DATA01
     chain: chainLinkCoverage(rows.filter((r) => r.ids !== null).map((r) => ({ eventName: r.event_name, ids: new Set(r.ids ? r.ids.split(",") : []) }))),
     pii: last ? { emailCells: last.email_cells, forbiddenColumns: last.forbidden_columns ? last.forbidden_columns.split(",") : [] } : null,
   };
+}
+
+// Chỉ độ phủ ID 7 ngày (cho /tasks, Brief; D-65): đọc sự kiện trong cửa sổ rồi bỏ trùng theo event_key trong bộ nhớ
+// (lượt nạp mới nhất thắng), thay vì truy vấn bỏ trùng trên toàn bảng như buildDataBoard.
+function windowRows(db: Database, now: Date, p: Data01Params) {
+  const end = vnDate(now);
+  const start = addDays(end, -(p.windowDays - 1));
+  const rows = db.query(`SELECT e.event_key, e.event_name, e.event_date, e.session_id, e.linked FROM data_events e JOIN data_event_imports i ON i.id = e.import_id
+    WHERE e.event_key IN (SELECT event_key FROM data_events WHERE event_date >= ? AND event_date <= ?) ORDER BY i.imported_at, e.import_id, e.row_no`).all(start, end) as
+    { event_key: string; event_name: string; event_date: string | null; session_id: string | null; linked: number }[];
+  const latest = new Map<string, (typeof rows)[number]>();
+  for (const r of rows) latest.set(r.event_key, r);
+  return { start, end, rows: [...latest.values()].filter((r) => r.event_date !== null && r.event_date >= start && r.event_date <= end) };
+}
+
+export function idCoverageWindow(db: Database, now: Date, p: Data01Params = DATA01_PARAMS): DataBoard["window"] {
+  const { start, end, rows } = windowRows(db, now, p);
+  const c = idCoverage(rows.map((r) => ({ session_id: r.session_id ?? "", event_name: r.event_name, contact_id: r.linked ? "x" : "" })));
+  return { start, end, ...c, degraded: c.rate !== null && c.rate < p.degradedBelow };
+}
+
+// Tầng 3B (D-68): đếm sự kiện phễu trong cửa sổ 7 ngày rồi xét bằng tier3bCheck với ngưỡng tạm.
+export function tier3bWindow(db: Database, now: Date, p: Data01Params = DATA01_PARAMS) {
+  const { rows } = windowRows(db, now, p);
+  const n = (name: string) => rows.filter((r) => r.event_name === name).length;
+  return tier3bCheck({ assetView: n("asset_view"), askStarted: n("ask_occ_started"), contactCaptured: n("contact_captured"), trackingDegraded: idCoverageWindow(db, now, p).degraded },
+    getProvisional("tier3b").value);
 }

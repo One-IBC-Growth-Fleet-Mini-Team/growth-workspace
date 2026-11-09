@@ -1,7 +1,7 @@
 // T-DATA-01 tới T-DATA-04: Mi1-data-01 độ phủ ID và gãy tracking (spec mục 6, tầng 3A; D-36). Dữ liệu tổng hợp.
 import { describe, expect, test } from "bun:test";
 import { importEvents } from "../../src/crm/event-import.ts";
-import { buildDataBoard } from "../../src/db/data01.ts";
+import { buildDataBoard, idCoverageWindow } from "../../src/db/data01.ts";
 import { idCoverage, missingFields } from "../../src/metrics/id-coverage.ts";
 import { buildBrief } from "../../src/mi1/core.ts";
 import { renderBriefPage } from "../../src/queue/views/page.ts";
@@ -102,5 +102,14 @@ describe("T-DATA-05 chuỗi 12 ID", () => {
     const page = await (await get(app, "/data", createSessionCookie(SECRET, { sub: MARK.id, csrf: "c", exp: Date.parse("2026-11-03T00:00:00Z") }))).text();
     expect(page).toContain("conversation_id → contact_id");
     expect(page).toContain("1/2 contact_captured: 50.0%");
+  });
+});
+
+describe("T-DATA-06 độ phủ 7 ngày tính riêng", () => {
+  test("T-DATA-06 idCoverageWindow bằng đúng cửa sổ của buildDataBoard, kể cả khi nạp lại sự kiện trùng event_id", () => {
+    const db = load();
+    importEvents(db, EVENTS.replace("e6,contact_captured,2026-11-08T04:00:00Z,web,a4,s4,c4,,", "e6,contact_captured,2026-11-08T04:00:00Z,web,a4,s4,c4,ct4,"), { now: new Date("2026-11-09T03:00:00Z"), actor: "mark" });
+    expect(idCoverageWindow(db, NOW, P)).toEqual(buildDataBoard(db, NOW, P).window);
+    expect(idCoverageWindow(db, NOW, P).linked).toBe(2);
   });
 });

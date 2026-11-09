@@ -17,7 +17,7 @@ import {
   BILLING_PARAMS,
   DATA01_PARAMS,
   CHANNEL_PARAMS,
-  AD_RULES,
+  adRules,
   getRemoteSource,
   type RemoteSource,
   isLocalBaseUrl,
@@ -66,7 +66,7 @@ import { importPriceSheet, importSkdList, jurisdictionImportMessage } from "../c
 import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
 import { renderJurisdictionsPage } from "./views/jurisdictions.ts";
 import { eventImportMessage, importEvents } from "../crm/event-import.ts";
-import { buildDataBoard } from "../db/data01.ts";
+import { buildDataBoard, tier3bWindow } from "../db/data01.ts";
 import { renderDataPage } from "./views/data01.ts";
 import { buildChannelBoard, recordChannelCheck } from "../db/channels.ts";
 import { renderChannelsPage } from "./views/channels.ts";
@@ -82,7 +82,7 @@ import { renderCompetitorsPage } from "./views/competitors.ts";
 import { importHookCsv, importHooksFromMcp } from "../crm/hook-import.ts";
 import { buildHookBoard } from "../db/hooks.ts";
 import { renderHooksPage } from "./views/hooks.ts";
-import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, exportBundles, analyzeCampaign } from "../creative/factory.ts";
+import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, exportBundles, analyzeCampaign, buildScheduleDraft } from "../creative/factory.ts";
 import { renderCreativePage } from "./views/creative.ts";
 import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
 import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
@@ -94,7 +94,8 @@ import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
 import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
-import { canPost, canSee } from "./roles.ts";
+import { canPost, canSee, stripForbiddenForms } from "./roles.ts";
+import { listProvisional, setProvisional } from "../provisional.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
 import { renderAskPage } from "./views/ask.ts";
 import { renderTasksPage } from "./views/tasks.ts";
@@ -215,11 +216,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   }
 
   function dataPage(session: Session, message: string | null): string {
-    return renderDataPage({ board: buildDataBoard(deps.db, now()), csrf: session.csrf, message, threshold: DATA01_PARAMS.degradedBelow });
+    return renderDataPage({ board: buildDataBoard(deps.db, now()), csrf: session.csrf, message, threshold: DATA01_PARAMS.degradedBelow, tier3b: tier3bWindow(deps.db, now()) });
   }
 
   function channelsPage(session: Session, message: string | null): string {
-    return renderChannelsPage({ board: buildChannelBoard(deps.db, now()), verify: latestCountryStatus(deps.db), required: AD_RULES.metaVerifyRequired, csrf: session.csrf, message, staleHours: CHANNEL_PARAMS.staleHours });
+    return renderChannelsPage({ board: buildChannelBoard(deps.db, now()), verify: latestCountryStatus(deps.db), required: adRules().metaVerifyRequired ?? [], csrf: session.csrf, message, staleHours: CHANNEL_PARAMS.staleHours });
   }
 
   // Tuần mặc định: tuần đã trọn gần nhất (thứ Hai tuần trước, giờ Việt Nam).
@@ -237,7 +238,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
   function creativePage(session: Session, message: string | null): string {
     const hooks = buildHookBoard(deps.db).hooks.filter((h) => h.verdict === "pass" || h.verdict === "review").map((h) => ({ hookId: h.hookId, text: h.text }));
-    return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, rejections: repeatedRejections(deps.db, now()), csrf: session.csrf, message });
+    return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, schedule: buildScheduleDraft(deps.db, now()), rejections: repeatedRejections(deps.db, now()), csrf: session.csrf, message });
   }
 
   function budgetPage(session: Session, message: string | null): string {
@@ -388,7 +389,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
     if (req.method === "GET" && path === "/ads-check") {
       if (!session) return redirect("/login");
-      return respond(renderAdsPage({ csrf: session.csrf, rows: null, message: null, rules: AD_RULES }), 200, { "content-type": "text/html; charset=utf-8" });
+      return respond(renderAdsPage({ csrf: session.csrf, rows: null, message: null, rules: adRules() }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/ads-overview") {
@@ -576,14 +577,14 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         let rows = null;
         let message: string | null = null;
         if (f instanceof File && f.size > 0) {
-          const r = checkAdBatch(deps.db, await f.text(), AD_RULES);
+          const r = checkAdBatch(deps.db, await f.text(), adRules());
           rows = r.rows;
           if (r.status === "failed") message = r.errorCode === "ADS_HEADER_NOT_FOUND" ? "File cần cột primary_text hoặc headline." : "File không đúng dạng CSV.";
         } else {
           const copy = { primaryText: String(form.get("primary_text") ?? ""), headline: String(form.get("headline") ?? ""), description: String(form.get("description") ?? ""), jurisdiction: String(form.get("jurisdiction") ?? "").trim() || null, targetCountry: String(form.get("target_country") ?? "").trim() || null };
-          rows = [{ id: "Mẫu vừa dán", jurisdiction: copy.jurisdiction, ...checkOne(deps.db, copy, AD_RULES) }];
+          rows = [{ id: "Mẫu vừa dán", jurisdiction: copy.jurisdiction, ...checkOne(deps.db, copy, adRules()) }];
         }
-        return respond(renderAdsPage({ csrf: session.csrf, rows, message, rules: AD_RULES }), message ? 422 : 200, { "content-type": "text/html; charset=utf-8" });
+        return respond(renderAdsPage({ csrf: session.csrf, rows, message, rules: adRules() }), message ? 422 : 200, { "content-type": "text/html; charset=utf-8" });
       }
 
       // Mark giám sát Mi1-mkt-01 (spec mục 6) nên cả hai người dùng nạp được báo cáo (D-39).
@@ -704,9 +705,14 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const actor = userOf(session).id;
         if (actor !== "mark") return text(403, "Chỉ Mark đổi ngưỡng và trọng số.");
         const by = { now: now(), actor };
-        const why: Record<string, string> = { VALUE_INVALID: "Giá trị không hợp lệ (ngưỡng trong khoảng 0 tới 1; trọng số là 5 số nguyên, tổng 100).", PARAM_NOT_TUNABLE: "Tham số này không chỉnh được.", EVAL_NOT_RERUN: "Chưa chạy lại eval sau lúc đề xuất (bun run eval:sa01).", EVAL_FAILED: "Lượt eval gần nhất chưa pass.", ALREADY_ACTIVE: "Đã kích hoạt.", NOT_FOUND: "Không thấy đề xuất." };
+        const why: Record<string, string> = { VALUE_INVALID: "Giá trị không hợp lệ (ngưỡng trong khoảng 0 tới 1; trọng số là 5 số nguyên, tổng 100).", PARAM_NOT_TUNABLE: "Tham số này không chỉnh được.", EVAL_NOT_RERUN: "Chưa chạy lại eval sau lúc đề xuất (bun run eval:sa01).", EVAL_FAILED: "Lượt eval gần nhất chưa pass.", ALREADY_ACTIVE: "Đã kích hoạt.", NOT_FOUND: "Không thấy đề xuất.", KEY_UNKNOWN: "Không có khoá này.", ONLY_MARK: "Chỉ Mark đổi." };
         let code: string;
-        if (form.get("op") === "activate") code = activateTuning(deps.db, String(form.get("id") ?? ""), deps.evalRun?.() ?? { ranAt: null, passed: false }, by);
+        if (form.get("op") === "provisional") {
+          const key = String(form.get("key") ?? "");
+          const raw = String(form.get("value") ?? "").trim();
+          const cur = listProvisional().find((p) => p.key === key);
+          code = setProvisional(key, raw || JSON.stringify(cur?.value ?? null), form.get("status") === "FINAL" ? "FINAL" : "PROVISIONAL", by);
+        } else if (form.get("op") === "activate") code = activateTuning(deps.db, String(form.get("id") ?? ""), deps.evalRun?.() ?? { ranAt: null, passed: false }, by);
         else { const r = proposeTuning(deps.db, String(form.get("param") ?? ""), String(form.get("value") ?? ""), by); code = r.status === "ok" ? "ok" : r.errorCode; }
         return respond(tuningPage(session, code === "ok" ? "Đã ghi." : `Chưa ghi. ${why[code] ?? ""}`), code === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
@@ -783,7 +789,15 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   return {
     async fetch(req) {
       try {
-        return await handle(req);
+        const res = await handle(req);
+        // Phiên MKT: ẩn form không được dùng (D-66).
+        const s = readSession(req, deps.sessionSecret, now());
+        if (s && userOf(s).role === "mkt" && res.headers.get("content-type")?.startsWith("text/html")) {
+          const headers = new Headers();
+          res.headers.forEach((v, k) => headers.append(k, v));
+          return new Response(stripForbiddenForms(userOf(s), await res.text()), { status: res.status, headers });
+        }
+        return res;
       } catch {
         log({ event: "queue.error", error_code: "UNHANDLED" });
         return text(500, "Lỗi hệ thống.");

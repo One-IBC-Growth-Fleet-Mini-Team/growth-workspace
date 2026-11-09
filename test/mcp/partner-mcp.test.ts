@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { importPartners } from "../../src/crm/partner-import.ts";
-import { createPartnerServer } from "../../src/mcp/partner/server.ts";
+import { createPartnerServer, MATCH_LIMIT } from "../../src/mcp/partner/server.ts";
 import { callRemoteTools } from "../../src/mcp/remote.ts";
 import { createPiiHasher } from "../../src/pii/hash.ts";
 import { freshDb, seedSnapshot } from "../helpers/db.ts";
@@ -11,7 +11,7 @@ const KEY = "test-only-pii-key-0123456789abcdef0123";
 const NOW = new Date("2026-11-09T02:00:00Z");
 
 describe("T-PMCP partner-mcp", () => {
-  test("T-PMCP-01 track_referral theo kỳ; match_to_contact trả mã Lead khớp mã băm; không có calc_commission; DB không đổi", async () => {
+  test("T-PMCP-01 track_referral theo kỳ; match_to_contact trả mã Lead khớp mã băm; calc_commission chỉ đề xuất theo tỉ lệ tạm, chưa chi; DB không đổi", async () => {
     const db = freshDb();
     const h = createPiiHasher(KEY);
     seedSnapshot(db, { leads: [
@@ -39,6 +39,29 @@ describe("T-PMCP partner-mcp", () => {
     expect(none).toEqual({ lead_ids: [], matched: false });
     expect(Buffer.from(db.serialize()).equals(Buffer.from(before))).toBe(true);
     const tools = (server as any)._registeredTools as Record<string, unknown>;
-    expect(Object.keys(tools).sort()).toEqual(["match_to_contact", "track_referral"]);
+    expect(Object.keys(tools).sort()).toEqual(["calc_commission", "match_to_contact", "track_referral"]);
+    const [x2, y2] = InMemoryTransport.createLinkedPair();
+    await server.close();
+    await server.connect(x2);
+    const [comm] = await callRemoteTools({ transport: y2 }, [{ tool: "calc_commission", args: { period_start: "2026-11-01", period_end: "2026-11-30" } }]) as any[];
+    expect(comm).toMatchObject({ status: "PROVISIONAL", label: "chưa chi", lines: [{ deal_id: "D1", partner_type: "reseller", status: "no_rate" }] });
+  });
+
+  test("T-PMCP-02 match_to_contact quá MATCH_LIMIT lần mỗi phút thì từ chối; sang phút sau tra lại được", async () => {
+    let t = 0;
+    const server = createPartnerServer(freshDb(), createPiiHasher(KEY), () => t);
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await server.connect(a);
+    const calls = Array.from({ length: MATCH_LIMIT }, (_, i) => ({ tool: "match_to_contact", args: { email: `u${i}@example.com` } }));
+    expect((await callRemoteTools({ transport: b }, calls)).length).toBe(MATCH_LIMIT);
+    const [c, d] = InMemoryTransport.createLinkedPair();
+    await server.close();
+    await server.connect(c);
+    await expect(callRemoteTools({ transport: d }, [{ tool: "match_to_contact", args: { email: "x@example.com" } }])).rejects.toThrow("REMOTE_TOOL_ERROR");
+    t = 61_000;
+    const [e, f] = InMemoryTransport.createLinkedPair();
+    await server.close();
+    await server.connect(e);
+    expect(await callRemoteTools({ transport: f }, [{ tool: "match_to_contact", args: { email: "x@example.com" } }])).toEqual([{ lead_ids: [], matched: false }]);
   });
 });

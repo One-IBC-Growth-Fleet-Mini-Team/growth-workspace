@@ -1,0 +1,46 @@
+{
+  "_doc": "Giá trị chưa chốt (D-67). Code chỉ đọc qua getProvisional() trong src/provisional.ts. Mark sửa và chuyển FINAL ở trang /tuning; thay đổi ghi nối tiếp vào provisional-overrides.jsonl cạnh Growth DB, file này giữ giá trị mặc định.",
+  "tier3b": {
+    "value": { "min_asset_view_per_week": 300, "ask_per_view_below": 0.02, "contact_per_ask_below": 0.2, "skip_when_tracking_degraded": true },
+    "status": "PROVISIONAL", "source": "Mark đề xuất, 09/11/2026", "decided_by": null,
+    "note": "Tầng 3B (spec mục 8): cờ khi ask_occ_started/asset_view < 0,02 hoặc contact_captured/ask_occ_started < 0,20; chỉ xét khi không TRACKING_DEGRADED và asset_view từ 300/tuần."
+  },
+  "win_gate": {
+    "value": { "min_impressions": 3000, "min_contact_captured": 30, "require_cycle_complete": true, "require_reseller_filtered": true, "cpl_at_most": "median", "win_rate_at_least": "median", "min_confidence": 0.8 },
+    "status": "PROVISIONAL", "source": "Mark đề xuất, 09/11/2026", "decided_by": null,
+    "note": "Win gate Mi1-mkt-01. Thiếu mẫu thì trả insufficient_data, không xếp hạng."
+  },
+  "channel_schedule": {
+    "value": { "posts_per_week": { "meta_feed": 3, "meta_stories": 3, "tiktok": 3, "youtube": 1 } },
+    "status": "PROVISIONAL", "source": "Mark (chỉ nháp, nhịp theo kênh từ config), 09/11/2026; số bài mỗi kênh Claude đề xuất", "decided_by": null,
+    "note": "Lịch kênh: chỉ nháp, không gọi API đăng. Chỉ Creative đã duyệt, QA PASS, đã đóng gói, tài phán đã chốt giá: luật cứng trong code (CLAUDE.md quy tắc 4), không chỉnh bằng config."
+  },
+  "commission": {
+    "value": { "rates": { "referrer": 0.1, "partner": 0.15, "premier": 0.2 }, "base": "net_profit_ic của đơn đã thanh toán trừ refund", "label": "chưa chi" },
+    "status": "PROVISIONAL", "source": "Mark đề xuất, 09/11/2026", "decided_by": null,
+    "note": "calc_commission chỉ trả đề xuất; chi trả qua cổng duyệt tiền của Amy và tài chính."
+  },
+  "bundle_name": {
+    "value": { "pattern": "oneibc_{channel}_{jurisdiction}_{hook_id}_{yyyymmdd}_v{n}" },
+    "status": "PROVISIONAL", "source": "Mark đề xuất, 09/11/2026", "decided_by": null
+  },
+  "cron07": {
+    "value": { "enabled": false, "description": "Vòng lặp Harness tuần (spec mục 10) chưa định nghĩa; chưa chạy" },
+    "status": "PROVISIONAL", "source": "spec v0.3.2 mục 10, chưa mô tả", "decided_by": null
+  },
+  "k07_ad_words": {
+    "value": {
+      "banned": ["offshore", "no tax", "zero tax", "tax free", "tax evasion", "incognito", "money laundering", "hide assets", "break the law", "cheat", "tax heaven", "tax haven"],
+      "review": ["banking", "finance"]
+    },
+    "status": "PROVISIONAL", "source": "spec v0.3.2 mục 7, cột Đề xuất (D-38, K-07)", "decided_by": null
+  },
+  "tier4_repeat": {
+    "value": { "min_count": 3, "window_days": 28 },
+    "status": "PROVISIONAL", "source": "Claude đề xuất, 09/11/2026 (D-54)", "decided_by": null
+  },
+  "q09_stage_weights": {
+    "value": { "Payment Waiting": 4, "Negotiation": 3, "Quotation": 2, "Needs Analysis": 1, "Nurturing": 0.5 },
+    "status": "PROVISIONAL", "source": "design doc lát cắt 01, tên Stage thật D-42; thứ tự chờ Amy (Q-09)", "decided_by": null
+  }
+}

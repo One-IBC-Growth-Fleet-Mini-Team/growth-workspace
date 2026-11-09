@@ -2,8 +2,9 @@
 // mục 8 tầng 3A, 4; D-60). Code soạn nháp từ số đã tính; không gửi đi đâu, không gọi Jira. Người đọc rồi tự tạo việc.
 import type { Database } from "bun:sqlite";
 import { DATA01_PARAMS } from "../config.ts";
-import { buildDataBoard } from "../db/data01.ts";
-import { repeatedRejections, TIER4_PARAMS } from "../db/rejections.ts";
+import { idCoverageWindow, tier3bWindow } from "../db/data01.ts";
+import { repeatedRejections, tier4Params } from "../db/rejections.ts";
+import { tag } from "../provisional.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 
 export type TaskDraft = { key: string; project: "MKT" | "MobCEC"; title: string; body: string; evidence: string };
@@ -11,11 +12,17 @@ const pct = (v: number | null) => (v === null ? "chưa có" : `${(v * 100).toFix
 
 export function buildTaskDrafts(db: Database, now: Date): TaskDraft[] {
   const out: TaskDraft[] = [];
-  const d = buildDataBoard(db, now);
+  const d = { window: idCoverageWindow(db, now) };
   if (d.window.degraded) {
     out.push({ key: "tracking_degraded", project: "MobCEC", evidence: "/data",
       title: `TRACKING_DEGRADED: độ phủ ID 7 ngày ${pct(d.window.rate)} (${d.window.linked}/${d.window.sessions} phiên), dưới ${pct(DATA01_PARAMS.degradedBelow).replace(".0%", "%")}`,
       body: `Tầng 3A (spec mục 8): độ phủ nối Session → WA → Contact từ ${d.window.start} tới ${d.window.end} dưới ngưỡng. Đề nghị MobCEC kiểm sự kiện contact_captured có contact_id (Phụ lục A2). Không tắt quảng cáo vì số này; đánh giá Hook ở tầng 2 và 5 đang đóng băng tới khi tracking phục hồi.` });
+  }
+  const t3 = tier3bWindow(db, now);
+  if (t3.status === "flag") {
+    out.push({ key: "tier3b_landing", project: "MKT", evidence: "/data",
+      title: `Trang đích: ${t3.reasons.includes("ask_per_view") ? `ask_occ_started/asset_view ${pct(t3.askPerView)}` : ""}${t3.reasons.length === 2 ? ", " : ""}${t3.reasons.includes("contact_per_ask") ? `contact_captured/ask_occ_started ${pct(t3.contactPerAsk)}` : ""} dưới ngưỡng${tag("tier3b")}`,
+      body: "Tầng 3B (spec mục 8): tracking bình thường nhưng ít người bắt đầu hỏi hoặc để lại liên hệ. Khớp trang đích theo tài phán, nhúng SKD eKYC (Team MKT và Team Content)." });
   }
   const s = buildSandboxBoard(db);
   if (s.ready === false) {
@@ -26,7 +33,7 @@ export function buildTaskDrafts(db: Database, now: Date): TaskDraft[] {
   }
   for (const r of repeatedRejections(db, now)) {
     out.push({ key: `tier4_${r.code}`, project: "MKT", evidence: "/creative",
-      title: `Sửa câu 2 tới 3 của copy: lý do từ chối ${r.code} lặp ${r.count} lần trong ${TIER4_PARAMS.windowDays} ngày`,
+      title: `Sửa câu 2 tới 3 của copy: lý do từ chối ${r.code} lặp ${r.count} lần trong ${tier4Params().windowDays} ngày${tag("tier4_repeat")}`,
       body: "Tầng 4 (spec mục 8): thêm câu lọc vào câu 2 tới 3; mã này đã được gửi kèm khi tạo Storyboard mới. Amy đã xác nhận các mã lý do." });
   }
   return out;

@@ -9,6 +9,12 @@ import { log } from "../log.ts";
 import { callRemoteTool, RemoteToolError, type RemoteTarget } from "../mcp/remote.ts";
 import { redactR1 } from "../pii/redact-regex.ts";
 import { repeatedRejections } from "../db/rejections.ts";
+import { holdIssue } from "../ads/check.ts";
+import { bundleName } from "../metrics/bundle-name.ts";
+import { draftSchedule } from "../metrics/channel-schedule.ts";
+import { mondayOf } from "../mi1/core.ts";
+import { getProvisional } from "../provisional.ts";
+import { addDays, vnDate } from "../time.ts";
 
 const Compiled = z.object({ creative_ir_id: z.string().min(1), storyboard: z.object({ title: z.string().min(1), scenes: z.array(z.string()).min(1) }) });
 const Ran = z.object({ run_id: z.string(), qa_status: z.string(), assets: z.array(z.object({ asset_id: z.string(), kind: z.string() })) });
@@ -103,8 +109,25 @@ export function listStoryboards(db: Database) {
     const d = db.query("SELECT decision, note FROM storyboard_decisions WHERE creative_ir_id = ? ORDER BY decided_at DESC, id DESC LIMIT 1").get(r.creative_ir_id) as { decision: string; note: string | null } | null;
     const run = db.query("SELECT qa_status AS qaStatus, assets, run_at AS runAt FROM creative_runs WHERE creative_ir_id = ? ORDER BY run_at DESC, id DESC LIMIT 1").get(r.creative_ir_id) as { qaStatus: string | null; assets: number; runAt: string } | null;
     const ex = db.query("SELECT package_id AS packageId, bundles, exported_at AS exportedAt FROM creative_exports WHERE creative_ir_id = ? ORDER BY exported_at DESC, id DESC LIMIT 1").get(r.creative_ir_id) as { packageId: string; bundles: string; exportedAt: string } | null;
-    const lastExport = ex ? { ...ex, bundles: JSON.parse(ex.bundles) as { channel: string; aspectRatio: string; entries: number }[] } : null;
+    // Tên bundle theo mẫu tạm (D-71); v{n} = số lần đã đóng gói Creative này.
+    const n = ex ? (db.query("SELECT COUNT(*) AS n FROM creative_exports WHERE creative_ir_id = ?").get(r.creative_ir_id) as { n: number }).n : 0;
+    const pattern = getProvisional("bundle_name").value.pattern;
+    const lastExport = ex ? { ...ex, bundles: (JSON.parse(ex.bundles) as { channel: string; aspectRatio: string; entries: number }[])
+      .map((b) => ({ ...b, name: bundleName(pattern, { channel: b.channel, jurisdiction: r.jurisdiction, hookId: r.hook_id, date: vnDate(new Date(ex.exportedAt)), n }) })) } : null;
     return { creativeIrId: r.creative_ir_id, lastExport, hookId: r.hook_id, jurisdiction: r.jurisdiction, title: r.title, scenes: JSON.parse(r.scenes) as string[], createdAt: r.created_at,
       status: d ? (d.decision === "approve" ? "approved" : "rejected") : "pending", note: d?.note ?? null, lastRun: run };
   });
+}
+
+// Creative đủ điều kiện vào nháp lịch kênh (D-70): Storyboard đang được duyệt, lần chạy gần nhất QA PASS, đã đóng gói,
+// tài phán (nếu có) đã chốt giá. Lịch chỉ là nháp; đăng công khai luôn cần người duyệt (CLAUDE.md quy tắc 4).
+export function scheduleCandidates(db: Database) {
+  return listStoryboards(db).filter((s) => s.status === "approved" && s.lastRun?.qaStatus === "PASS" && s.lastExport && !holdIssue(db, s.jurisdiction))
+    .map((s) => ({ creativeIrId: s.creativeIrId, hookId: s.hookId, jurisdiction: s.jurisdiction }));
+}
+
+export function buildScheduleDraft(db: Database, now: Date) {
+  const cfg = getProvisional("channel_schedule").value;
+  const weekStart = addDays(mondayOf(vnDate(now)), 7);
+  return { weekStart, slots: draftSchedule(scheduleCandidates(db), cfg.posts_per_week, weekStart) };
 }

@@ -2,7 +2,7 @@
 // Đề xuất Hook card đầu tuần: các Hook có điểm, đạt cổng hoặc cần người duyệt, điểm cao nhất. Team MKT chọn.
 import type { Database } from "bun:sqlite";
 import { checkOne } from "../ads/check.ts";
-import { AD_RULES, HOOK_PARAMS } from "../config.ts";
+import { adRules, HOOK_PARAMS } from "../config.ts";
 import { hookScore } from "../metrics/hook-score.ts";
 import { currentTuning } from "./tuning.ts";
 import type { AdIssue, Verdict } from "../metrics/ad-compliance.ts";
@@ -17,7 +17,7 @@ export function buildHookBoard(db: Database) {
     { hook_id: string; text: string; jurisdiction: string | null; s1: number | null; s2: number | null; s3: number | null; s4: number | null; s5: number | null }[];
   const hooks: HookRow[] = rows.map((r) => {
     const scores = [r.s1, r.s2, r.s3, r.s4, r.s5];
-    const c = checkOne(db, { primaryText: r.text, headline: "", description: "", jurisdiction: r.jurisdiction }, AD_RULES);
+    const c = checkOne(db, { primaryText: r.text, headline: "", description: "", jurisdiction: r.jurisdiction }, adRules());
     return { hookId: r.hook_id, text: r.text, jurisdiction: r.jurisdiction, scores, score: hookScore(scores, weights), ...c, source: imp.source };
   });
   hooks.sort((a, b) => (b.score ?? -1) - (a.score ?? -1) || a.hookId.localeCompare(b.hookId));

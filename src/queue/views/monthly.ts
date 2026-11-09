@@ -1,6 +1,7 @@
 // Trang báo cáo tháng (CRON-09; D-55).
 import type { buildMonthly } from "../../mi1/monthly.ts";
 import { ddmm } from "../../time.ts";
+import { tag } from "../../provisional.ts";
 import { html } from "./html.ts";
 import { shell } from "./page.ts";
 
@@ -14,6 +15,6 @@ export function renderMonthlyPage(m: ReturnType<typeof buildMonthly>): string {
 <section><h2>Fleet</h2><p>Chi phí LLM: ${m.costUsd.toFixed(2)} / ${m.capUsd} USD. Chi tiết từng phiên ở <a href="/runs">Phiên chạy</a>.</p></section>
 <section><h2>Đối tác</h2>${m.partners.importedAt ? html`<p>${m.partners.wonDeals} deal đối tác chốt thắng có Close Date trong tháng.</p>
 <table class="kv">${m.partners.stats.map((s) => html`<tr><td>${s.partner_id} (${s.partner_type})</td><td>${s.referred} giới thiệu, ${s.won} chốt</td><td>${s.profitUsd.toFixed(0)} USD lợi nhuận</td></tr>`)}</table>` : html`<p class="meta">Chưa nạp file đối tác.</p>`}
-<p>Hoa hồng: chờ chính sách. Chi trả đi theo luồng duyệt tiền của Amy và tài chính.</p></section>
+<p>Hoa hồng: đề xuất ở trang <a href="/partners">Đối tác</a>${tag("commission")}, chưa chi. Chi trả đi theo luồng duyệt tiền của Amy và tài chính.</p></section>
 <section><h2>Bài học và quyết định trong tháng</h2>${m.lessons.length ? html`<ul>${m.lessons.map((l) => html`<li>${l.kind === "lesson" ? "Bài học" : "Quyết định"}: ${l.title} (<a href="${l.evidence}">${l.evidence}</a>)</li>`)}</ul>` : html`<p class="meta">Chưa ghi mục nào.</p>`}</section>`);
 }

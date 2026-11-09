@@ -3,7 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import { getAuthConfig } from "../../src/config.ts";
 import { createSessionCookie, type QueueUser } from "../../src/queue/auth.ts";
-import { canSee, MKT_PATHS } from "../../src/queue/roles.ts";
+import { canPost, canSee, MKT_PATHS } from "../../src/queue/roles.ts";
 import { freshDb } from "../helpers/db.ts";
 import { BASE, makeApp, SECRET } from "../helpers/queue.ts";
 
@@ -18,6 +18,10 @@ describe("T-ROLE phân quyền", () => {
     for (const p of ["/queue", "/leads", "/partners", "/billing", "/wo", "/import", "/paste", "/budget", "/brief", "/digest", "/monthly", "/runs", "/tuning", "/hooksx"]) expect(canSee(MKT, p)).toBe(false);
     for (const p of ["/queue", "/leads", "/partners", "/billing"]) expect(canSee(BOD, p)).toBe(true);
     expect(MKT_PATHS.has("/queue")).toBe(false);
+    // D-66: MKT chỉ POST việc không tốn tiền, không đổi dữ liệu dùng chung; đăng xuất luôn được.
+    for (const p of ["/logout", "/ads-check", "/ask", "/creative/compile", "/creative/analyze", "/lessons"]) expect(canPost(MKT, p)).toBe(true);
+    for (const p of ["/jurisdictions", "/channels", "/hooks", "/market", "/creative/decide", "/creative/run", "/creative/export", "/import"]) expect(canPost(MKT, p)).toBe(false);
+    for (const p of ["/jurisdictions", "/logout"]) expect(canPost(BOD, p)).toBe(true);
   });
 
   test("T-ROLE-02 qua HTTP: MKT mở /queue thì sang /hooks, mở /leads thì 403; không duyệt được Storyboard; BOD mở được Hàng chờ", async () => {
@@ -31,6 +35,11 @@ describe("T-ROLE phân quyền", () => {
     const decide = await app.fetch(new Request(`${BASE}/creative/decide`, { method: "POST", headers: { cookie: cookie(MKT), origin: BASE, "content-type": "application/x-www-form-urlencoded" }, body: "csrf=k&id=IR-1&decision=approve" }));
     expect(decide.status).toBe(403);
     expect((await get(BOD, "/queue")).status).toBe(200);
+    // D-66: trang của MKT không hiện form nạp; form kiểm quảng cáo vẫn hiện.
+    const jur = await (await get(MKT, "/jurisdictions")).text();
+    expect(jur).not.toContain('action="/jurisdictions"');
+    expect(await (await get(MKT, "/ads-check")).text()).toContain('action="/ads-check"');
+    expect(await (await get(BOD, "/jurisdictions")).text()).toContain('action="/jurisdictions"');
   });
 
   test("T-ROLE-03 mật khẩu MKT, BOD tuỳ chọn: đặt thì đăng nhập được, không đặt thì chỉ Amy, Mark", () => {

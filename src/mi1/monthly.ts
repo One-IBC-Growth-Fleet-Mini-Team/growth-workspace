@@ -30,6 +30,6 @@ export function buildMonthly(db: Database, month: string, now: Date) {
     costUsd: monthToDateCostUsd(costs, new Date(`${month}-15T00:00:00Z`)), capUsd: LLM_MONTHLY_CAP_USD,
     partners: { importedAt: partners.importedAt, stats: partners.stats.slice(0, 10), wonDeals: partners.commissionReview.length },
     lessons,
-    commission: "pending_policy" as const,
+    commission: "provisional" as const, // đề xuất ở /partners theo tỉ lệ tạm, chưa chi (D-71)
   };
 }

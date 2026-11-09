@@ -4,3 +4,6 @@ exact = true
 
 [test]
 root = "./test"
+
+# Cách ly file ghi đè giá trị tạm (D-67).
+preload = ["./test/helpers/preload.ts"]

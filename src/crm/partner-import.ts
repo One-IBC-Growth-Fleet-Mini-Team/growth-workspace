@@ -12,6 +12,9 @@ export const DEFAULT_PARTNER_COLUMNS: Record<"Partner" | "Referral", Record<stri
   Referral: { DealId: "Opportunity ID", PartnerId: "Partner ID", ClientId: "Account ID", Stage: "Stage", CloseDate: { column: "Close Date", format: "dd/mm/yyyy" }, Profit: "Net Profit" },
 };
 const RESELLER = new Set(["reseller", "đại lý", "dai ly", "agent"]);
+// Bậc đối tác giữ nguyên để tính hoa hồng theo bậc (D-71); loại khác coi là referrer như trước.
+const TIERS = new Set(["referrer", "partner", "premier"]);
+const norm = (raw: unknown) => String(raw ?? "").trim().toLowerCase();
 const cut = (v: unknown, max = 64): string | null => {
   const s = String(v ?? "").trim();
   return s === "" ? null : s.slice(0, max);
@@ -35,9 +38,11 @@ export function importPartners(db: Database, files: { Partner?: string; Referral
     db.transaction(() => {
       db.run("INSERT INTO partner_imports (id, actor, imported_at) VALUES (?, ?, ?)", [importId, opts.actor, opts.now.toISOString()]);
       const p = db.prepare("INSERT OR IGNORE INTO partner_rows (import_id, partner_id, partner_type) VALUES (?, ?, ?)");
+      const t = db.prepare("INSERT OR IGNORE INTO partner_tiers (import_id, partner_id, tier) VALUES (?, ?, ?)");
       for (const x of partners) {
         const id = cut(x.PartnerId);
-        if (id && p.run(importId, id, RESELLER.has(String(x.Type ?? "").trim().toLowerCase()) ? "reseller" : "referrer").changes) np++;
+        if (id && p.run(importId, id, RESELLER.has(norm(x.Type)) ? "reseller" : "referrer").changes) np++;
+        if (id && TIERS.has(norm(x.Type))) t.run(importId, id, norm(x.Type));
       }
       const r = db.prepare("INSERT OR IGNORE INTO partner_referrals (import_id, deal_id, partner_id, client_id, stage, close_date, profit_usd) VALUES (?, ?, ?, ?, ?, ?, ?)");
       for (const x of referrals) {

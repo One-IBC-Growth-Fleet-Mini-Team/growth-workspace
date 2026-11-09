@@ -1,7 +1,7 @@
 // T-MKT3-01 tới T-MKT3-03: verify quảng cáo Meta theo quốc gia (Mi1-mkt-03; spec tầng 1B; D-41). Dữ liệu tổng hợp.
 import { describe, expect, test } from "bun:test";
 import { checkAdBatch } from "../../src/ads/check.ts";
-import { AD_RULES } from "../../src/config.ts";
+import { adRules } from "../../src/config.ts";
 import { countryHold, latestCountryStatus, recordCountryVerification } from "../../src/db/meta-verify.ts";
 import { freshDb } from "../helpers/db.ts";
 import { get, makeApp, MARK, post, session } from "../helpers/queue.ts";
@@ -25,7 +25,7 @@ describe("T-MKT3 verify Meta theo quốc gia", () => {
   test("T-MKT3-02 cổng /ads-check: cột target_country giữ lại mẫu nhắm quốc gia chưa verify", () => {
     const db = freshDb();
     const csv = ["id,target_country,primary_text,headline,description", "A1,India,Hello.,Hi,x", "A2,Vietnam,Hello.,Hi,x"].join("\n");
-    const r = checkAdBatch(db, csv, AD_RULES);
+    const r = checkAdBatch(db, csv, adRules());
     expect(r.rows.map((x) => [x.id, x.verdict])).toEqual([["A1", "hold"], ["A2", "pass"]]);
   });
 

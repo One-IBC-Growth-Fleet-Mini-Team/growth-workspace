@@ -3,6 +3,8 @@
 import type { Database } from "bun:sqlite";
 import { PARTNER_PARAMS } from "../config.ts";
 import { partnerPeriodStats } from "../metrics/partner.ts";
+import { proposeCommission, type CommissionDeal, type CommissionLine } from "../metrics/commission.ts";
+import { getProvisional } from "../provisional.ts";
 import { latestSucceededSnapshot } from "./crm-read.ts";
 
 export type PartnerStat = { partner_id: string; partner_type: string; referred: number; won: number; profitUsd: number; wonMissingProfit: number };
@@ -10,7 +12,7 @@ export type PartnerBoard = {
   importedAt: string | null;
   period: { start: string; end: string };
   stats: PartnerStat[];
-  commissionReview: { deal_id: string; partner_id: string; close_date: string; profit_usd: number | null }[];
+  commissionReview: CommissionLine<CommissionDeal & { close_date: string }>[]; // đề xuất hoa hồng (Tạm, chưa chi; D-71)
   resellerFlagMissing: { client_id: string; partner_id: string }[]; // khách của reseller mà CRM chưa gắn cờ
 };
 
@@ -23,7 +25,9 @@ export function buildPartnerBoard(db: Database, period: { start: string; end: st
   const board: PartnerBoard = { importedAt: at, period, stats: [], commissionReview: [], resellerFlagMissing: [] };
   const pid = latest(db, "partner_rows");
   const rid = latest(db, "partner_referrals");
-  const types = new Map(pid ? (db.query("SELECT partner_id, partner_type FROM partner_rows WHERE import_id = ?").all(pid) as { partner_id: string; partner_type: string }[]).map((r) => [r.partner_id, r.partner_type]) : []);
+  // Bậc đối tác (D-71) thắng loại chung "referrer"; reseller giữ nguyên.
+  const types = new Map(pid ? (db.query(`SELECT r.partner_id, COALESCE(t.tier, r.partner_type) AS partner_type FROM partner_rows r
+    LEFT JOIN partner_tiers t ON t.import_id = r.import_id AND t.partner_id = r.partner_id WHERE r.import_id = ?`).all(pid) as { partner_id: string; partner_type: string }[]).map((r) => [r.partner_id, r.partner_type]) : []);
   if (!rid) return board;
   const refs = db.query("SELECT deal_id, partner_id, client_id, stage, close_date, profit_usd FROM partner_referrals WHERE import_id = ? ORDER BY deal_id").all(rid) as
     { deal_id: string; partner_id: string; client_id: string | null; stage: string; close_date: string | null; profit_usd: number | null }[];
@@ -32,9 +36,9 @@ export function buildPartnerBoard(db: Database, period: { start: string; end: st
     board.stats.push({ partner_id: id, partner_type: types.get(id) ?? "chưa rõ", ...s });
   }
   board.stats.sort((a, b) => b.profitUsd - a.profitUsd || b.won - a.won || a.partner_id.localeCompare(b.partner_id));
-  board.commissionReview = refs
+  board.commissionReview = proposeCommission(refs
     .filter((r) => r.close_date !== null && r.close_date >= period.start && r.close_date <= period.end && p.wonStages.includes(r.stage))
-    .map((r) => ({ deal_id: r.deal_id, partner_id: r.partner_id, close_date: r.close_date!, profit_usd: r.profit_usd }));
+    .map((r) => ({ deal_id: r.deal_id, partner_id: r.partner_id, partner_type: types.get(r.partner_id) ?? "chưa rõ", close_date: r.close_date!, profit_usd: r.profit_usd })), getProvisional("commission").value.rates);
   // Cờ reseller (spec mục 12, D-06): khách đến từ đối tác loại reseller phải có is_reseller_end_client = 1 trên CRM.
   const snap = latestSucceededSnapshot(db);
   if (snap) {

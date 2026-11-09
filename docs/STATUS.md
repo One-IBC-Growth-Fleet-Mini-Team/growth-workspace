@@ -105,6 +105,13 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Eval Gate Mi1 hỏi đáp (D-62, phiên 12): `evals/mi1-ask/EVAL_mi1-ask.json` theo chuẩn repo Mi1, `bun run eval:mi1`; `/ask` khoá tới khi eval pass. Chưa chạy với Claude thật (môi trường build không có API key). Test T-ASK-05 tới T-ASK-07.
   - Phân quyền MKT, BOD (D-63, phiên 12): MKT chỉ thấy trang số tổng hợp, không thấy mã khách; BOD xem như Mark. Persona cho MKT chờ dữ liệu CRM. Test T-ROLE-01 tới T-ROLE-03.
   - Bước 7 analyze (D-64, phiên 12): nút trên `/creative`, tool `analyze_campaign` bên creative-factory-v2 (#20). Test T-CF-08.
+  - Giới hạn tra `match_to_contact`, tăng tốc `/tasks` (D-65, phiên 12). Test T-PMCP-02, T-DATA-06.
+  - Rà bảo mật phân quyền MKT (D-66, phiên 12): MKT đăng xuất được; chỉ POST việc không tốn tiền, không đổi dữ liệu dùng chung. Test T-ROLE-01 (thêm ca).
+  - Giá trị tạm một chỗ (D-67, phiên 12, PR 1 trong 5 PR Mark giao): `config/provisional.json`, `getProvisional()`, nhãn "Tạm", `/tuning` sửa và chuyển FINAL. Test T-PROV-01 tới T-PROV-03.
+  - Tầng 3B (D-68, PR 2 trong 5): khối trên `/data`, nháp việc MKT ở `/tasks`, ngưỡng tạm. Test T-3B-01, T-3B-02.
+  - Win gate (D-69, PR 3 trong 5): khối trên `/budget`, ngưỡng tạm. Test T-WIN-01, T-WIN-02.
+  - Nháp lịch kênh (D-70, PR 4 trong 5): khối trên `/creative`, nhịp đăng tạm. Test T-SCH-01, T-SCH-02.
+  - Hoa hồng và tên bundle (D-71, PR 5 trong 5): đề xuất "chưa chi" ở `/partners` và `calc_commission`; bậc đối tác lưu riêng; tên bundle trên thẻ Creative. Test T-COMM-01, T-COMM-02.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -153,11 +160,28 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 5b. Để sau (Mark 09/11/2026): trang persona tổng hợp cho Team MKT (spec mục 1 câu 2, D-63): phân khúc và persona từ deal Closed Won, không tên, không mã khách. Cần file Opportunity, Account xuất từ CRM (chặn a); làm adapter tải file trước khi có API.
 5c. Việc kỹ thuật làm tiếp, theo thứ tự (lập 09/11/2026, không cần ai chốt):
    1. Xong (D-64): bước 7 "analyze" của Creative Factory (spec mục 7, Mi1-mkt-01): bọc package `analytics-engine` của creative-factory-v2 thành tool MCP bên repo đó, rồi Growth gọi và hiện ở `/creative` hoặc `/ads-overview`.
-   2. `match_to_contact` (partner-mcp): giới hạn số lần tra mỗi phút và ghi log số lần tra (không ghi giá trị).
-   3. `/tasks`: không tính lại toàn bộ bảng sự kiện; chỉ tính độ phủ 7 ngày.
+   2. Xong (D-65): `match_to_contact` (partner-mcp): giới hạn số lần tra mỗi phút và ghi log số lần tra (không ghi giá trị).
+   3. Xong (D-65): `/tasks`: không tính lại toàn bộ bảng sự kiện; chỉ tính độ phủ 7 ngày.
    4. Truy vấn tự viết gắn nhãn "Chưa xác minh" kèm tỷ lệ độ phủ nối (spec mục 4), sau khi eval Mi1 đã chạy thật.
-   Cần Mark chốt trước khi làm: ngưỡng tầng 3B, Win gate, lịch kênh, chính sách hoa hồng, CRON-07, bundle theo tên kênh, các giá trị tạm (K-07 banking, finance; tầng 4 3 lần trong 28 ngày; Q-09).
+   Không còn việc chờ Mark chốt: mọi giá trị chưa chốt dùng giá trị tạm ở mục "Giá trị tạm đang dùng" (D-67).
+5d. Dừng xây tính năng (Mark 09/11/2026, sau 5 PR của D-67). Phiên tiếp theo chỉ làm: chạy `bun run demo`, đi hết luồng của Amy từ đầu tới cuối bằng dữ liệu tổng hợp, ghi mọi chỗ gãy vào mục "Chỗ gãy khi chạy demo" của file này.
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
+
+## Giá trị tạm đang dùng
+
+Mọi giá trị chưa chốt nằm trong một file: [`config/provisional.json`](../config/provisional.json) (D-67). Code chỉ đọc qua `getProvisional()` (`src/provisional.ts`); số dùng giá trị tạm hiện nhãn "Tạm". Mark sửa hoặc chuyển FINAL ở trang `/tuning`; thay đổi ghi nối tiếp vào `provisional-overrides.jsonl` cạnh Growth DB.
+
+| Khoá | Giá trị tạm | Nguồn | Dùng ở |
+|---|---|---|---|
+| `tier3b` | xét khi không TRACKING_DEGRADED và asset_view từ 300/tuần; cờ khi ask_occ_started/asset_view < 0,02 hoặc contact_captured/ask_occ_started < 0,20 | Mark 09/11/2026 | `/data`, `/tasks` (D-68) |
+| `win_gate` | impressions từ 3000, contact_captured từ 30, đủ chu kỳ bán, đã lọc reseller, CPL <= trung vị, win_rate >= trung vị, confidence từ 0,8; thiếu mẫu trả insufficient_data | Mark 09/11/2026 | `/budget` (D-69) |
+| `channel_schedule` | chỉ nháp; Meta Feed 3, Meta Stories 3, TikTok 3, YouTube 1 bài mỗi tuần (asset đã duyệt và QA PASS là luật cứng) | Mark 09/11/2026 | `/creative` (D-70) |
+| `commission` | Referrer 10%, Partner 15%, Premier 20% trên net_profit_ic đơn đã thanh toán trừ refund; nhãn "chưa chi" | Mark 09/11/2026 | `/partners`, `calc_commission` (D-71) |
+| `bundle_name` | `oneibc_{channel}_{jurisdiction}_{hook_id}_{yyyymmdd}_v{n}` | Mark 09/11/2026 | thẻ Creative ở `/creative` (D-71) |
+| `cron07` | tắt, chưa định nghĩa | spec mục 10 | |
+| `k07_ad_words` | 12 từ cấm, cần duyệt: banking, finance | spec mục 7, D-38 | `/ads-check`, `/hooks`, content-dist |
+| `tier4_repeat` | 3 lần trong 28 ngày | D-54 | `/creative`, `/tasks` |
+| `q09_stage_weights` | Payment Waiting 4, Negotiation 3, Quotation 2, Needs Analysis 1, Nurturing 0,5 | design doc, D-42 | NBA |
 
 ## Đang bị chặn
 
@@ -175,4 +199,4 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- growth-workspace: PR #23 tới #47 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
+- growth-workspace: PR #23 tới #48 đã merge; PR nhánh `claude/tender-gates-nn4rif` (D-65, D-66). creative-factory-v2: markng-byte/creative-factory-v2#20 (analyze). creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.

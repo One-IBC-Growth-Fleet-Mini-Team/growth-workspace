@@ -1,6 +1,7 @@
 // Xếp hạng và giới hạn số mục NBA (design doc mục 5.5). Điểm tính bằng hàm trong src/metrics.
 // Lời giải thích ghép từ mẫu câu cố định theo luật đã kích hoạt, không dùng LLM.
 import { METRIC_PARAMS, NBA_PARAMS } from "../../../config.ts";
+import { getProvisional } from "../../../provisional.ts";
 import type { OpportunityRow } from "../../../db/types.ts";
 import { daysBetween, nbaPriorityScore } from "../../../metrics/nba-priority.ts";
 import { rmActiveOnDeal } from "../../../metrics/rm-active-on-deal.ts";
@@ -40,7 +41,7 @@ export function rankDrafts(
   const ranked = drafts.map((d) => {
     const o = d.subjectKind === "opportunity" ? byId.get(d.subjectRef) : undefined;
     const stageWeight =
-      d.stage === undefined ? 1 : (NBA_PARAMS.stageWeights[d.stage] ?? NBA_PARAMS.unknownStageWeight);
+      d.stage === undefined ? 1 : (getProvisional("q09_stage_weights").value[d.stage] ?? NBA_PARAMS.unknownStageWeight);
     const priority = nbaPriorityScore({
       stageWeight,
       daysToClose: d.closeDate ? daysBetween(opts.today, d.closeDate) : null,
