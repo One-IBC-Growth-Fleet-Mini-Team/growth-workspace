@@ -3,6 +3,7 @@
 // Chỉ lưu những gì cần đếm; email lọt vào file chỉ được đếm, không lưu (A1, A6.4).
 import type { Database } from "bun:sqlite";
 import { log } from "../log.ts";
+import { CHAIN_IDS } from "../metrics/id-chain.ts";
 import { missingFields } from "../metrics/id-coverage.ts";
 import { vnDate } from "../time.ts";
 import { CsvError, parseCsv } from "./csv.ts";
@@ -26,6 +27,7 @@ export function importEvents(db: Database, text: string, opts: { now: Date; acto
       for (const r of rows) for (const c of r) if (EMAIL.test(c)) emailCells++;
       db.run("INSERT INTO data_event_imports (id, actor, imported_at, email_cells, forbidden_columns) VALUES (?, ?, ?, ?, ?)", [id, opts.actor, opts.now.toISOString(), emailCells, forbidden.join(",") || null]);
       const q = db.prepare("INSERT INTO data_events (import_id, row_no, event_key, event_name, event_date, session_id, linked, missing, known) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+      const qc = db.prepare("INSERT INTO data_event_chain (import_id, row_no, ids) VALUES (?, ?, ?)");
       rows.forEach((r, i) => {
         const row = Object.fromEntries(header.map((h, k) => [h, (r[k] ?? "").trim()]));
         const name = (row.event_name ?? "").slice(0, 64);
@@ -34,6 +36,7 @@ export function importEvents(db: Database, text: string, opts: { now: Date; acto
         const miss = missingFields(name, row);
         q.run(id, i + 2, (row.event_id || `${id}:${i + 2}`).slice(0, 128), name, Number.isNaN(t.getTime()) ? null : vnDate(t), (row.session_id ?? "").slice(0, 128) || null,
           name === "contact_captured" && row.contact_id ? 1 : 0, miss && miss.length ? miss.join(",") : null, miss ? 1 : 0);
+        qc.run(id, i + 2, CHAIN_IDS.filter((f) => row[f]).join(","));
         n++;
       });
     })();

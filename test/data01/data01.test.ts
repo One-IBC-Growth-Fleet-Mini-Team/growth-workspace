@@ -84,3 +84,23 @@ describe("T-DATA Mi1-data-01", () => {
     expect(await (await get(app, "/queue", live(AMY).cookie)).text()).toContain('href="/data"');
   });
 });
+
+describe("T-DATA-05 chuỗi 12 ID", () => {
+  test("T-DATA-05 mắt nối đo trên sự kiện mang cả hai ID; mắt chưa có sự kiện báo no_event; không lưu giá trị ID; trang /data hiện chuỗi", async () => {
+    const db = load();
+    const c = buildDataBoard(db, NOW, P).chain;
+    expect(c).toHaveLength(12);
+    const by = (from: string) => c.find((l) => l.from === from)!;
+    expect(by("asset_id")).toMatchObject({ event: "asset_view", status: "measured", total: 7, linked: 6 });
+    expect(by("session_id")).toMatchObject({ status: "measured", total: 1, linked: 1, rate: 1 });
+    expect(by("conversation_id")).toMatchObject({ total: 2, linked: 1, rate: 0.5 });
+    expect(by("contact_id")).toMatchObject({ event: "lead_verified", status: "no_data", rate: null });
+    expect(c.filter((l) => l.status === "no_event").map((l) => `${l.from}>${l.to}`)).toEqual(["channel_account_id>platform_campaign_id", "platform_campaign_id>hook_id", "quote_id>order_id"]);
+    expect(new TextDecoder().decode(db.serialize())).not.toContain("ct1");
+    expect(() => db.run("DELETE FROM data_event_chain")).toThrow("append_only:data_event_chain");
+    const { app } = makeApp(db);
+    const page = await (await get(app, "/data", createSessionCookie(SECRET, { sub: MARK.id, csrf: "c", exp: Date.parse("2026-11-03T00:00:00Z") }))).text();
+    expect(page).toContain("conversation_id → contact_id");
+    expect(page).toContain("1/2 contact_captured: 50.0%");
+  });
+});
