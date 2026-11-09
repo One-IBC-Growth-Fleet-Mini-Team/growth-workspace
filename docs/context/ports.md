@@ -22,6 +22,7 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | Issue log sandbox8 (Mi1-mkt-05, D-35) | không có biến | tải CSV của tab "Bug" và "Test Cases" ở `/jurisdictions` | | đọc thẳng file test case của MobCEC qua API (chỉ đọc) | `src/crm/sandbox-import.ts` |
 | Sự kiện web và CRM (Mi1-data-01, D-36) | không có biến | tải CSV sự kiện (tên cột theo Phụ lục A) ở `/data` | | API hoặc webhook sự kiện của MobCEC (Phụ lục A2, A3), GA4 | `src/crm/event-import.ts` |
 | Sức khoẻ tài khoản kênh (CRON-02, D-37) | không có biến | nhập tay ở `/channels` | | Meta Graph API, WhatsApp Business Management API (cần quyền BM) | `src/db/channels.ts` |
+| Meta Ads, Google Ads (Mi1-mkt-01, D-39) | không có biến | tải CSV báo cáo tuần ở `/ads-overview` | | ads-mcp (`sync_meta_gg_report`), Marketing API (cần quyền tài khoản quảng cáo) | `src/crm/ad-report-import.ts` |
 | Work Order Bank Team (BK-08, tạm dừng) | không có biến | tải file ở `/import` | | | `src/crm/wo-import.ts` |
 
 ## Nguồn spec cần, chưa có cổng
@@ -31,7 +32,7 @@ Khi nối, mỗi nguồn là một cổng mới theo đúng mẫu trên: adapter
 | Nguồn | Dùng cho | Adapter chạy ngay đề xuất | Adapter thật | Đang chờ |
 |---|---|---|---|---|
 | API Internal Control | `net_profit_ic`, Cổng 1 | tải file xuất | API GET (Phụ lục A5) | MobCEC |
-| Meta Ads, Google Ads, GA4 | Mi1-mkt-01 tới mkt-04 (GĐ 2) | tải file xuất | API hoặc MCP | quyền tài khoản quảng cáo |
+| GA4 | Mi1-mkt-01, Mi1-data-01 | tải file xuất | API hoặc MCP | quyền GA4 |
 
 ## Để sau (cách khó hơn, chưa làm khi chưa có người dùng thứ hai cần)
 

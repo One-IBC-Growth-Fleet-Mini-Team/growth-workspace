@@ -70,6 +70,9 @@ import { buildChannelBoard, recordChannelCheck } from "../db/channels.ts";
 import { renderChannelsPage } from "./views/channels.ts";
 import { checkAdBatch, checkOne } from "../ads/check.ts";
 import { renderAdsPage } from "./views/ads.ts";
+import { importAdReport } from "../crm/ad-report-import.ts";
+import { buildAdsOverview } from "../db/ads-overview.ts";
+import { renderAdsOverviewPage } from "./views/ads-overview.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -167,6 +170,15 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
   function channelsPage(session: Session, message: string | null): string {
     return renderChannelsPage({ board: buildChannelBoard(deps.db, now()), csrf: session.csrf, message, staleHours: CHANNEL_PARAMS.staleHours });
+  }
+
+  // Tuần mặc định: tuần đã trọn gần nhất (thứ Hai tuần trước, giờ Việt Nam).
+  function adsOverviewPage(session: Session, week: string | null, message: string | null): string {
+    const today = vnDate(now());
+    const monday = (d: string) => { const t = new Date(`${d}T00:00:00Z`); t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7)); return t.toISOString().slice(0, 10); };
+    const w = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? monday(week) : monday(new Date(Date.parse(`${today}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10));
+    const shift = (k: number) => new Date(Date.parse(`${w}T00:00:00Z`) + k * 7 * 86_400_000).toISOString().slice(0, 10);
+    return renderAdsOverviewPage({ o: buildAdsOverview(deps.db, w, now()), prevWeek: shift(-1), nextWeek: shift(1), csrf: session.csrf, message });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -306,6 +318,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(renderAdsPage({ csrf: session.csrf, rows: null, message: null, rules: AD_RULES }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/ads-overview") {
+      if (!session) return redirect("/login");
+      return respond(adsOverviewPage(session, url.searchParams.get("week"), null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -342,7 +359,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -430,6 +447,17 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           rows = [{ id: "Mẫu vừa dán", jurisdiction: copy.jurisdiction, ...checkOne(deps.db, copy, AD_RULES) }];
         }
         return respond(renderAdsPage({ csrf: session.csrf, rows, message, rules: AD_RULES }), message ? 422 : 200, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Mark giám sát Mi1-mkt-01 (spec mục 6) nên cả hai người dùng nạp được báo cáo (D-39).
+      if (path === "/ads-overview") {
+        const f = form.get("report");
+        const platform = form.get("platform") === "google" ? "google" : "meta";
+        const week = String(form.get("week") ?? "");
+        const r = f instanceof File && f.size > 0 ? importAdReport(deps.db, await f.text(), { platform, weekStart: week, now: now(), actor: userOf(session).id }) : { status: "failed" as const, ads: 0, errorCode: "AD_FILE_REQUIRED" };
+        const why: Record<string, string> = { AD_FILE_REQUIRED: "Cần chọn file.", AD_WEEK_NOT_MONDAY: "Tuần phải bắt đầu từ thứ Hai.", AD_REPORT_HEADER_NOT_FOUND: "File thiếu cột tên quảng cáo hoặc Impressions.", CSV_INVALID: "File không đúng dạng CSV." };
+        const msg = r.status === "succeeded" ? `Đã nạp ${r.ads} quảng cáo ${platform === "meta" ? "Meta" : "Google Ads"} tuần ${week.slice(8, 10)}/${week.slice(5, 7)}.` : `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được file."}`;
+        return respond(adsOverviewPage(session, /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : null, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {
