@@ -22,7 +22,7 @@ function load() {
 }
 
 describe("T-MON báo cáo tháng", () => {
-  test("T-MON-01 tháng trước theo giờ VN; các tuần bắt đầu trong tháng; chi phí tháng; bài học trong tháng; hoa hồng chờ chính sách", () => {
+  test("T-MON-01 tháng trước theo giờ VN; các tuần bắt đầu trong tháng; chi phí tháng; bài học trong tháng; hoa hồng là đề xuất tạm, chưa chi", () => {
     expect(previousMonth(NOW)).toBe("2026-10");
     const m = buildMonthly(load(), "2026-10", NOW);
     expect(m.weeks.map((w) => w.weekStart)).toEqual(["2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26"]);
@@ -30,7 +30,7 @@ describe("T-MON báo cáo tháng", () => {
     expect(m.costUsd).toBeCloseTo(7.5);
     expect(m.capUsd).toBe(100);
     expect(m.lessons.map((l) => l.title)).toEqual(["Hook giá thắng"]);
-    expect(m.commission).toBe("pending_policy");
+    expect(m.commission).toBe("provisional");
     expect(monthlyReadyMessage("2026-10", "http://localhost:3000")).toEqual({ text: "Báo cáo tháng 10/2026 đã sẵn sàng: http://localhost:3000/monthly?m=2026-10" });
     expect(() => monthlyReadyMessage("2026-13", "http://localhost:3000")).toThrow();
   });
@@ -42,7 +42,7 @@ describe("T-MON báo cáo tháng", () => {
     expect(page).toContain("Báo cáo tháng 10/2026");
     expect(page).toContain("Chi phí LLM: 7.50 / 100 USD");
     expect(page).toContain("Hook giá thắng");
-    expect(page).toContain("Hoa hồng: chờ chính sách");
+    expect(page).toContain("(Tạm), chưa chi");
     expect(await (await get(app, "/queue", c)).text()).toContain('href="/monthly"');
   });
 });

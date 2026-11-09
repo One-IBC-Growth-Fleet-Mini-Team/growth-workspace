@@ -71,7 +71,7 @@ describe("T-CF-07 trang /creative có nút đóng gói khi QA PASS", () => {
     const { app } = makeApp(db, { creativeSource: { mode: "mcp", url: "http://127.0.0.1:1/mcp" } });
     const page = await (await app.fetch(new Request("https://queue.example.invalid/creative", { headers: { cookie: session(MARK).cookie } }))).text();
     expect(page).toContain('action="/creative/export"');
-    expect(page).toContain("meta 9:16 (4), google 16:9 (3)");
+    expect(page).toContain("oneibc_meta_all_h1_20261109_v1 (9:16, 4), oneibc_google_all_h1_20261109_v1 (16:9, 3) (Tạm)");
     expect(page).toContain('action="/creative/analyze"');
   });
 });

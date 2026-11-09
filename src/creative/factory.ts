@@ -10,6 +10,7 @@ import { callRemoteTool, RemoteToolError, type RemoteTarget } from "../mcp/remot
 import { redactR1 } from "../pii/redact-regex.ts";
 import { repeatedRejections } from "../db/rejections.ts";
 import { holdIssue } from "../ads/check.ts";
+import { bundleName } from "../metrics/bundle-name.ts";
 import { draftSchedule } from "../metrics/channel-schedule.ts";
 import { mondayOf } from "../mi1/core.ts";
 import { getProvisional } from "../provisional.ts";
@@ -108,7 +109,11 @@ export function listStoryboards(db: Database) {
     const d = db.query("SELECT decision, note FROM storyboard_decisions WHERE creative_ir_id = ? ORDER BY decided_at DESC, id DESC LIMIT 1").get(r.creative_ir_id) as { decision: string; note: string | null } | null;
     const run = db.query("SELECT qa_status AS qaStatus, assets, run_at AS runAt FROM creative_runs WHERE creative_ir_id = ? ORDER BY run_at DESC, id DESC LIMIT 1").get(r.creative_ir_id) as { qaStatus: string | null; assets: number; runAt: string } | null;
     const ex = db.query("SELECT package_id AS packageId, bundles, exported_at AS exportedAt FROM creative_exports WHERE creative_ir_id = ? ORDER BY exported_at DESC, id DESC LIMIT 1").get(r.creative_ir_id) as { packageId: string; bundles: string; exportedAt: string } | null;
-    const lastExport = ex ? { ...ex, bundles: JSON.parse(ex.bundles) as { channel: string; aspectRatio: string; entries: number }[] } : null;
+    // Tên bundle theo mẫu tạm (D-71); v{n} = số lần đã đóng gói Creative này.
+    const n = ex ? (db.query("SELECT COUNT(*) AS n FROM creative_exports WHERE creative_ir_id = ?").get(r.creative_ir_id) as { n: number }).n : 0;
+    const pattern = getProvisional("bundle_name").value.pattern;
+    const lastExport = ex ? { ...ex, bundles: (JSON.parse(ex.bundles) as { channel: string; aspectRatio: string; entries: number }[])
+      .map((b) => ({ ...b, name: bundleName(pattern, { channel: b.channel, jurisdiction: r.jurisdiction, hookId: r.hook_id, date: vnDate(new Date(ex.exportedAt)), n }) })) } : null;
     return { creativeIrId: r.creative_ir_id, lastExport, hookId: r.hook_id, jurisdiction: r.jurisdiction, title: r.title, scenes: JSON.parse(r.scenes) as string[], createdAt: r.created_at,
       status: d ? (d.decision === "approve" ? "approved" : "rejected") : "pending", note: d?.note ?? null, lastRun: run };
   });

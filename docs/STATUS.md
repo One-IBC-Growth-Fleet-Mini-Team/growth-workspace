@@ -111,6 +111,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Tầng 3B (D-68, PR 2 trong 5): khối trên `/data`, nháp việc MKT ở `/tasks`, ngưỡng tạm. Test T-3B-01, T-3B-02.
   - Win gate (D-69, PR 3 trong 5): khối trên `/budget`, ngưỡng tạm. Test T-WIN-01, T-WIN-02.
   - Nháp lịch kênh (D-70, PR 4 trong 5): khối trên `/creative`, nhịp đăng tạm. Test T-SCH-01, T-SCH-02.
+  - Hoa hồng và tên bundle (D-71, PR 5 trong 5): đề xuất "chưa chi" ở `/partners` và `calc_commission`; bậc đối tác lưu riêng; tên bundle trên thẻ Creative. Test T-COMM-01, T-COMM-02.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -163,6 +164,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
    3. Xong (D-65): `/tasks`: không tính lại toàn bộ bảng sự kiện; chỉ tính độ phủ 7 ngày.
    4. Truy vấn tự viết gắn nhãn "Chưa xác minh" kèm tỷ lệ độ phủ nối (spec mục 4), sau khi eval Mi1 đã chạy thật.
    Không còn việc chờ Mark chốt: mọi giá trị chưa chốt dùng giá trị tạm ở mục "Giá trị tạm đang dùng" (D-67).
+5d. Dừng xây tính năng (Mark 09/11/2026, sau 5 PR của D-67). Phiên tiếp theo chỉ làm: chạy `bun run demo`, đi hết luồng của Amy từ đầu tới cuối bằng dữ liệu tổng hợp, ghi mọi chỗ gãy vào mục "Chỗ gãy khi chạy demo" của file này.
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Giá trị tạm đang dùng
@@ -174,8 +176,8 @@ Mọi giá trị chưa chốt nằm trong một file: [`config/provisional.json`
 | `tier3b` | xét khi không TRACKING_DEGRADED và asset_view từ 300/tuần; cờ khi ask_occ_started/asset_view < 0,02 hoặc contact_captured/ask_occ_started < 0,20 | Mark 09/11/2026 | `/data`, `/tasks` (D-68) |
 | `win_gate` | impressions từ 3000, contact_captured từ 30, đủ chu kỳ bán, đã lọc reseller, CPL <= trung vị, win_rate >= trung vị, confidence từ 0,8; thiếu mẫu trả insufficient_data | Mark 09/11/2026 | `/budget` (D-69) |
 | `channel_schedule` | chỉ nháp; Meta Feed 3, Meta Stories 3, TikTok 3, YouTube 1 bài mỗi tuần (asset đã duyệt và QA PASS là luật cứng) | Mark 09/11/2026 | `/creative` (D-70) |
-| `commission` | Referrer 10%, Partner 15%, Premier 20% trên net_profit_ic đơn đã thanh toán trừ refund; nhãn "chưa chi" | Mark 09/11/2026 | PR 5 |
-| `bundle_name` | `oneibc_{channel}_{jurisdiction}_{hook_id}_{yyyymmdd}_v{n}` | Mark 09/11/2026 | PR 5 |
+| `commission` | Referrer 10%, Partner 15%, Premier 20% trên net_profit_ic đơn đã thanh toán trừ refund; nhãn "chưa chi" | Mark 09/11/2026 | `/partners`, `calc_commission` (D-71) |
+| `bundle_name` | `oneibc_{channel}_{jurisdiction}_{hook_id}_{yyyymmdd}_v{n}` | Mark 09/11/2026 | thẻ Creative ở `/creative` (D-71) |
 | `cron07` | tắt, chưa định nghĩa | spec mục 10 | |
 | `k07_ad_words` | 12 từ cấm, cần duyệt: banking, finance | spec mục 7, D-38 | `/ads-check`, `/hooks`, content-dist |
 | `tier4_repeat` | 3 lần trong 28 ngày | D-54 | `/creative`, `/tasks` |
