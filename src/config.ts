@@ -244,5 +244,21 @@ export type AdRules = { banned: readonly string[]; review: readonly string[]; br
 export const ADS_TIER2_PARAMS = { minImpressions: 3000, maxFrequency: 2.5 } as const;
 export type AdsTier2Params = { minImpressions: number; maxFrequency: number };
 
+// Nguồn ngoài nối qua MCP (D-43): <PREFIX>_SOURCE = "file" (mặc định, tải file trên trang) hoặc "mcp"
+// (<PREFIX>_MCP_URL bắt buộc, <PREFIX>_MCP_TOKEN tuỳ chọn, gửi dạng Bearer). Dùng chung cho mọi cổng có adapter MCP.
+export type RemoteSource = { mode: "file" } | { mode: "mcp"; url: string; token?: string };
+export function getRemoteSource(prefix: string, env: Env = process.env): RemoteSource {
+  const mode = optional(env, `${prefix}_SOURCE`) ?? "file";
+  if (mode === "file") return { mode };
+  if (mode !== "mcp") throw new ConfigError(`${prefix}_SOURCE`);
+  const url = optional(env, `${prefix}_MCP_URL`);
+  if (!url || !/^https?:\/\//.test(url)) throw new ConfigError(`${prefix}_MCP_URL`);
+  const token = optional(env, `${prefix}_MCP_TOKEN`);
+  return token ? { mode, url, token } : { mode, url };
+}
+
+// Mi1-mkt-02 chấm Hook (spec mục 6; D-43): trọng số 25/25/20/15/15 theo thứ tự 5 tiêu chí của nguồn. Chỉ Mark đổi.
+export const HOOK_PARAMS = { weights: [25, 25, 20, 15, 15] as readonly number[], defaultLabels: ["Tiêu chí 1", "Tiêu chí 2", "Tiêu chí 3", "Tiêu chí 4", "Tiêu chí 5"] as readonly string[], proposeTop: 3 } as const;
+
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;

@@ -18,6 +18,9 @@ import {
   DATA01_PARAMS,
   CHANNEL_PARAMS,
   AD_RULES,
+  HOOK_PARAMS,
+  getRemoteSource,
+  type RemoteSource,
   isLocalBaseUrl,
   WO_PARAMS,
 } from "../config.ts";
@@ -77,6 +80,19 @@ import { renderAdsOverviewPage } from "./views/ads-overview.ts";
 import { importCompetitorPrices } from "../crm/competitor-import.ts";
 import { buildCompetitorBoard } from "../db/competitors.ts";
 import { renderCompetitorsPage } from "./views/competitors.ts";
+import { importHookCsv, importHooksFromMcp } from "../crm/hook-import.ts";
+import { buildHookBoard } from "../db/hooks.ts";
+import { renderHooksPage } from "./views/hooks.ts";
+import { compileFromHook, decideStoryboard, listStoryboards, runPipeline } from "../creative/factory.ts";
+import { renderCreativePage } from "./views/creative.ts";
+import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
+import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
+import { renderBudgetPage } from "./views/budget.ts";
+import { importMarketCsv, pullMarketScan } from "../crm/market-import.ts";
+import { buildMarketBoard } from "../db/market.ts";
+import { renderMarketPage } from "./views/market.ts";
+import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
+import { renderLessonsPage } from "./views/lessons.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -105,6 +121,14 @@ export type QueueAppDeps = {
   onWoImport?: (files: { WorkOrder?: string; WorkOrderPic?: string }, actor: string) => Promise<{ ok: boolean; message: string }>;
   // Bảng ghép cột cho các file tải lên trên trang riêng (đơn hàng D-30, đối tác D-31); thiếu thì dùng tên cột mặc định.
   columns?: ColumnMap;
+  // Nguồn điểm Hook (D-43): thiếu hoặc "file" thì chỉ tải file; "mcp" thì có nút kéo từ hệ thống SEO/AIO.
+  hookSource?: RemoteSource;
+  // Creative Factory (D-44): "mcp" thì bật tạo Storyboard và chạy pipeline; thiếu thì chỉ xem, duyệt.
+  creativeSource?: RemoteSource;
+  // Kết quả theo chiến dịch (D-45): "mcp" thì có nút kéo từ ads-mcp.
+  adsSource?: RemoteSource;
+  // market-scan-mcp (D-46): "mcp" thì có nút kéo quy định, tiếng khách, giá đối thủ.
+  marketSource?: RemoteSource;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
@@ -183,6 +207,23 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     const w = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? monday(week) : monday(new Date(Date.parse(`${today}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10));
     const shift = (k: number) => new Date(Date.parse(`${w}T00:00:00Z`) + k * 7 * 86_400_000).toISOString().slice(0, 10);
     return renderAdsOverviewPage({ o: buildAdsOverview(deps.db, w, now()), prevWeek: shift(-1), nextWeek: shift(1), csrf: session.csrf, message });
+  }
+
+  function hooksPage(session: Session, message: string | null): string {
+    return renderHooksPage({ board: buildHookBoard(deps.db), weights: HOOK_PARAMS.weights, canPull: deps.hookSource?.mode === "mcp", csrf: session.csrf, message });
+  }
+
+  function creativePage(session: Session, message: string | null): string {
+    const hooks = buildHookBoard(deps.db).hooks.filter((h) => h.verdict === "pass" || h.verdict === "review").map((h) => ({ hookId: h.hookId, text: h.text }));
+    return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, csrf: session.csrf, message });
+  }
+
+  function budgetPage(session: Session, message: string | null): string {
+    return renderBudgetPage({ board: buildBudgetBoard(deps.db, now()), canPull: deps.adsSource?.mode === "mcp", csrf: session.csrf, message });
+  }
+
+  function marketPage(session: Session, message: string | null): string {
+    return renderMarketPage({ board: buildMarketBoard(deps.db), canPull: deps.marketSource?.mode === "mcp", csrf: session.csrf, message });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -332,6 +373,32 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(renderCompetitorsPage({ board: buildCompetitorBoard(deps.db), csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/hooks") {
+      if (!session) return redirect("/login");
+      return respond(hooksPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/creative") {
+      if (!session) return redirect("/login");
+      return respond(creativePage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/budget") {
+      if (!session) return redirect("/login");
+      return respond(budgetPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/market") {
+      if (!session) return redirect("/login");
+      return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/lessons") {
+      if (!session) return redirect("/login");
+      const q = (url.searchParams.get("q") ?? "").slice(0, 200);
+      return respond(renderLessonsPage({ entries: searchKnowledge(deps.db, q), q, csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -368,7 +435,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" || path === "/hooks" || path === "/budget" || path === "/market" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -482,6 +549,89 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const why: Record<string, string> = { COMPETITOR_FILE_REQUIRED: "Cần chọn file.", COMPETITOR_HEADER_NOT_FOUND: "File cần cột competitor, jurisdiction, price_usd.", CSV_INVALID: "File không đúng dạng CSV." };
         const msg = r.status === "succeeded" ? `Đã nạp ${r.prices} giá đối thủ.` : `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được file."} Dữ liệu cũ vẫn giữ nguyên.`;
         return respond(renderCompetitorsPage({ board: buildCompetitorBoard(deps.db), csrf: session.csrf, message: msg }), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Mark giám sát Mi1-mkt-02 nên cả hai người dùng nạp được (D-43). Kéo MCP chỉ khi HOOK_SOURCE=mcp.
+      if (path === "/hooks") {
+        const by = { now: now(), actor: userOf(session).id };
+        const f = form.get("file");
+        const src = deps.hookSource;
+        const r = form.get("pull") && src?.mode === "mcp" ? await importHooksFromMcp(deps.db, { url: src.url, token: src.token }, by)
+          : f instanceof File && f.size > 0 ? importHookCsv(deps.db, await f.text(), by) : { status: "failed" as const, hooks: 0, errorCode: "HOOK_FILE_REQUIRED" };
+        const why: Record<string, string> = { HOOK_FILE_REQUIRED: "Cần chọn file.", HOOK_HEADER_NOT_FOUND: "File cần cột hook_id, text, score_1 tới score_5.", HOOK_MCP_CONTRACT: "Hệ thống SEO/AIO trả dữ liệu sai hợp đồng get_hook_scores.", REMOTE_UNREACHABLE: "Không kết nối được hệ thống SEO/AIO.", CSV_INVALID: "File không đúng dạng CSV." };
+        const msg = r.status === "succeeded" ? `Đã nạp ${r.hooks} Hook.` : `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được."} Dữ liệu cũ vẫn giữ nguyên.`;
+        return respond(hooksPage(session, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Creative Factory (D-44): duyệt Storyboard là quyết định có tiền, ghi người duyệt; gọi ra ngoài chỉ khi CREATIVE_SOURCE=mcp.
+      if (path === "/creative/decide" || path === "/creative/compile" || path === "/creative/run") {
+        const by = { now: now(), actor: userOf(session).id };
+        const src = deps.creativeSource;
+        const target = src?.mode === "mcp" ? { url: src.url, token: src.token } : null;
+        let msg: string;
+        let ok = true;
+        if (path === "/creative/decide") {
+          const id = String(form.get("id") ?? "");
+          const d = String(form.get("decision") ?? "");
+          const r = decideStoryboard(deps.db, id, d, String(form.get("note") ?? ""), by);
+          ok = r === "ok";
+          msg = ok ? `Đã ${d === "approve" ? "duyệt" : "từ chối"} Storyboard ${id}.` : "Chưa ghi. Không thấy Storyboard hoặc quyết định không hợp lệ.";
+        } else if (!target) {
+          ok = false;
+          msg = "Chưa nối Creative Factory.";
+        } else if (path === "/creative/compile") {
+          const h = buildHookBoard(deps.db).hooks.find((x) => x.hookId === String(form.get("hook") ?? ""));
+          const r = h ? await compileFromHook(deps.db, target, { hookId: h.hookId, text: h.text, jurisdiction: h.jurisdiction }, by) : { status: "failed" as const, errorCode: "HOOK_NOT_FOUND" };
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã tạo Storyboard ${r.creativeIrId}, chờ duyệt.` : `Chưa tạo được Storyboard (${r.errorCode}).`;
+        } else {
+          const r = await runPipeline(deps.db, target, String(form.get("id") ?? ""), by);
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã chạy: QA ${r.qaStatus}, ${r.assets} asset.` : r.errorCode === "STORYBOARD_NOT_APPROVED" ? "Storyboard chưa được duyệt nên không chạy." : `Chạy lỗi (${r.errorCode}).`;
+        }
+        return respond(creativePage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Tầng 5 (D-45): nạp kết quả rồi tạo nháp bằng code; duyệt chỉ ghi quyết định, ghi người duyệt.
+      if (path === "/budget" || path === "/budget/decide") {
+        const by = { now: now(), actor: userOf(session).id };
+        if (path === "/budget/decide") {
+          const r = decideBudgetDraft(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), by);
+          return respond(budgetPage(session, r === "ok" ? "Đã ghi quyết định." : "Chưa ghi. Không thấy nháp hoặc quyết định không hợp lệ."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+        }
+        const f = form.get("file");
+        const src = deps.adsSource;
+        const r = form.get("pull") && src?.mode === "mcp" ? await importCampaignsFromMcp(deps.db, { url: src.url, token: src.token }, by)
+          : f instanceof File && f.size > 0 ? importCampaignCsv(deps.db, await f.text(), by) : { status: "failed" as const, campaigns: 0, errorCode: "CAMPAIGN_FILE_REQUIRED" };
+        const made = r.status === "succeeded" ? proposeBudgetDrafts(deps.db, now()) : 0;
+        const msg = r.status === "succeeded" ? `Đã nạp ${r.campaigns} chiến dịch, tạo ${made} nháp đổi ngân sách.` : `Chưa nạp (${r.errorCode}). Dữ liệu cũ vẫn giữ nguyên.`;
+        return respond(budgetPage(session, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // market-scan (D-46): file hoặc kéo MCP khi MARKET_SOURCE=mcp. Cả hai người dùng nạp được.
+      if (path === "/market") {
+        const by = { now: now(), actor: userOf(session).id };
+        const src = deps.marketSource;
+        let msg: string;
+        let ok: boolean;
+        if (form.get("pull") && src?.mode === "mcp") {
+          const r = await pullMarketScan(deps.db, { url: src.url, token: src.token }, by);
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã kéo ${r.packages} giá đối thủ, ${r.regulation} quy định, ${r.reviews} ý kiến khách.` : `Chưa kéo được (${r.errorCode}).`;
+        } else {
+          const f = form.get("file");
+          const kind = form.get("kind") === "reviews" ? "reviews" : "regulation";
+          const r = f instanceof File && f.size > 0 ? importMarketCsv(deps.db, kind, await f.text(), by) : { status: "failed" as const, items: 0, errorCode: "MARKET_FILE_REQUIRED" };
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã nạp ${r.items} mục.` : `Chưa nạp (${r.errorCode}). Dữ liệu cũ vẫn giữ nguyên.`;
+        }
+        return respond(marketPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      if (path === "/lessons") {
+        const r = logKnowledge(deps.db, { kind: String(form.get("kind") ?? ""), title: String(form.get("title") ?? ""), body: String(form.get("body") ?? ""), evidence: String(form.get("evidence") ?? ""), tags: String(form.get("tags") ?? "") }, { now: now(), actor: userOf(session).id });
+        const why: Record<string, string> = { EVIDENCE_REQUIRED: "Cần bằng chứng là đường dẫn trang Growth, bắt đầu bằng /.", TEXT_REQUIRED: "Cần tiêu đề và nội dung.", KIND_INVALID: "Loại không hợp lệ." };
+        return respond(renderLessonsPage({ entries: searchKnowledge(deps.db, ""), q: "", csrf: session.csrf, message: r.status === "ok" ? "Đã ghi." : `Chưa ghi. ${why[r.errorCode]}` }), r.status === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {
@@ -624,6 +774,10 @@ if (import.meta.main) {
     onImport: getCrmSource() === "csv" ? onImport : undefined,
     onWoImport,
     columns,
+    hookSource: getRemoteSource("HOOK"),
+    creativeSource: getRemoteSource("CREATIVE"),
+    adsSource: getRemoteSource("ADS"),
+    marketSource: getRemoteSource("MARKET"),
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
   Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });

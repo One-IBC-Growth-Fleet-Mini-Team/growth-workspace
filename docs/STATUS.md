@@ -82,6 +82,12 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Mi1-mkt-01 (D-39, phiên 11): trang `/ads-overview` nạp CSV báo cáo tuần của Meta, Google Ads; tổng theo nền tảng, gợi ý tầng 2, khoá chéo TRACKING_DEGRADED. Test T-MKT1-01 tới T-MKT1-04.
   - Mi1-mkt-04 (D-40, phiên 11): trang `/competitors` so giá gói đối thủ với sheet FINAL theo tài phán và gói. Test T-MKT4-01 tới T-MKT4-03. Mi1-mkt-02 chờ tiêu chí chấm Hook (K-08).
   - Mi1-mkt-03 verify Meta TW/IN (D-41, phiên 11): ghi trạng thái verify theo quốc gia ở `/channels`; `/ads-check` giữ lại mẫu nhắm quốc gia chưa verify. Test T-MKT3-01 tới T-MKT3-03.
+  - Mi1-mkt-02 (D-43, phiên 11): trang `/hooks` chấm Hook 25/25/20/15/15 từ điểm tiêu chí của nguồn (file hoặc MCP `get_hook_scores` của hệ thống SEO/AIO), qua cổng tuân thủ, đề xuất Hook card. Test T-HOOK-01 tới T-HOOK-04.
+  - Creative Factory (D-44, phiên 11): trang `/creative`, cổng MCP tới creative-factory-v2; cổng Storyboard chặn bước tạo ảnh, video khi chưa duyệt. Test T-CF-01 tới T-CF-04.
+  - Tầng 5 (D-45, phiên 11): trang `/budget` nạp kết quả theo chiến dịch (file hoặc ads-mcp), tạo nháp đổi ngân sách chờ duyệt, khoá chéo TRACKING_DEGRADED. Test T-T5-01 tới T-T5-04.
+  - market-scan (D-46, phiên 11): trang `/market` quy định và tiếng khách (lọc R1), giá đối thủ vào `/competitors`; file hoặc MCP. Test T-MS-01 tới T-MS-04.
+  - content-dist-mcp (D-47, phiên 11): server MCP chỉ đọc 5 tool (giá 45 tài phán, SKD, sandbox8, kiểm nội dung, sức khoẻ kênh) cho hệ thống khác lấy dữ liệu. Test T-CD-01 tới T-CD-03.
+  - growth-mcp và nhật ký bài học (D-48, phiên 11): trang `/lessons`, server MCP growth (search_knowledge, propose_hook_card, log_lesson, log_decision). Test T-KN-01 tới T-KN-03.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -96,7 +102,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## Tiến độ toàn dự án (ước tính 09/11/2026, tính cả PR đang mở)
 
-Khoảng **45%** spec v0.3.2 (đã merge hết). GĐ0 khoảng 75%; GĐ1 khoảng 80%; GĐ2 khoảng 30% (cổng tuân thủ, mkt-01 tổng quan, mkt-04, verify Meta); GĐ3 chưa bắt đầu.
+Khoảng **55%** spec v0.3.2 (tính cả chuỗi PR #35 tới #41). GĐ0 khoảng 85% (thiếu Neo4j, execute_approved_cypher); GĐ1 khoảng 80%; GĐ2 khoảng 60% (đủ 4 thuyền viên mkt và ổ cắm MCP; còn Win gate, lịch kênh, phía repo creative-factory-v2); GĐ3 chưa bắt đầu. Phần còn lại phần lớn là nối nguồn thật vào các ổ cắm đã có.
 
 | Hạng mục | Trạng thái |
 |---|---|
@@ -125,7 +131,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 2. `metric-definitions.md` đã có định nghĩa các hàm tính tới PR #27 (PR #28 đã merge); hàm mới sau này thêm bằng PR tài liệu riêng.
 3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật: đã biết cấu trúc CRM và tên Stage thật (D-42). Còn thiếu đường lấy dữ liệu: trang quản trị CRM không có nút xuất CSV, cần MobCEC xuất hộ file Opportunity, Lead, Order, Account (đủ cột theo `deploy/crm-columns.example.json`) hoặc mở API (chặn a). Danh bạ RM: lấy từ file "CRM MobCEC - New - Oct 22 2026.xlsx" (danh sách tài khoản CRM), nạp bằng `scripts/load-rm-directory.ts`, giữ ngoài repo.
-5. GĐ2 còn lại, mỗi việc đang chờ một đầu vào: Mi1-mkt-02 chấm Hook (tiêu chí, K-08); Win gate và nháp đổi ngân sách tầng 5 (chuỗi ID từ quảng cáo tới đơn hàng, cần sự kiện thật của MobCEC); Mi1-mkt-03 quy định và tiếng khách (nguồn market-scan); Creative Factory (4 việc trên repo creative-factory-v2, chưa gắn vào phiên); kiểm màu ảnh của cổng tuân thủ. Đã xong bản đầu: cổng tuân thủ (D-38), mkt-01 tổng quan và tầng 2 (D-39), mkt-04 (D-40), verify Meta (D-41).
+5. Đã có ổ cắm cho mọi nguồn ngoài trong spec mục 9 trừ partner-mcp và atlassian-m365-drive-mcp (hợp đồng ở `docs/context/hop-dong-mcp.md`); nối khi hệ thống có: HOOK (SEO/AIO), CREATIVE (creative-factory-v2, kèm 4 việc phía repo đó), ADS, MARKET. Còn chờ định nghĩa: Win gate, lịch kênh (`schedule_channel_post`), chính sách hoa hồng (partner-mcp `calc_commission`), kiểm màu ảnh. Phơi MCP qua HTTP khi có máy chủ.
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn
@@ -144,4 +150,4 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- Không có. PR #23 tới #33 đã merge ngày 09/11/2026 (`main` 302 test pass).
+- Chuỗi chồng nhau, merge theo thứ tự: #35 (STATUS), #36 (mkt-02 Hook), #37 (Creative Factory), #38 (tầng 5), #39 (market-scan), #40 (content-dist-mcp), #41 (growth-mcp, bài học). Merge bằng "Create a merge commit" và xoá nhánh sau mỗi PR.

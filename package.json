@@ -18,7 +18,9 @@
     "ops:load-rm-directory": "bun run scripts/load-rm-directory.ts",
     "job:backup-db": "bun run src/jobs/backup-db.ts",
     "demo": "bun run src/demo/server.ts",
-    "job:mi1-morning": "bun run src/jobs/mi1-morning.ts"
+    "job:mi1-morning": "bun run src/jobs/mi1-morning.ts",
+    "mcp:content-dist": "bun run src/mcp/content-dist/server.ts",
+    "mcp:growth": "bun run src/mcp/growth/server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",

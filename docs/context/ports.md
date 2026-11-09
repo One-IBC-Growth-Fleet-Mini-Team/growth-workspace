@@ -24,6 +24,10 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | Sức khoẻ tài khoản kênh (CRON-02, D-37) | không có biến | nhập tay ở `/channels` | | Meta Graph API, WhatsApp Business Management API (cần quyền BM) | `src/db/channels.ts` |
 | Meta Ads, Google Ads (Mi1-mkt-01, D-39) | không có biến | tải CSV báo cáo tuần ở `/ads-overview` | | ads-mcp (`sync_meta_gg_report`), Marketing API (cần quyền tài khoản quảng cáo) | `src/crm/ad-report-import.ts` |
 | Giá đối thủ (Mi1-mkt-04, D-40) | không có biến | tải CSV giá gói đối thủ ở `/competitors` | | market-scan-mcp (`scan_competitor_packages`, chỉ đọc) | `src/crm/competitor-import.ts` |
+| Điểm Hook (Mi1-mkt-02, D-43) | `HOOK_SOURCE`, `HOOK_MCP_URL`, `HOOK_MCP_TOKEN` | `file`: tải CSV ở `/hooks` | `mcp`: tool `get_hook_scores` của hệ thống SEO/AIO (`docs/context/hop-dong-mcp.md`) | | `src/crm/hook-import.ts`, `src/mcp/remote.ts` |
+| Creative Factory (D-44) | `CREATIVE_SOURCE`, `CREATIVE_MCP_URL`, `CREATIVE_MCP_TOKEN` | không nối: chỉ xem, duyệt Storyboard ở `/creative` | `mcp`: `compile_creative_ir`, `run_creative_pipeline` của creative-factory-v2 (`docs/context/hop-dong-mcp.md`) | `validate_brand_qa`, `export_channel_bundle` | `src/creative/factory.ts` |
+| Kết quả theo chiến dịch (tầng 5, D-45) | `ADS_SOURCE`, `ADS_MCP_URL`, `ADS_MCP_TOKEN` | `file`: tải CSV ở `/budget` | `mcp`: `get_campaign_stats` của ads-mcp (`docs/context/hop-dong-mcp.md`) | | `src/crm/campaign-import.ts` |
+| Thị trường: quy định, tiếng khách, giá đối thủ (D-46) | `MARKET_SOURCE`, `MARKET_MCP_URL`, `MARKET_MCP_TOKEN` | `file`: tải CSV ở `/market` và `/competitors` | `mcp`: `watch_regulation`, `collect_reviews_anonymized`, `scan_competitor_packages` (`docs/context/hop-dong-mcp.md`) | | `src/crm/market-import.ts` |
 | Work Order Bank Team (BK-08, tạm dừng) | không có biến | tải file ở `/import` | | | `src/crm/wo-import.ts` |
 
 ## Nguồn spec cần, chưa có cổng
