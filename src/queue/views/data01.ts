@@ -1,0 +1,25 @@
+// Trang Mi1-data-01 (D-36): độ phủ ID, cờ TRACKING_DEGRADED, sự kiện thiếu trường, PII lọt vào tham số.
+import type { DataBoard } from "../../db/data01.ts";
+import { ddmm } from "../../time.ts";
+import { html } from "./html.ts";
+import { shell } from "./page.ts";
+
+const pct = (v: number | null) => (v === null ? "chưa có" : `${(v * 100).toFixed(1)}%`);
+
+export function renderDataPage(args: { board: DataBoard; csrf: string; message: string | null; threshold: number }): string {
+  const b = args.board;
+  const w = b.window;
+  return shell("Dữ liệu và tracking", html`<h1>Độ phủ ID và tracking</h1>
+<p><a href="/queue">Quay lại Hàng chờ</a></p>
+<div class="status ${!b.importedAt ? "red" : w.degraded ? "yellow" : "green"}">${!b.importedAt ? "Chưa nạp file sự kiện." : w.degraded ? html`<strong>TRACKING_DEGRADED</strong>: độ phủ ID dưới ${pct(args.threshold)}. Không tắt quảng cáo vì số này; mở ticket cho MobCEC (spec tầng 3A).` : "Độ phủ ID đạt ngưỡng."} Nạp lần cuối: ${b.importedAt ?? "chưa có"}</div>
+${args.message ? html`<p class="warn">${args.message}</p>` : ""}
+<section><h2>Độ phủ ID ${ddmm(w.start)} tới ${ddmm(w.end)}: ${pct(w.rate)}</h2><p>${w.linked}/${w.sessions} phiên nối được tới Contact (contact_captured có contact_id). Mốc 25/09/2026: 19% phiên WhatsApp.</p>
+${b.days.length ? html`<table class="kv">${b.days.map((d) => html`<tr><td>${ddmm(d.date)}</td><td>${d.linked}/${d.sessions} phiên</td><td>${d.degraded ? html`<span class="warn">${pct(d.rate)}</span>` : pct(d.rate)}</td></tr>`)}</table>` : ""}
+${b.badTime ? html`<p class="warn">${b.badTime} sự kiện có event_time sai dạng, không tính vào ngày nào.</p>` : ""}</section>
+<section><h2>Sự kiện thiếu trường bắt buộc (Phụ lục A1, A2)</h2>${b.missing.length ? html`<table class="kv">${b.missing.map((m) => html`<tr><td>${m.eventName}</td><td>${m.incomplete}/${m.total} thiếu</td><td class="meta">${m.topFields.join(", ")}</td></tr>`)}</table>` : html`<p class="meta">Chưa có dữ liệu.</p>`}
+${b.unknownEvents.length ? html`<p class="meta">Sự kiện ngoài 15 sự kiện: ${b.unknownEvents.map((u) => `${u.eventName} (${u.count})`).join(", ")}.</p>` : ""}</section>
+${b.pii ? html`<section><h2>PII trong tham số (A6.4)</h2>${b.pii.emailCells || b.pii.forbiddenColumns.length ? html`<p class="warn">Lượt nạp mới nhất có ${b.pii.emailCells} ô chứa email${b.pii.forbiddenColumns.length ? `, cột cấm: ${b.pii.forbiddenColumns.join(", ")}` : ""}. Giá trị không được lưu; báo MobCEC gỡ khỏi GA4, Pixel.</p>` : html`<p>Không thấy email hay cột cấm.</p>`}</section>` : ""}
+<section><h2>Nạp file sự kiện</h2><form method="post" action="/data" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
+<label>CSV sự kiện, dòng tiêu đề là tên trường Phụ lục A (event_id, event_name, event_time, session_id, contact_id, ...) <input type="file" name="events" accept=".csv,text/csv"></label>
+<button type="submit">Nạp</button></form></section>`);
+}

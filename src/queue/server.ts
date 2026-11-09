@@ -15,6 +15,7 @@ import {
   getReportSource,
   getTeamsWebhooks,
   BILLING_PARAMS,
+  DATA01_PARAMS,
   isLocalBaseUrl,
   WO_PARAMS,
 } from "../config.ts";
@@ -60,6 +61,9 @@ import { renderBillingPage } from "./views/billing.ts";
 import { importPriceSheet, importSkdList, jurisdictionImportMessage } from "../crm/jurisdiction-import.ts";
 import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
 import { renderJurisdictionsPage } from "./views/jurisdictions.ts";
+import { eventImportMessage, importEvents } from "../crm/event-import.ts";
+import { buildDataBoard } from "../db/data01.ts";
+import { renderDataPage } from "./views/data01.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -149,6 +153,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
   function banksPage(session: Session, q: { jurisdiction: string | null; newCompany: boolean }, message: string | null): string {
     return renderBanksPage({ advice: buildBankAdvice(deps.db, q), ...q, csrf: session.csrf, canImport: userOf(session).role === "approver", message });
+  }
+
+  function dataPage(session: Session, message: string | null): string {
+    return renderDataPage({ board: buildDataBoard(deps.db, now()), csrf: session.csrf, message, threshold: DATA01_PARAMS.degradedBelow });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -273,6 +281,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(banksPage(session, { jurisdiction: j ? j.slice(0, 64) : null, newCompany: url.searchParams.get("new") === "1" }, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/data") {
+      if (!session) return redirect("/login");
+      return respond(dataPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -309,7 +322,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -367,6 +380,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         }
         const r = importBankFiles(deps.db, files, { now: now(), actor: userOf(session).id });
         return respond(banksPage(session, { jurisdiction: null, newCompany: true }, bankImportMessage(r)), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Mark giám sát Mi1-data-01 (spec mục 6) nên cả hai người dùng nạp được file sự kiện (D-36).
+      if (path === "/data") {
+        const f = form.get("events");
+        const r = f instanceof File && f.size > 0 ? importEvents(deps.db, await f.text(), { now: now(), actor: userOf(session).id }) : { status: "failed" as const, events: 0, errorCode: "EVENT_FILE_REQUIRED" };
+        return respond(dataPage(session, r.errorCode === "EVENT_FILE_REQUIRED" ? "Chưa nạp. Cần chọn file sự kiện." : eventImportMessage(r)), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {

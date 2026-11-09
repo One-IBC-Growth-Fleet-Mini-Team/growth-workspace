@@ -216,5 +216,9 @@ export type JurisdictionParams = { total: number; absTolerance: number; relToler
 export const BANK_PARAMS = { priorityEmi: ["Airwallex", "Payoneer", "Aspire"] as readonly string[], minAccounts: 2 } as const;
 export type BankParams = { priorityEmi: readonly string[]; minAccounts: number };
 
+// Mi1-data-01 (D-36): cờ TRACKING_DEGRADED khi id_coverage dưới 19% (spec tầng 3A, mốc 25/09/2026); cửa sổ 7 ngày.
+export const DATA01_PARAMS = { degradedBelow: 0.19, windowDays: 7 } as const;
+export type Data01Params = { degradedBelow: number; windowDays: number };
+
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;

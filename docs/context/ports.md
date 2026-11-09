@@ -20,6 +20,7 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | Bảng giá 45 tài phán và bộ SKD eKYC (Mi1-mkt-05, D-32, D-33) | không có biến | tải CSV của sheet "FINAL - Gói & Giá năm 2 & năm 3" và dán tên file SKD ở `/jurisdictions` | | đọc thẳng Google Sheet và thư mục Drive qua API (chỉ đọc) | `src/crm/jurisdiction-import.ts` |
 | Ma trận ngân hàng của Bank Team (D-34) | không có biến | tải CSV của sheet "Product Matrix" và "Core Information" ở `/banks` | | đọc thẳng file BANKING INSTRUCTION qua API (chỉ đọc) | `src/crm/bank-import.ts` |
 | Issue log sandbox8 (Mi1-mkt-05, D-35) | không có biến | tải CSV của tab "Bug" và "Test Cases" ở `/jurisdictions` | | đọc thẳng file test case của MobCEC qua API (chỉ đọc) | `src/crm/sandbox-import.ts` |
+| Sự kiện web và CRM (Mi1-data-01, D-36) | không có biến | tải CSV sự kiện (tên cột theo Phụ lục A) ở `/data` | | API hoặc webhook sự kiện của MobCEC (Phụ lục A2, A3), GA4 | `src/crm/event-import.ts` |
 | Work Order Bank Team (BK-08, tạm dừng) | không có biến | tải file ở `/import` | | | `src/crm/wo-import.ts` |
 
 ## Nguồn spec cần, chưa có cổng
@@ -29,7 +30,6 @@ Khi nối, mỗi nguồn là một cổng mới theo đúng mẫu trên: adapter
 | Nguồn | Dùng cho | Adapter chạy ngay đề xuất | Adapter thật | Đang chờ |
 |---|---|---|---|---|
 | API Internal Control | `net_profit_ic`, Cổng 1 | tải file xuất | API GET (Phụ lục A5) | MobCEC |
-| Sự kiện web OCC và WhatsApp | Mi1-data-01, độ phủ ID | tải file xuất | API hoặc webhook (Phụ lục A2, A3) | MobCEC |
 | Meta Ads, Google Ads, GA4 | Mi1-mkt-01 tới mkt-04 (GĐ 2) | tải file xuất | API hoặc MCP | quyền tài khoản quảng cáo |
 
 ## Để sau (cách khó hơn, chưa làm khi chưa có người dùng thứ hai cần)

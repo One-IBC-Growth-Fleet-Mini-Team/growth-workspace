@@ -2,6 +2,7 @@
 // brief sáng và Digest tuần. Toàn bộ là truy vấn và hàm tính, không gọi LLM ($0 token).
 import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
+import { buildDataBoard } from "../db/data01.ts";
 import type { Database } from "bun:sqlite";
 import { LLM_MONTHLY_CAP_USD } from "../config.ts";
 import { insertAgentRun } from "../db/queue.ts";
@@ -77,6 +78,7 @@ export type Brief = {
   monthCapUsd: number;
   forecastItems: number;
   mkt05: Mkt05Line;
+  data01: { imported: boolean; rate: number | null; linked: number; sessions: number; degraded: boolean };
 };
 
 function mkt05Line(db: Database): Mkt05Line {
@@ -118,6 +120,10 @@ export function buildBrief(db: Database, now: Date): Brief {
     monthCapUsd: LLM_MONTHLY_CAP_USD,
     forecastItems: loadForecast(perDay),
     mkt05: mkt05Line(db),
+    data01: (() => {
+      const d = buildDataBoard(db, now);
+      return { imported: d.importedAt !== null, rate: d.window.rate, linked: d.window.linked, sessions: d.window.sessions, degraded: d.window.degraded };
+    })(),
   };
 }
 
