@@ -19,6 +19,8 @@ Chạy `bun run mcp:partner` (stdio, Growth DB chỉ đọc, cần `PII_HASH_KEY
 
 Growth Workspace gọi các hệ thống khác qua MCP (Streamable HTTP), chỉ gọi tool đọc. Mỗi cổng chọn bằng biến môi trường `<PREFIX>_SOURCE=mcp`, `<PREFIX>_MCP_URL`, `<PREFIX>_MCP_TOKEN` (tuỳ chọn, gửi dạng `Authorization: Bearer`). Khi chưa có hệ thống, cổng chạy bằng adapter tải file với cùng dữ liệu.
 
+Lỗi kết nối: server trả 401 hoặc 403 thì Growth báo `REMOTE_UNAUTHORIZED` (sai `<PREFIX>_MCP_TOKEN`); lỗi mạng hay lỗi khác báo `REMOTE_UNREACHABLE` (D-57).
+
 Kết quả tool trả trong `structuredContent`, hoặc JSON trong nội dung text đầu tiên. Sai hợp đồng thì Growth Workspace không nạp gì và báo lỗi trên trang.
 
 ## get_hook_scores (cổng "Điểm Hook", `HOOK_*`, Mi1-mkt-02, D-43)

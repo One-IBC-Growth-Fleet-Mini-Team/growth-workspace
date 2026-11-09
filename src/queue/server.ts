@@ -588,7 +588,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const src = deps.hookSource;
         const r = form.get("pull") && src?.mode === "mcp" ? await importHooksFromMcp(deps.db, { url: src.url, token: src.token }, by)
           : f instanceof File && f.size > 0 ? importHookCsv(deps.db, await f.text(), by) : { status: "failed" as const, hooks: 0, errorCode: "HOOK_FILE_REQUIRED" };
-        const why: Record<string, string> = { HOOK_FILE_REQUIRED: "Cần chọn file.", HOOK_HEADER_NOT_FOUND: "File cần cột hook_id, text, score_1 tới score_5.", HOOK_MCP_CONTRACT: "Hệ thống SEO/AIO trả dữ liệu sai hợp đồng get_hook_scores.", REMOTE_UNREACHABLE: "Không kết nối được hệ thống SEO/AIO.", CSV_INVALID: "File không đúng dạng CSV." };
+        const why: Record<string, string> = { HOOK_FILE_REQUIRED: "Cần chọn file.", HOOK_HEADER_NOT_FOUND: "File cần cột hook_id, text, score_1 tới score_5.", HOOK_MCP_CONTRACT: "Hệ thống SEO/AIO trả dữ liệu sai hợp đồng get_hook_scores.", REMOTE_UNREACHABLE: "Không kết nối được hệ thống SEO/AIO.", REMOTE_UNAUTHORIZED: "Hệ thống SEO/AIO từ chối token (kiểm HOOK_MCP_TOKEN).", CSV_INVALID: "File không đúng dạng CSV." };
         const msg = r.status === "succeeded" ? `Đã nạp ${r.hooks} Hook.` : `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được."} Dữ liệu cũ vẫn giữ nguyên.`;
         return respond(hooksPage(session, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
