@@ -182,6 +182,17 @@ describe("T-SA-04 nhật ký phiên và trần chi phí", () => {
     expect(items("system_notice").map((i) => JSON.parse(i.payload).kind)).toContain("llm_cost_cap");
   });
 
+  test("T-SA-04 trần là của cả fleet: chi phí của Mi1 hỏi đáp cũng tính (D-58)", async () => {
+    seedFresh();
+    db.run(
+      `INSERT INTO agent_runs (id, agent, trigger, prompt_version, eval_version, model, input_tokens, output_tokens, cost_usd, status, started_at, finished_at)
+       VALUES ('ask', 'mi1', 'ask', 'p', 'none', 'm', 0, 0, 100, 'succeeded', '2026-11-01T01:00:00Z', '2026-11-01T01:05:00Z')`,
+    );
+    const llm = fakeLlm();
+    await runSa01("2026-11-02", deps({ llm }));
+    expect(llm.calls.length).toBe(0);
+  });
+
   test("T-SA-04 chi phí tháng trước không tính vào trần tháng này", async () => {
     seedFresh();
     db.run(

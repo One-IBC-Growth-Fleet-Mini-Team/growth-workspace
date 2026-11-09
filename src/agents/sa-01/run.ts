@@ -312,7 +312,7 @@ export async function runSa01(queueDate: string, deps: Sa01Deps): Promise<Sa01Re
     models: [],
   };
   log({ event: "sa01.started", run_id: ctx.agentRunId });
-  const priorCost = monthToDateCostUsd(agentRunCosts(deps.db, AGENT_ID), startedAt);
+  const priorCost = monthToDateCostUsd(agentRunCosts(deps.db), startedAt);
 
   let failure: unknown = null;
   try {

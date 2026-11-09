@@ -96,6 +96,10 @@ import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
+import { renderAskPage } from "./views/ask.ts";
+import { askMi1 } from "../mi1/ask.ts";
+import type { LlmClient } from "../agents/sa-01/llm.ts";
+import type { TokenPrice } from "../metrics/cost.ts";
 import { buildMonthly, previousMonth } from "../mi1/monthly.ts";
 import { repeatedRejections } from "../db/rejections.ts";
 import { activateTuning, currentTuning, type EvalRun, listTuning, proposeTuning } from "../db/tuning.ts";
@@ -140,6 +144,8 @@ export type QueueAppDeps = {
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
   // Lượt eval gần nhất (D-53): trang /tuning chỉ kích hoạt giá trị mới khi eval đã chạy lại sau lúc đề xuất và pass.
   evalRun?: () => EvalRun;
+  // Hỏi Mi1 (D-58): LLM chỉ chọn truy vấn mẫu; thiếu thì trang /ask báo chưa cấu hình.
+  askLlm?: { llm: LlmClient; price: TokenPrice };
 };
 
 const MAX_BODY = 16 * 1024;
@@ -406,6 +412,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/ask") {
+      if (!session) return redirect("/login");
+      return respond(renderAskPage({ configured: Boolean(deps.askLlm), q: "", result: null, csrf: session.csrf }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/monthly") {
       if (!session) return redirect("/login");
       const q = url.searchParams.get("m");
@@ -658,6 +669,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(marketPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
+      if (path === "/ask") {
+        if (!deps.askLlm) return respond(renderAskPage({ configured: false, q: "", result: null, csrf: session.csrf }), 422, { "content-type": "text/html; charset=utf-8" });
+        const q = String(form.get("q") ?? "").slice(0, 500);
+        const r = await askMi1(deps.db, deps.askLlm.llm, q, { now: now(), actor: userOf(session).id, price: deps.askLlm.price });
+        return respond(renderAskPage({ configured: true, q, result: r, csrf: session.csrf }), r.status === "failed" ? 422 : 200, { "content-type": "text/html; charset=utf-8" });
+      }
+
       if (path === "/tuning") {
         const actor = userOf(session).id;
         if (actor !== "mark") return text(403, "Chỉ Mark đổi ngưỡng và trọng số.");
@@ -802,6 +820,7 @@ if (import.meta.main) {
     return { ok: r.status === "succeeded", message: woImportMessage(r) };
   };
   const app = createQueueApp({
+    askLlm: (() => { try { const p = getLlmPricing(); return { llm: createAnthropicLlm({ model: p.model }), price: p }; } catch { return undefined; } })(),
     evalRun: () => latestEvalRun(getEvalResultsDir(root)),
     db,
     sessionSecret: cfg.sessionSecret,

@@ -51,10 +51,14 @@ export const APPROVED_QUERIES: Record<string, Template> = {
   },
 };
 
-export function runApprovedQuery(db: Database, template: string, params: unknown, now: Date) {
+export type ApprovedQueryResult =
+  | { errorCode: "TEMPLATE_NOT_APPROVED" | "PARAMS_INVALID" }
+  | { template: string; question: number; verified: true; result: unknown };
+
+export function runApprovedQuery(db: Database, template: string, params: unknown, now: Date): ApprovedQueryResult {
   const t = Object.hasOwn(APPROVED_QUERIES, template) ? APPROVED_QUERIES[template]! : null;
-  if (!t) return { errorCode: "TEMPLATE_NOT_APPROVED" as const };
+  if (!t) return { errorCode: "TEMPLATE_NOT_APPROVED" };
   const p = t.params.safeParse(params ?? {});
-  if (!p.success) return { errorCode: "PARAMS_INVALID" as const };
+  if (!p.success) return { errorCode: "PARAMS_INVALID" };
   return { template, question: t.question, verified: true, result: t.run(db, p.data, now) };
 }
