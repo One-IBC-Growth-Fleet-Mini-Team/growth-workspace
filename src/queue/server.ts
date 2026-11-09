@@ -57,6 +57,9 @@ import { importCrmCsv, importMessage, loadColumnMap, type ColumnMap, type CsvRes
 import { billingImportMessage, importBilling, type BillingFiles } from "../crm/billing-import.ts";
 import { buildBillingBoard, invoiceReminderTexts } from "../db/billing.ts";
 import { renderBillingPage } from "./views/billing.ts";
+import { importPriceSheet, importSkdList, jurisdictionImportMessage } from "../crm/jurisdiction-import.ts";
+import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
+import { renderJurisdictionsPage } from "./views/jurisdictions.ts";
 import { importPartners, partnerImportMessage } from "../crm/partner-import.ts";
 import { buildPartnerBoard } from "../db/partners.ts";
 import { renderPartnersPage } from "./views/partners.ts";
@@ -133,6 +136,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   function billingPage(session: Session, message: string | null): string {
     const board = buildBillingBoard(deps.db, now());
     return renderBillingPage({ board, reminders: invoiceReminderTexts(board.remind), escalateDays: BILLING_PARAMS.escalateOverdueDays, csrf: session.csrf, canImport: userOf(session).role === "approver", message });
+  }
+
+  function jurisdictionsPage(session: Session, message: string | null): string {
+    return renderJurisdictionsPage({ board: buildJurisdictionBoard(deps.db), csrf: session.csrf, message });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -246,6 +253,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(renderDigestPage(buildDigest(deps.db, week, now())), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/jurisdictions") {
+      if (!session) return redirect("/login");
+      return respond(jurisdictionsPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -282,7 +294,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -311,6 +323,17 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const ok = results.every((r) => r.ok);
         const page = renderImportPage({ csrf: session.csrf, message: results.map((r) => r.message).join(" "), crm: Boolean(deps.onImport), wo: Boolean(deps.onWoImport) });
         return respond(page, ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Mark giám sát Mi1-mkt-05 (spec mục 6) nên cả hai người dùng nạp được file ở trang này (D-32).
+      if (path === "/jurisdictions") {
+        const f = form.get("price");
+        const skdText = String(form.get("skd") ?? "");
+        const by = { now: now(), actor: userOf(session).id };
+        const price = f instanceof File && f.size > 0 ? importPriceSheet(deps.db, await f.text(), by) : null;
+        const skd = skdText.trim() ? importSkdList(deps.db, skdText, by) : null;
+        const ok = (price || skd) && price?.status !== "failed" && skd?.status !== "failed";
+        return respond(jurisdictionsPage(session, jurisdictionImportMessage(price, skd)), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {

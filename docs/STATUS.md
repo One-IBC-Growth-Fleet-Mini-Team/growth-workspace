@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật lần cuối: 02/11/2026 (phiên 09, cuối phiên). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+Cập nhật lần cuối: 09/11/2026 (phiên 11). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
 
 ## Mục tiêu tối thượng
 
@@ -72,6 +72,13 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 - **Chạy trên máy Ubuntu của người dùng (D-26)**: `deploy/local/install.sh` (một lệnh, không sudo), `deploy/local/run.sh`, hướng dẫn `deploy/local/README.md`. Cho phép `QUEUE_BASE_URL=http://localhost` (test T-LOCAL-01, T-LOCAL-02). Đã cài thử trên một tài khoản Ubuntu sạch (systemd giả lập): đăng nhập, nạp WO, ghi nhận, sao lưu, chạy lại script đều đúng.
 
+- **Phiên 10 (03/11/2026)**: PR #17, #20, #21 đã merge vào `main`, không còn xung đột; `bun test` trên `main` 267 pass (cần `bun install` trước khi chạy).
+  - Mi1-mkt-05 (D-32, D-33): trang `/jurisdictions` đọc thẳng CSV của sheet "FINAL - Gói & Giá năm 2 & năm 3". Một tài phán "đã chốt giá" khi mọi loại hình có đủ 6 giá bằng số và gói 2, 3 năm khớp công thức gia hạn (`price_row_status`, dung sai max(150 USD, 5%)). SKD là một bộ kit eKYC chung 10 file, theo dõi bằng danh sách tên file dán tay. Trên dữ liệu thật: 39/46 tài phán đã chốt; Singapore và Hoa Kỳ lệch công thức; bộ SKD 6/10.
+  - Gợi ý ngân hàng (D-34): trang `/banks`, tách sang PR riêng chồng lên PR này.
+  - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
+  - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
+  - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
+
 ## Cách làm từ 02/11/2026
 
 `@harveyng710-source` đổi cách làm: mọi kết nối ra ngoài đi qua cổng chọn bằng biến môi trường (`docs/context/ports.md`); trần độ phức tạp trong CLAUDE.md (người dùng là Amy; PR dưới khoảng 400 dòng; không mở phạm vi ngoài danh sách dưới).
@@ -80,26 +87,29 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 - **BK-08 (WO tồn đọng) tạm dừng:** giữ code đã merge (PR #13, #14), không làm thêm cho tới khi lát cắt của Amy chạy thật 2 tuần.
 - **Không chờ dữ liệu thật** (`@harveyng710-source`, 02/11/2026): build tiếp bằng dữ liệu tổng hợp, khi nối dữ liệu thật thì sửa tới đâu hay tới đó (D-27).
 
-## Tiến độ toàn dự án (ước tính 02/11/2026, tính cả PR đang mở)
+## Tiến độ toàn dự án (ước tính 03/11/2026, tính cả PR đang mở)
 
-Khoảng **33%** spec v0.3.2. GĐ0 nền móng khoảng 55%; GĐ1 khoảng 60%; GĐ2, GĐ3 chưa bắt đầu.
+Khoảng **35%** spec v0.3.2. GĐ0 nền móng khoảng 55%; GĐ1 khoảng 65%; GĐ2, GĐ3 chưa bắt đầu.
 
 | Hạng mục | Trạng thái |
 |---|---|
 | Repo, Growth DB, CI, cài máy Ubuntu | xong |
 | Hàng chờ, Mi1-sa-01 (tự báo, mã lý do, NBA, Lead trùng `/leads`) | xong |
-| Mi1-sa-01 đối soát đơn hàng `/billing` | PR #20 |
-| Mi1 lõi: áp mặc định, Brief sáng, Digest tuần | PR #17 |
-| Mi1-ptn-01 đối tác `/partners` | PR #21 |
-| Mi1-mkt-05, Mi1-data-01, CRON-02 | chưa làm |
+| Mi1-sa-01 đối soát đơn hàng `/billing` | xong (PR #20) |
+| Mi1 lõi: áp mặc định, Brief sáng, Digest tuần | xong (PR #17) |
+| Mi1-ptn-01 đối tác `/partners` | xong (PR #21) |
+| Mi1-mkt-05 bảng giá và SKD `/jurisdictions` | PR nhánh `claude/tender-gates-nn4rif`; còn issue log sandbox8, lịch kênh |
+| Gợi ý ngân hàng `/banks` (D-34) | PR nhánh `claude/tender-gates-nn4rif-banks` |
+| Mi1-data-01, CRON-02 | chưa làm |
 | GĐ2: mkt-01 tới mkt-04, Creative Factory, cổng tuân thủ, ma trận 5 tầng | chưa làm |
 
 ## Việc tiếp theo
 
 Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng chưa tính test, dữ liệu tổng hợp, adapter tải file chạy ngay cho mỗi nguồn mới (thêm dòng vào `ports.md`). PR song song: migration áp theo bảng đánh dấu (`src/db/migrate.ts` sau PR #20, #21), nên số migration không cần liên tiếp.
 
-1. Gỡ xung đột khi PR #17, #20, #21 merge (cùng sửa thanh điều hướng, `server.ts`, `migrate.ts`, `decisions.md`).
-2. Mi1-mkt-05 (GĐ1): bảng giá 45 tài phán và đủ 10 file SKD mỗi tài phán (CRON-04), cổng tải file.
+1. Các team đã sửa sheet giá, ma trận ngân hàng và xác nhận bộ SKD (ghi nhận 09/11/2026 ở `decisions.md`). Nạp lại file mới ở `/jurisdictions` và `/banks`.
+1a. Mi1-mkt-05 phần còn lại: issue log sandbox8 (CRON-04) bằng cổng tải file; đưa số tài phán đã chốt giá vào Brief sáng. Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
+2. Thêm `price_row_status`, `skd_kit_done`, `suggestBanks` vào `docs/spec/metric-definitions.md` bằng PR tài liệu riêng (Mark duyệt), cùng các hàm của PR #17, #20, #21 nếu chưa có.
 3. Mi1-data-01 (GĐ0): độ phủ ID, gãy tracking (`id_coverage`), cổng tải file sự kiện web; sức khoẻ BM, số WA, Fanpage (CRON-02) bằng cổng tải file hoặc nhập tay.
 4. Mi1-sa-01 đối chiếu dữ liệu thật khi Harvey gửi dòng tên cột CSV, tự báo thật, danh sách RM.
 5. GĐ2 theo spec mục 7, 8: Creative Factory, cổng tuân thủ (bộ từ cấm chờ chốt), mkt-01 tới mkt-04.
@@ -121,5 +131,6 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- PR #17 (Mi1 lõi), #20 (đối soát đơn hàng), #21 (đối tác): chờ duyệt.
-- PR #12 tới #16, #18, #19 đã merge.
+- Nhánh `claude/tender-gates-nn4rif` (Mi1-mkt-05, D-32, D-33): PR chờ duyệt.
+- Nhánh `claude/tender-gates-nn4rif-banks` (gợi ý ngân hàng, D-34): PR chồng lên PR trên, merge sau.
+- PR #12 tới #22 đã merge.
