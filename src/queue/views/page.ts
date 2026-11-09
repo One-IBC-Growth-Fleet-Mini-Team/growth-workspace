@@ -303,6 +303,7 @@ ${b.today.length ? html`<table class="kv">${b.today.map((t) => html`<tr><td>${TY
 <li>Quá hạn đã áp mặc định "giữ nháp" trong 24 giờ qua: ${b.defaultsLast24h} mục (Amy vẫn quyết lại được).</li>
 <li>Đã escalate lên Mark trong 7 ngày qua: <strong>${b.escalatedWaiting}</strong> mục.</li>
 <li>WO tồn đọng: báo Amy ${b.wo.escalate}, nhắc PIC ${b.wo.remind}, tồn từ trước chưa rà ${b.wo.backlog}${b.wo.importedAt ? "" : " (chưa nạp file Work Order)"}.</li>
+<li>Mi1-mkt-05: ${b.mkt05.priceLocked}/${b.mkt05.total} tài phán đã chốt giá${b.mkt05.priceImported ? "" : " (chưa nạp bảng giá)"}, bộ SKD ${b.mkt05.skdDone}/${b.mkt05.skdTotal}, ${b.mkt05.sandboxOpen === null ? "sandbox8 chưa nạp issue log" : `sandbox8 còn ${b.mkt05.sandboxOpen} bug mở (${b.mkt05.sandboxOpenSevere} Critical, High), ${b.mkt05.sandboxReady ? "sẵn sàng" : "chưa sẵn sàng"} nghiệm thu`}. <a href="/jurisdictions">Xem</a></li>
 <li>Chi phí Claude API tháng này: ${b.monthCostUsd.toFixed(2)} trên trần ${b.monthCapUsd} USD.</li>
 </ul></section>`);
 }

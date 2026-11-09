@@ -60,6 +60,8 @@ import { renderBillingPage } from "./views/billing.ts";
 import { importPriceSheet, importSkdList, jurisdictionImportMessage } from "../crm/jurisdiction-import.ts";
 import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
 import { renderJurisdictionsPage } from "./views/jurisdictions.ts";
+import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
+import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
 import { buildBankAdvice } from "../db/banks.ts";
 import { renderBanksPage } from "./views/banks.ts";
@@ -142,7 +144,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   }
 
   function jurisdictionsPage(session: Session, message: string | null): string {
-    return renderJurisdictionsPage({ board: buildJurisdictionBoard(deps.db), csrf: session.csrf, message });
+    return renderJurisdictionsPage({ board: buildJurisdictionBoard(deps.db), sandbox: buildSandboxBoard(deps.db), csrf: session.csrf, message });
   }
 
   function banksPage(session: Session, q: { jurisdiction: string | null; newCompany: boolean }, message: string | null): string {
@@ -345,8 +347,15 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const by = { now: now(), actor: userOf(session).id };
         const price = f instanceof File && f.size > 0 ? importPriceSheet(deps.db, await f.text(), by) : null;
         const skd = skdText.trim() ? importSkdList(deps.db, skdText, by) : null;
-        const ok = (price || skd) && price?.status !== "failed" && skd?.status !== "failed";
-        return respond(jurisdictionsPage(session, jurisdictionImportMessage(price, skd)), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+        const sb: { bugs?: string; cases?: string } = {};
+        for (const k of ["bugs", "cases"] as const) {
+          const x = form.get(k);
+          if (x instanceof File && x.size > 0) sb[k] = await x.text();
+        }
+        const sandbox = sb.bugs || sb.cases ? importSandboxLog(deps.db, sb, by) : null;
+        const ok = (price || skd || sandbox) && price?.status !== "failed" && skd?.status !== "failed" && sandbox?.status !== "failed";
+        const msg = [price || skd || !sandbox ? jurisdictionImportMessage(price, skd) : "", sandbox ? sandboxImportMessage(sandbox) : ""].filter(Boolean).join(" ");
+        return respond(jurisdictionsPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/banks") {

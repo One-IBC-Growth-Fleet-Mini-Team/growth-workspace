@@ -75,6 +75,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 - **Phiên 10 (03/11/2026)**: PR #17, #20, #21 đã merge vào `main`, không còn xung đột; `bun test` trên `main` 267 pass (cần `bun install` trước khi chạy).
   - Mi1-mkt-05 (D-32, D-33): trang `/jurisdictions` đọc thẳng CSV của sheet "FINAL - Gói & Giá năm 2 & năm 3". Một tài phán "đã chốt giá" khi mọi loại hình có đủ 6 giá bằng số và gói 2, 3 năm khớp công thức gia hạn (`price_row_status`, dung sai max(150 USD, 5%)). SKD là một bộ kit eKYC chung 10 file, theo dõi bằng danh sách tên file dán tay. Trên dữ liệu thật: 39/46 tài phán đã chốt; Singapore và Hoa Kỳ lệch công thức; bộ SKD 6/10.
   - Gợi ý ngân hàng (D-34): trang `/banks` đọc CSV của sheet "Product Matrix" và "Core Information" trong file BANKING INSTRUCTION; chọn nơi thành lập công ty, ra kế hoạch mở 2 EMI trước, ngân hàng truyền thống sau 6 tới 12 tháng nếu là công ty mới. Chưa xét quốc tịch, ngành nghề; chưa nối vào NBA (snapshot CRM chưa có tài phán của khách). Test T-BANK-01 tới T-BANK-04.
+  - Issue log sandbox8 (D-35, phiên 11): nạp tab Bug và Test Cases ở `/jurisdictions`; Brief sáng có dòng Mi1-mkt-05. Với file thật 09/11/2026: 101 bug, 32 mở (3 High), test case Pass 97,9%, chưa sẵn sàng nghiệm thu. Test T-SBX-01 tới T-SBX-04.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -100,6 +101,7 @@ Khoảng **35%** spec v0.3.2. GĐ0 nền móng khoảng 55%; GĐ1 khoảng 65%; 
 | Mi1-ptn-01 đối tác `/partners` | xong (PR #21) |
 | Mi1-mkt-05 bảng giá và SKD `/jurisdictions` | PR nhánh `claude/tender-gates-nn4rif`; còn issue log sandbox8, lịch kênh |
 | Gợi ý ngân hàng `/banks` (D-34) | PR nhánh `claude/tender-gates-nn4rif-banks` |
+| Issue log sandbox8, dòng Mi1-mkt-05 trên Brief (D-35) | PR nhánh `claude/tender-gates-nn4rif-sandbox8` |
 | Mi1-data-01, CRON-02 | chưa làm |
 | GĐ2: mkt-01 tới mkt-04, Creative Factory, cổng tuân thủ, ma trận 5 tầng | chưa làm |
 
@@ -108,7 +110,7 @@ Khoảng **35%** spec v0.3.2. GĐ0 nền móng khoảng 55%; GĐ1 khoảng 65%; 
 Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng chưa tính test, dữ liệu tổng hợp, adapter tải file chạy ngay cho mỗi nguồn mới (thêm dòng vào `ports.md`). PR song song: migration áp theo bảng đánh dấu (`src/db/migrate.ts` sau PR #20, #21), nên số migration không cần liên tiếp.
 
 1. Các team đã sửa sheet giá, ma trận ngân hàng và xác nhận bộ SKD (ghi nhận 09/11/2026 ở `decisions.md`). Nạp lại file mới ở `/jurisdictions` và `/banks`.
-1a. Mi1-mkt-05 phần còn lại: issue log sandbox8 (CRON-04) bằng cổng tải file; đưa số tài phán đã chốt giá vào Brief sáng. Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
+1a. Mi1-mkt-05 phần còn lại: lịch kênh (chờ phạm vi); verify Meta TW/IN. Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
 2. Thêm `price_row_status`, `skd_kit_done`, `suggestBanks` vào `docs/spec/metric-definitions.md` bằng PR tài liệu riêng (Mark duyệt), cùng các hàm của PR #17, #20, #21 nếu chưa có.
 3. Mi1-data-01 (GĐ0): độ phủ ID, gãy tracking (`id_coverage`), cổng tải file sự kiện web; sức khoẻ BM, số WA, Fanpage (CRON-02) bằng cổng tải file hoặc nhập tay.
 4. Mi1-sa-01 đối chiếu dữ liệu thật khi Harvey gửi dòng tên cột CSV, tự báo thật, danh sách RM.
@@ -131,6 +133,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- Nhánh `claude/tender-gates-nn4rif` (Mi1-mkt-05, D-32, D-33): PR chờ duyệt.
-- Nhánh `claude/tender-gates-nn4rif-banks` (gợi ý ngân hàng, D-34): PR chồng lên PR trên, merge sau.
+- Nhánh `claude/tender-gates-nn4rif` (Mi1-mkt-05, D-32, D-33): PR #23 chờ duyệt.
+- Nhánh `claude/tender-gates-nn4rif-banks` (gợi ý ngân hàng, D-34): PR #24, chồng lên PR #23.
+- Nhánh `claude/tender-gates-nn4rif-sandbox8` (issue log sandbox8, D-35): chồng lên PR #24. Thứ tự merge: #23, #24, rồi PR này.
 - PR #12 tới #22 đã merge.
