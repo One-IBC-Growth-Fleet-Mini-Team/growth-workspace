@@ -88,6 +88,9 @@ import { renderCreativePage } from "./views/creative.ts";
 import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
 import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
 import { renderBudgetPage } from "./views/budget.ts";
+import { importMarketCsv, pullMarketScan } from "../crm/market-import.ts";
+import { buildMarketBoard } from "../db/market.ts";
+import { renderMarketPage } from "./views/market.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -122,6 +125,8 @@ export type QueueAppDeps = {
   creativeSource?: RemoteSource;
   // Kết quả theo chiến dịch (D-45): "mcp" thì có nút kéo từ ads-mcp.
   adsSource?: RemoteSource;
+  // market-scan-mcp (D-46): "mcp" thì có nút kéo quy định, tiếng khách, giá đối thủ.
+  marketSource?: RemoteSource;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
@@ -213,6 +218,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
   function budgetPage(session: Session, message: string | null): string {
     return renderBudgetPage({ board: buildBudgetBoard(deps.db, now()), canPull: deps.adsSource?.mode === "mcp", csrf: session.csrf, message });
+  }
+
+  function marketPage(session: Session, message: string | null): string {
+    return renderMarketPage({ board: buildMarketBoard(deps.db), canPull: deps.marketSource?.mode === "mcp", csrf: session.csrf, message });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -377,6 +386,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(budgetPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/market") {
+      if (!session) return redirect("/login");
+      return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -413,7 +427,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" || path === "/hooks" || path === "/budget" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" || path === "/hooks" || path === "/budget" || path === "/market" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -586,6 +600,26 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(budgetPage(session, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
+      // market-scan (D-46): file hoặc kéo MCP khi MARKET_SOURCE=mcp. Cả hai người dùng nạp được.
+      if (path === "/market") {
+        const by = { now: now(), actor: userOf(session).id };
+        const src = deps.marketSource;
+        let msg: string;
+        let ok: boolean;
+        if (form.get("pull") && src?.mode === "mcp") {
+          const r = await pullMarketScan(deps.db, { url: src.url, token: src.token }, by);
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã kéo ${r.packages} giá đối thủ, ${r.regulation} quy định, ${r.reviews} ý kiến khách.` : `Chưa kéo được (${r.errorCode}).`;
+        } else {
+          const f = form.get("file");
+          const kind = form.get("kind") === "reviews" ? "reviews" : "regulation";
+          const r = f instanceof File && f.size > 0 ? importMarketCsv(deps.db, kind, await f.text(), by) : { status: "failed" as const, items: 0, errorCode: "MARKET_FILE_REQUIRED" };
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã nạp ${r.items} mục.` : `Chưa nạp (${r.errorCode}). Dữ liệu cũ vẫn giữ nguyên.`;
+        }
+        return respond(marketPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
       if (path === "/billing") {
         if (userOf(session).role !== "approver") return text(403, "Không có quyền.");
         const files: BillingFiles = {};
@@ -729,6 +763,7 @@ if (import.meta.main) {
     hookSource: getRemoteSource("HOOK"),
     creativeSource: getRemoteSource("CREATIVE"),
     adsSource: getRemoteSource("ADS"),
+    marketSource: getRemoteSource("MARKET"),
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
   Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });

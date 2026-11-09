@@ -66,3 +66,11 @@ Cổng Storyboard: Growth Workspace chỉ gọi `run_creative_pipeline` khi quy�
 - `draft_budget_change` không gọi ra ngoài: nháp nằm trong Growth, Mark tự đổi ngân sách trên nền tảng sau khi duyệt.
 
 Adapter file tương đương: CSV cùng tên cột, `sales_cycle_complete` là yes hoặc no.
+
+## market-scan-mcp (cổng "Thị trường", `MARKET_*`, Mi1-mkt-03, mkt-04, D-46)
+
+Ba tool, gọi trên cùng một kết nối, đầu vào `{}`:
+
+- `scan_competitor_packages` → `{ "packages": [ { "competitor", "jurisdiction", "tier" (starter, grow, premium), "price_usd", "source_url", "collected_on" (YYYY-MM-DD) } ] }`. Vào cùng bảng giá đối thủ của `/competitors`.
+- `watch_regulation` → `{ "items": [ { "jurisdiction", "title", "summary", "effective_date", "source_url" } ] }`.
+- `collect_reviews_anonymized` → `{ "reviews": [ { "source", "jurisdiction", "theme", "rating" (1 tới 5), "text" } ] }`. Phải ẩn danh từ nguồn; Growth vẫn chạy lớp lọc R1 trước khi lưu và không lưu tên người viết.
