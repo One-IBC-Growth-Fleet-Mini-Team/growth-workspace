@@ -74,7 +74,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 - **Phiên 10 (03/11/2026)**: PR #17, #20, #21 đã merge vào `main`, không còn xung đột; `bun test` trên `main` 267 pass (cần `bun install` trước khi chạy).
   - Mi1-mkt-05 (D-32, D-33): trang `/jurisdictions` đọc thẳng CSV của sheet "FINAL - Gói & Giá năm 2 & năm 3". Một tài phán "đã chốt giá" khi mọi loại hình có đủ 6 giá bằng số và gói 2, 3 năm khớp công thức gia hạn (`price_row_status`, dung sai max(150 USD, 5%)). SKD là một bộ kit eKYC chung 10 file, theo dõi bằng danh sách tên file dán tay. Trên dữ liệu thật: 39/46 tài phán đã chốt; Singapore và Hoa Kỳ lệch công thức; bộ SKD 6/10.
-  - Gợi ý ngân hàng (D-34): trang `/banks`, tách sang PR riêng chồng lên PR này.
+  - Gợi ý ngân hàng (D-34): trang `/banks` đọc CSV của sheet "Product Matrix" và "Core Information" trong file BANKING INSTRUCTION; chọn nơi thành lập công ty, ra kế hoạch mở 2 EMI trước, ngân hàng truyền thống sau 6 tới 12 tháng nếu là công ty mới. Chưa xét quốc tịch, ngành nghề; chưa nối vào NBA (snapshot CRM chưa có tài phán của khách). Test T-BANK-01 tới T-BANK-04.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
