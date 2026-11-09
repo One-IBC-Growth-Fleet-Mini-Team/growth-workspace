@@ -2,6 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { compileFromHook, decideStoryboard, listStoryboards, runPipeline } from "../../src/creative/factory.ts";
 import { freshDb } from "../helpers/db.ts";
 import { BASE, get, makeApp, MARK, post, session } from "../helpers/queue.ts";
@@ -14,8 +15,8 @@ function fakeFactory(calls: string[]) {
     calls.push("compile");
     return ok({ creative_ir_id: "IR-1", storyboard: { title: "HK 2 ngày", scenes: ["Mở: hồ sơ online", "Giữa: 2 ngày", "Kết: bảng giá"] } });
   });
-  s.registerTool("run_creative_pipeline", { description: "giả" }, async () => {
-    calls.push("run");
+  s.registerTool("run_creative_pipeline", { description: "giả", inputSchema: { creative_ir_id: z.string(), steps: z.array(z.string()), validation_mode: z.string(), approved_by: z.string().min(1) } }, async (a) => {
+    calls.push(`run:${a.approved_by}`);
     return ok({ run_id: "R-1", qa_status: "PASS", assets: [{ asset_id: "A-1", kind: "image" }] });
   });
   return s;
@@ -44,6 +45,7 @@ describe("T-CF Creative Factory", () => {
     await compileFromHook(db, await target(calls), { hookId: "H1", text: "x", jurisdiction: null }, { now: NOW, actor: "mark" });
     expect(decideStoryboard(db, "IR-1", "approve", "", { now: NOW, actor: "mark" })).toBe("ok");
     expect(await runPipeline(db, await target(calls), "IR-1", { now: NOW, actor: "mark" })).toEqual({ status: "succeeded", qaStatus: "PASS", assets: 1 });
+    expect(calls).toContain("run:mark"); // gửi người duyệt Storyboard sang creative-factory-v2
     expect(listStoryboards(db)[0]).toMatchObject({ status: "approved", lastRun: { qaStatus: "PASS", assets: 1 } });
     expect(decideStoryboard(db, "IR-1", "reject", "đổi cảnh 1", { now: new Date("2026-11-09T03:00:00Z"), actor: "mark" })).toBe("ok");
     expect((await runPipeline(db, await target(calls), "IR-1", { now: NOW, actor: "mark" })).errorCode).toBe("STORYBOARD_NOT_APPROVED");
