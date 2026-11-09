@@ -31,15 +31,26 @@ export async function pullSources(db: Database, t: Targets, opts: { now: Date; a
 }
 
 if (import.meta.main) {
+  // Cấu hình sai của một nguồn (ví dụ thiếu <PREFIX>_MCP_URL) chỉ làm nguồn đó lỗi, không chặn nguồn khác.
+  const bad: string[] = [];
   const target = (prefix: string): RemoteTarget | null => {
-    const s = getRemoteSource(prefix);
-    return s.mode === "mcp" ? { url: s.url, token: s.token } : null;
+    try {
+      const s = getRemoteSource(prefix);
+      return s.mode === "mcp" ? { url: s.url, token: s.token } : null;
+    } catch {
+      bad.push(prefix);
+      return null;
+    }
   };
+  const targets = { hooks: target("HOOK"), ads: target("ADS"), market: target("MARKET") };
+  for (const prefix of bad) log({ event: `pull.${prefix.toLowerCase()}.failed`, error_code: "SOURCE_CONFIG_INVALID" });
   const db = openReadWrite(getDbPath());
   migrate(db);
   try {
-    for (const r of await pullSources(db, { hooks: target("HOOK"), ads: target("ADS"), market: target("MARKET") }, { now: new Date(), actor: "cron-03" })) {
-      log({ event: `pull.${r.status}`, run_id: r.source, ...("errorCode" in r ? { error_code: r.errorCode } : {}) });
+    const SOURCE = { hooks: "HOOK", ads: "ADS", market: "MARKET" } as const;
+    for (const r of await pullSources(db, targets, { now: new Date(), actor: "cron-03" })) {
+      if (bad.includes(SOURCE[r.source])) continue; // đã báo SOURCE_CONFIG_INVALID ở trên
+      log({ event: `pull.${r.source}.${r.status}`, ...("errorCode" in r ? { error_code: r.errorCode } : {}) });
     }
   } finally {
     db.close();

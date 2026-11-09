@@ -42,6 +42,15 @@ describe("T-ASK Mi1 nhận câu hỏi", () => {
     expect(await askMi1(db, fakeLlm(), " ", opts)).toMatchObject({ status: "failed", errorCode: "QUESTION_REQUIRED" });
   });
 
+  test("T-ASK-04 LLM từ chối báo riêng; JSON trong khối code vẫn đọc được; câu hỏi gửi trong khối dữ liệu", async () => {
+    const db = freshDb();
+    const refused = { calls: [] as LlmRequest[], async complete() { return { text: "Tôi không thể.", inputTokens: 10, outputTokens: 5, model: "fake", refused: true }; } };
+    expect(await askMi1(db, refused, "x", opts)).toMatchObject({ status: "failed", errorCode: "ASK_REFUSED" });
+    const fenced = fakeLlm('```json\n{"template":"channel_health","params":{}}\n```');
+    expect(await askMi1(db, fenced, "Kênh ổn không?", opts)).toMatchObject({ status: "answered", template: "channel_health" });
+    expect(fenced.calls[0]!.user).toBe("<cau_hoi>\nKênh ổn không?\n</cau_hoi>");
+  });
+
   test("T-ASK-03 trang /ask: hỏi có CSRF; chưa cấu hình LLM thì báo; Hàng chờ có link", async () => {
     const db = freshDb();
     const c = createSessionCookie(SECRET, { sub: "mark", csrf: "k", exp: Date.parse("2026-11-10T00:00:00Z") });
