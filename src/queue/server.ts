@@ -17,6 +17,7 @@ import {
   BILLING_PARAMS,
   DATA01_PARAMS,
   CHANNEL_PARAMS,
+  AD_RULES,
   isLocalBaseUrl,
   WO_PARAMS,
 } from "../config.ts";
@@ -67,6 +68,8 @@ import { buildDataBoard } from "../db/data01.ts";
 import { renderDataPage } from "./views/data01.ts";
 import { buildChannelBoard, recordChannelCheck } from "../db/channels.ts";
 import { renderChannelsPage } from "./views/channels.ts";
+import { checkAdBatch, checkOne } from "../ads/check.ts";
+import { renderAdsPage } from "./views/ads.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -298,6 +301,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(channelsPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/ads-check") {
+      if (!session) return redirect("/login");
+      return respond(renderAdsPage({ csrf: session.csrf, rows: null, message: null, rules: AD_RULES }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -334,7 +342,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -406,6 +414,22 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const c = { kind: String(form.get("kind") ?? ""), label: String(form.get("label") ?? ""), status: String(form.get("status") ?? ""), note: String(form.get("note") ?? "") };
         const r = recordChannelCheck(deps.db, c, { now: now(), actor: userOf(session).id });
         return respond(channelsPage(session, r === "ok" ? `Đã ghi lần kiểm ${c.label.trim()}.` : "Chưa ghi. Cần chọn loại, trạng thái và điền nhãn."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Cổng tuân thủ (D-38): ai đăng nhập cũng kiểm được; không lưu nội dung, không đăng gì.
+      if (path === "/ads-check") {
+        const f = form.get("batch");
+        let rows = null;
+        let message: string | null = null;
+        if (f instanceof File && f.size > 0) {
+          const r = checkAdBatch(deps.db, await f.text(), AD_RULES);
+          rows = r.rows;
+          if (r.status === "failed") message = r.errorCode === "ADS_HEADER_NOT_FOUND" ? "File cần cột primary_text hoặc headline." : "File không đúng dạng CSV.";
+        } else {
+          const copy = { primaryText: String(form.get("primary_text") ?? ""), headline: String(form.get("headline") ?? ""), description: String(form.get("description") ?? ""), jurisdiction: String(form.get("jurisdiction") ?? "").trim() || null };
+          rows = [{ id: "Mẫu vừa dán", jurisdiction: copy.jurisdiction, ...checkOne(deps.db, copy, AD_RULES) }];
+        }
+        return respond(renderAdsPage({ csrf: session.csrf, rows, message, rules: AD_RULES }), message ? 422 : 200, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {

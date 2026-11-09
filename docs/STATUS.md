@@ -78,6 +78,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Issue log sandbox8 (D-35, phiên 11): nạp tab Bug và Test Cases ở `/jurisdictions`; Brief sáng có dòng Mi1-mkt-05. Với file thật 09/11/2026: 101 bug, 32 mở (3 High), test case Pass 97,9%, chưa sẵn sàng nghiệm thu. Test T-SBX-01 tới T-SBX-04.
   - Mi1-data-01 (D-36, phiên 11): trang `/data` nạp CSV sự kiện, tính `id_coverage` 7 ngày theo ngày giờ VN, cờ TRACKING_DEGRADED dưới 19%, sự kiện thiếu trường Phụ lục A, email lọt vào tham số; Brief sáng có dòng Mi1-data-01. Test T-DATA-01 tới T-DATA-04.
   - CRON-02 (D-37, phiên 11): trang `/channels` ghi tay sức khoẻ 3 BM, 3 số WA, 6 Fanpage; Brief sáng có dòng CRON-02. Test T-CH-01 tới T-CH-04.
+  - Cổng tuân thủ (D-38, phiên 11): trang `/ads-check` kiểm một mẫu hoặc CSV nhiều mẫu: từ cấm, từ cần duyệt, độ dài, giữ lại tài phán chưa chốt giá. Test T-ADS-01 tới T-ADS-04.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -106,7 +107,8 @@ Khoảng **35%** spec v0.3.2. GĐ0 nền móng khoảng 55%; GĐ1 khoảng 65%; 
 | Issue log sandbox8, dòng Mi1-mkt-05 trên Brief (D-35) | PR nhánh `claude/tender-gates-nn4rif-sandbox8` |
 | Mi1-data-01 độ phủ ID, gãy tracking `/data` (D-36) | PR nhánh `claude/tender-gates-nn4rif-data01` |
 | CRON-02 sức khoẻ BM, số WA, Fanpage `/channels` (D-37) | PR nhánh `claude/tender-gates-nn4rif-channels` |
-| GĐ2: mkt-01 tới mkt-04, Creative Factory, cổng tuân thủ, ma trận 5 tầng | chưa làm |
+| Cổng tuân thủ tầng 1A, 1B `/ads-check` (D-38) | PR nhánh `claude/tender-gates-nn4rif-ads` |
+| GĐ2: mkt-01 tới mkt-04, Creative Factory, ma trận 5 tầng còn lại | chưa làm |
 
 ## Việc tiếp theo
 
@@ -141,5 +143,6 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 - Nhánh `claude/tender-gates-nn4rif-sandbox8` (issue log sandbox8, D-35): PR #25, chồng lên #24.
 - Nhánh `claude/tender-gates-nn4rif-data01` (Mi1-data-01, D-36): PR #26, chồng lên #25.
 - Nhánh `claude/tender-gates-nn4rif-channels` (CRON-02, D-37): PR #27, chồng lên #26.
-- Nhánh `claude/tender-gates-nn4rif-metrics` (định nghĩa chỉ số, chỉ tài liệu): chồng lên #27, Mark duyệt. Thứ tự merge: #23 tới #27, rồi PR này.
+- Nhánh `claude/tender-gates-nn4rif-metrics` (định nghĩa chỉ số, chỉ tài liệu): PR #28, chồng lên #27, Mark duyệt.
+- Nhánh `claude/tender-gates-nn4rif-ads` (cổng tuân thủ, D-38): chồng lên #28. Thứ tự merge: #23 tới #28, rồi PR này.
 - PR #12 tới #22 đã merge.
