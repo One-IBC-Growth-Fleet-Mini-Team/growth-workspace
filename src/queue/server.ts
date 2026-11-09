@@ -91,6 +91,8 @@ import { renderBudgetPage } from "./views/budget.ts";
 import { importMarketCsv, pullMarketScan } from "../crm/market-import.ts";
 import { buildMarketBoard } from "../db/market.ts";
 import { renderMarketPage } from "./views/market.ts";
+import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
+import { renderLessonsPage } from "./views/lessons.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -391,6 +393,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/lessons") {
+      if (!session) return redirect("/login");
+      const q = (url.searchParams.get("q") ?? "").slice(0, 200);
+      return respond(renderLessonsPage({ entries: searchKnowledge(deps.db, q), q, csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -618,6 +626,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           msg = r.status === "succeeded" ? `Đã nạp ${r.items} mục.` : `Chưa nạp (${r.errorCode}). Dữ liệu cũ vẫn giữ nguyên.`;
         }
         return respond(marketPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      if (path === "/lessons") {
+        const r = logKnowledge(deps.db, { kind: String(form.get("kind") ?? ""), title: String(form.get("title") ?? ""), body: String(form.get("body") ?? ""), evidence: String(form.get("evidence") ?? ""), tags: String(form.get("tags") ?? "") }, { now: now(), actor: userOf(session).id });
+        const why: Record<string, string> = { EVIDENCE_REQUIRED: "Cần bằng chứng là đường dẫn trang Growth, bắt đầu bằng /.", TEXT_REQUIRED: "Cần tiêu đề và nội dung.", KIND_INVALID: "Loại không hợp lệ." };
+        return respond(renderLessonsPage({ entries: searchKnowledge(deps.db, ""), q: "", csrf: session.csrf, message: r.status === "ok" ? "Đã ghi." : `Chưa ghi. ${why[r.errorCode]}` }), r.status === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {
