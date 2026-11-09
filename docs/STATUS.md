@@ -103,6 +103,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Nháp việc Jira, MobCEC (D-60, phiên 12): trang `/tasks`, chỉ nháp, không gửi. Test T-TASK-01, T-TASK-02.
   - CRON-03 (D-61, phiên 12): job kéo nguồn MCP 06:30, timer trong bản cài. Test T-PULL-01.
   - Eval Gate Mi1 hỏi đáp (D-62, phiên 12): `evals/mi1-ask/EVAL_mi1-ask.json` theo chuẩn repo Mi1, `bun run eval:mi1`; `/ask` khoá tới khi eval pass. Chưa chạy với Claude thật (môi trường build không có API key). Test T-ASK-05 tới T-ASK-07.
+  - Phân quyền MKT, BOD (D-63, phiên 12): MKT chỉ thấy trang số tổng hợp, không thấy mã khách; BOD xem như Mark. Persona cho MKT chờ dữ liệu CRM. Test T-ROLE-01 tới T-ROLE-03.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.

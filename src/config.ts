@@ -110,6 +110,13 @@ export function getAuthConfig(env: Env = process.env): AuthConfig {
     if (!h.startsWith("$argon2")) throw new ConfigError(name);
     hashes.set(user, h);
   }
+  // Tài khoản Team MKT và BOD (D-63) là tuỳ chọn: đặt mã băm thì đăng nhập được.
+  for (const [user, name] of [["mkt", "MKT_PASSWORD_HASH"], ["bod", "BOD_PASSWORD_HASH"]] as const) {
+    const h = optional(env, name);
+    if (h === undefined) continue;
+    if (!h.startsWith("$argon2")) throw new ConfigError(name);
+    hashes.set(user, h);
+  }
   return { mode, hashes };
 }
 

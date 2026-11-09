@@ -94,6 +94,7 @@ import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
 import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
+import { canPost, canSee } from "./roles.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
 import { renderAskPage } from "./views/ask.ts";
 import { renderTasksPage } from "./views/tasks.ts";
@@ -157,7 +158,7 @@ const IMPORT_FIELDS: Record<string, CsvResource> = { opportunity: "Opportunity",
 const WO_IMPORT_FIELDS = { workorder: "WorkOrder", wopic: "WorkOrderPic" } as const;
 const LOGIN_MAX_FAILS = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
-const PASSWORD_USERS: Record<string, QueueUser> = { amy: { id: "amy", role: "approver" }, mark: { id: "mark", role: "viewer" } };
+const PASSWORD_USERS: Record<string, QueueUser> = { amy: { id: "amy", role: "approver" }, mark: { id: "mark", role: "viewer" }, mkt: { id: "mkt", role: "mkt" }, bod: { id: "bod", role: "viewer" } };
 const SECURITY_HEADERS = {
   "content-security-policy":
     "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; script-src 'none'",
@@ -282,7 +283,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(renderLoginPage("Sai tên hoặc mật khẩu."), 401, { "content-type": "text/html; charset=utf-8" });
       }
       fails.delete(who);
-      return redirect("/queue", [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()), secure)], 303);
+      return redirect(PASSWORD_USERS[who]!.role === "mkt" ? "/hooks" : "/queue", [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()), secure)], 303);
     }
 
     if (req.method === "GET" && path === "/login") {
@@ -320,6 +321,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     }
 
     const session = readSession(req, deps.sessionSecret, now());
+    // Phân quyền theo vai trò (D-63): MKT về trang Hook thay cho Hàng chờ; trang có mã khách trả 403.
+    if (session) {
+      const u = userOf(session);
+      if (u.role === "mkt" && req.method === "GET" && (path === "/" || path === "/queue")) return redirect("/hooks");
+      if (!(req.method === "GET" ? canSee(u, path) : canPost(u, path))) return text(403, "Vai trò MKT chỉ xem số tổng hợp, không xem trang có mã khách hay duyệt việc tốn tiền.");
+    }
     if (req.method === "GET" && (path === "/" || path === "/queue")) {
       if (!session) return redirect("/login");
       const user = userOf(session);
