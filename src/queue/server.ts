@@ -25,7 +25,7 @@ import {
 } from "../config.ts";
 import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
 import { latestEvalRun, readEvalStats } from "../agents/sa-01/eval/runner.ts";
-import { runSa01 } from "../agents/sa-01/run.ts";
+import { runSa01, describeSa01 } from "../agents/sa-01/run.ts";
 import { directCrmReadTools } from "../mcp/crm-read/client.ts";
 import { latestSucceededSnapshot } from "../db/crm-read.ts";
 import { latestEditPayload, listItemEvents, listQueueItems, listRmDirectory } from "../db/queue.ts";
@@ -130,7 +130,7 @@ export type QueueAppDeps = {
   // Chế độ mật khẩu tạm (D-24) khi chưa có app Entra: mã băm argon2 theo id người dùng ("amy", "mark").
   passwordHashes?: Map<string, string>;
   // Xử lý văn bản tự báo Amy dán (D-24); trả số mục mới.
-  onPaste?: (text: string, reportDate: string) => Promise<{ created: number }>;
+  onPaste?: (text: string, reportDate: string) => Promise<{ created: number; message?: string }>;
   // Nạp file CSV xuất từ CRM (D-24); trả câu báo kết quả cho Amy (không chứa giá trị ô).
   onImport?: (files: Partial<Record<CsvResource, string>>) => Promise<{ ok: boolean; message: string }>;
   // Nạp file Work Order và file ghép PIC cho BK-08 (D-25); có hàm này thì bật trang /wo.
@@ -776,8 +776,9 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           return text(422, "Ngày hoặc nội dung dán không hợp lệ.");
         }
         // Văn bản thô chỉ đi qua hàm xử lý trong bộ nhớ, không ghi DB hay log.
-        await deps.onPaste(body, reportDate);
-        return redirect(`/queue?date=${vnDate(now())}`, [], 303);
+        const r = await deps.onPaste(body, reportDate);
+        // Ở lại trang dán, báo kết quả (D-73); Amy mở Hàng chờ bằng link trên trang.
+        return respond(renderPastePage({ csrf: session.csrf, reportDate, message: r.message ?? `Đã tạo ${r.created} mục mới trên Hàng chờ.` }), 200, { "content-type": "text/html; charset=utf-8" });
       }
 
       const m = /^\/queue\/items\/([A-Za-z0-9-]{1,64})\/([a-z_]+)$/.exec(path);
@@ -838,7 +839,7 @@ if (import.meta.main) {
       evalVersion,
       trigger: "paste",
     });
-    return { created: r.itemsCreated };
+    return { created: r.itemsCreated, message: describeSa01(r, "paste") };
   };
   // Nạp CSV (D-24): ghi snapshot mới rồi sinh lại NBA cho hôm nay từ snapshot đó.
   const columns = loadColumnMap(getCrmColumnsPath());
@@ -860,7 +861,7 @@ if (import.meta.main) {
       evalVersion,
       trigger: "csv-import",
     });
-    return { ok: true, message: `${importMessage(r)} NBA: ${run.itemsCreated} mục mới.` };
+    return { ok: true, message: `${importMessage(r)} ${describeSa01(run, "nba")}` };
   };
   const onWoImport = async (files: { WorkOrder?: string; WorkOrderPic?: string }, actor: string) => {
     const r = importWorkOrders(db, files, { columns, now: new Date(), actor });

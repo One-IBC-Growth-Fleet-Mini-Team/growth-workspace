@@ -229,7 +229,7 @@ ${message ? html`<p class="warn">${message}</p>` : ""}
 export function renderPastePage(args: { csrf: string; reportDate: string; message: string | null }): string {
   return shell("Dán tự báo", html`<h1>Dán tự báo của RM</h1>
 <p>Mở thread tự báo của ngày trong Teams, chọn toàn bộ các trả lời, sao chép rồi dán vào ô dưới. Mỗi bản tự báo bắt đầu bằng dòng <code>[dd/mm] [RM] Tên</code>. Nội dung dán vào được lọc thông tin khách trước khi xử lý và không được lưu nguyên văn. Xử lý mất khoảng nửa phút.</p>
-${args.message ? html`<p class="warn">${args.message}</p>` : ""}
+${args.message ? html`<p class="warn">${args.message} <a href="/queue">Mở Hàng chờ</a></p>` : ""}
 <form method="post" action="/paste"><input type="hidden" name="csrf" value="${args.csrf}">
 <label>Ngày tự báo <input type="date" name="report_date" value="${args.reportDate}" required></label>
 <label>Nội dung <textarea name="text" required maxlength="100000"></textarea></label>

@@ -17,6 +17,7 @@ import { insertRmReport, type RmReportInsert } from "../../db/rm-reports.ts";
 import { log } from "../../log.ts";
 import type { CrmReadTools } from "../../mcp/crm-read/client.ts";
 import { computeConfidence, fieldCoverage, type ConfidenceFlag } from "../../metrics/confidence.ts";
+import { summarizeRun } from "../../metrics/run-summary.ts";
 import { computeCostUsd, monthToDateCostUsd, sumUsage, type TokenPrice, type TokenUsage } from "../../metrics/cost.ts";
 import { isResellerEndClient, type ResellerFlag } from "../../metrics/reseller-flag.ts";
 import { servicesPurchased } from "../../metrics/services-purchased.ts";
@@ -54,7 +55,9 @@ export type Sa01Deps = {
   duplicateOwnersForClient?: (clientId: string) => readonly string[];
 };
 
-export type Sa01Result = { agentRunId: string; reportDate: string; itemsCreated: number };
+// Tóm tắt cho câu báo sau mỗi lần dán hoặc nạp (D-73): tạo mới theo loại, bỏ qua theo lý do, NBA 0 mục thì vì sao.
+export type Sa01Summary = { created: Record<string, number>; duplicates: number; notices: string[]; reports: number; piiMasked: number; nbaCandidates: number | null };
+export type Sa01Result = { agentRunId: string; reportDate: string; itemsCreated: number; summary: Sa01Summary };
 
 const SNAPSHOT_MAX_AGE_MS = 24 * 3600 * 1000;
 const ASSIGNEE = "amy";
@@ -70,6 +73,7 @@ type Ctx = {
   reports: RmReportInsert[];
   usages: TokenUsage[];
   models: string[];
+  nbaCandidates?: number;
 };
 
 function confidenceOf(ctx: Ctx, task: EvalTask, coverage: Record<string, unknown>, flags: ConfidenceFlag[] = []) {
@@ -268,6 +272,7 @@ async function nbaItems(ctx: Ctx): Promise<void> {
     resellerFlag: (id) => flags.get(id) ?? "unknown",
     duplicateOwnersForClient: deps.duplicateOwnersForClient ?? (() => []),
   });
+  ctx.nbaCandidates = ranked.length;
   for (const n of ranked) {
     pushItem(ctx, {
       item_type: "nba",
@@ -355,5 +360,25 @@ export async function runSa01(queueDate: string, deps: Sa01Deps): Promise<Sa01Re
 
   // Chạy lại không sinh mục mới thì không nhắn lại Amy.
   if (deps.notify && itemsCreated > 0) await deps.notify(queueDate);
-  return { agentRunId: ctx.agentRunId, reportDate: ctx.reportDate, itemsCreated };
+  const sum = summarizeRun(ctx.items, created, ctx.reports.map((r) => (JSON.parse(r.redaction_stats) as { r1?: Record<string, number> }).r1 ?? {}));
+  const summary: Sa01Summary = { created: sum.byType, duplicates: sum.duplicates, notices: ctx.items.filter((i) => i.item_type === "system_notice").map((i) => String((JSON.parse(i.payload) as { message?: string }).message ?? "")),
+    reports: ctx.reports.length, piiMasked: sum.piiMasked, nbaCandidates: ctx.nbaCandidates ?? null };
+  return { agentRunId: ctx.agentRunId, reportDate: ctx.reportDate, itemsCreated, summary };
+}
+
+const TYPE_TEXT: Record<string, string> = { self_report: "tự báo", reason_code: "mã lý do", nba: "NBA" };
+// Câu báo cho Amy (D-73): tạo mới, bỏ qua kèm lý do, NBA 0 mục thì nói vì sao. Không có giá trị ô hay tên.
+export function describeSa01(r: Pick<Sa01Result, "itemsCreated" | "summary">, part: "paste" | "nba"): string {
+  const s = r.summary;
+  const out: string[] = [];
+  const kinds = Object.entries(s.created).map(([k, n]) => `${n} ${TYPE_TEXT[k] ?? k}`);
+  out.push(r.itemsCreated ? `Đã tạo ${r.itemsCreated} mục mới trên Hàng chờ (${kinds.join(", ")}).` : "Không tạo mục mới nào.");
+  if (part === "paste") out.push(`Đọc được ${s.reports} bản tự báo.${s.piiMasked ? ` Đã che ${s.piiMasked} email, số điện thoại, giấy tờ hoặc đường dẫn.` : ""}`);
+  if (s.duplicates > 0) out.push(`Bỏ qua ${s.duplicates} mục đã có trên Hàng chờ hôm nay (trùng).`);
+  for (const n of s.notices) out.push(n);
+  if (part === "nba" && !s.created.nba) {
+    if (s.nbaCandidates === 0) out.push("NBA 0 mục: không Opportunity nào còn mở có Close Date trong tháng này qua luật NBA.");
+    else if (s.nbaCandidates && s.duplicates) out.push("NBA 0 mục mới: các đề xuất NBA của hôm nay đã có trên Hàng chờ.");
+  }
+  return out.join(" ");
 }
