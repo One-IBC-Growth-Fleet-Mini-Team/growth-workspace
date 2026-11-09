@@ -60,7 +60,7 @@ function demoOpportunities(month: { start: string; end: string }): OpportunityRo
     { ...base, opportunity_id: "DEMO-OPP-01", client_id: "DEMO-CLI-02", owner_rm_id: "RM_A", stage: "Negotiation", close_date: day(20) },
     { ...base, opportunity_id: "DEMO-OPP-02", client_id: null, owner_rm_id: "RM_A", stage: "Quotation", close_date: day(25), industry_code: "FOREX" },
     { ...base, opportunity_id: "DEMO-OPP-03", client_id: null, owner_rm_id: "RM_B", stage: "Quotation", close_date: day(15), rejection_reason_code: "UNRESPONSIVE" },
-    { ...base, opportunity_id: "DEMO-OPP-04", client_id: null, owner_rm_id: "RM_B", stage: "Prospecting", close_date: "2027-03-01" },
+    { ...base, opportunity_id: "DEMO-OPP-04", client_id: null, owner_rm_id: "RM_B", stage: "Nurturing", close_date: "2027-03-01" },
   ];
 }
 

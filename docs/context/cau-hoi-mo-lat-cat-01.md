@@ -40,7 +40,7 @@ Sau khi có token: chạy `bun run preflight -- --network`, lệnh tự báo tê
 | AM-05 (Q-06) | Ai ghi `rejection_reason_code` lên CRM sau khi Amy xác nhận: RM hay Amy? | Quy trình sau xác nhận | Hệ thống không ghi CRM; ghi tay |
 | AM-06 (Q-07) | Ai giữ file danh bạ RM (owner CRM, tài khoản Teams), cập nhật khi có RM mới hoặc nghỉ? | Map tác giả tự báo với RM | Người vận hành nạp bằng `bun run ops:load-rm-directory` |
 | AM-07 (Q-08) | RM có hay sửa hoặc nộp tự báo sau 08:00 không? | Có cần lượt chạy 13:00 không | Chỉ lượt 08:00 |
-| AM-08 (Q-09) | Thứ tự ưu tiên giữa các Stage; bao nhiêu Opportunity cập nhật cùng một giây thì coi là cập nhật hàng loạt? | Xếp hạng NBA; chỉ số `rm_active_on_deal` | Negotiation 3, Quotation 2, Qualification 1, Prospecting 0,5; ngưỡng 3 bản ghi (`src/config.ts`) |
+| AM-08 (Q-09) | Thứ tự ưu tiên giữa các Stage; bao nhiêu Opportunity cập nhật cùng một giây thì coi là cập nhật hàng loạt? | Xếp hạng NBA; chỉ số `rm_active_on_deal` | Payment Waiting 4, Negotiation 3, Quotation 2, Needs Analysis 1, Nurturing 0,5 (tên Stage thật, D-42); 3 bản ghi cùng giây |
 | AM-09 (Q-10) | Mỗi sáng tối đa bao nhiêu mục NBA thì vẫn duyệt hết? | Giới hạn NBA | 20 |
 | AM-10 (Q-11) | Thông báo gửi vào chat riêng hay một channel? | Tạo webhook (AD-05) | Chat riêng |
 | AM-11 (Q-12) | Cần mục "Lead trùng" riêng để quyết định gộp, hay chỉ cần cảnh báo trên NBA? | Phạm vi lát sau | Chỉ cảnh báo |
