@@ -207,10 +207,32 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
+# CRON-03: 06:30 hằng ngày kéo các nguồn đã đặt <PREFIX>_SOURCE=mcp (HOOK, ADS, MARKET); nguồn chế độ file bỏ qua.
+cat > "$UNIT_DIR/growth-pull.service" <<EOF
+[Unit]
+Description=Growth Workspace: kéo nguồn MCP (Hook, chiến dịch, thị trường)
+
+[Service]
+Type=oneshot
+WorkingDirectory=$APP_DIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$BUN run src/jobs/pull-sources.ts
+EOF
+cat > "$UNIT_DIR/growth-pull.timer" <<EOF
+[Unit]
+Description=Growth Workspace: kéo nguồn MCP 06:30 hằng ngày
+
+[Timer]
+OnCalendar=*-*-* 06:30:00 Asia/Ho_Chi_Minh
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
 systemctl --user daemon-reload
-systemctl --user enable growth-queue.service growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer
+systemctl --user enable growth-queue.service growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer
 systemctl --user restart growth-queue.service
-systemctl --user start growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer
+systemctl --user start growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer
 
 # Biểu tượng "Hàng chờ Growth" trong danh sách ứng dụng và trên màn hình.
 apps="$HOME/.local/share/applications"

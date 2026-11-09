@@ -18,7 +18,6 @@ import {
   DATA01_PARAMS,
   CHANNEL_PARAMS,
   AD_RULES,
-  HOOK_PARAMS,
   getRemoteSource,
   type RemoteSource,
   isLocalBaseUrl,
@@ -231,7 +230,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   }
 
   function hooksPage(session: Session, message: string | null): string {
-    return renderHooksPage({ board: buildHookBoard(deps.db), weights: HOOK_PARAMS.weights, canPull: deps.hookSource?.mode === "mcp", csrf: session.csrf, message });
+    return renderHooksPage({ board: buildHookBoard(deps.db), weights: currentTuning(deps.db).hookWeights, canPull: deps.hookSource?.mode === "mcp", csrf: session.csrf, message });
   }
 
   function creativePage(session: Session, message: string | null): string {
