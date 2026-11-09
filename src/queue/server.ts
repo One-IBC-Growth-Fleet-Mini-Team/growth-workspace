@@ -96,6 +96,8 @@ import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
 import { canPost, canSee, stripForbiddenForms } from "./roles.ts";
 import { readSample } from "./samples.ts";
+import { renderOverviewPage } from "./views/overview.ts";
+import { buildOverview, rowsFor } from "../mi1/overview.ts";
 import { listProvisional, setProvisional } from "../provisional.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
 import { renderAskPage } from "./views/ask.ts";
@@ -421,6 +423,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/market") {
       if (!session) return redirect("/login");
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/overview") {
+      if (!session) return redirect("/login");
+      const progress = new URL("../../docs/progress.json", import.meta.url).pathname;
+      return respond(renderOverviewPage(rowsFor(userOf(session).role, buildOverview(deps.db, now(), progress))), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path.startsWith("/samples/")) {
