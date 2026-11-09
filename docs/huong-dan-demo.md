@@ -39,6 +39,10 @@ Khi thấy dòng "Bản demo Hàng chờ đang chạy", mở Chrome hoặc Edge:
 
 - `http://localhost:3000/login`: vào bằng Amy, bấm thử Xác nhận, Sửa, Bác, Escalate, Báo PII.
 - `http://localhost:3000/login?as=mark`: vào bằng Mark, chỉ xem, không có nút duyệt.
+- `http://localhost:3000/login?as=mkt`: vào bằng Team MKT, chỉ thấy trang số tổng hợp.
+- `http://localhost:3000/login?as=bod`: vào bằng BOD, xem như Mark.
+
+Mọi trang có dải "Dữ liệu mẫu": số liệu giả nạp từ `deploy/samples`.
 
 Tắt: quay lại cửa sổ lệnh, nhấn Ctrl+C.
 

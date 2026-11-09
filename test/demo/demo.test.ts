@@ -33,6 +33,25 @@ describe("Bản demo", () => {
     expect((await app.fetch(new Request("http://localhost:3000/login?as=stranger"))).status).toBe(403);
   });
 
+  test("T-DEMO-01 dữ liệu mẫu cho trang MKT, dải Dữ liệu mẫu, tài khoản MKT và BOD (D-75)", async () => {
+    const { app } = await createDemo(new Date("2026-11-09T01:00:00.000Z"));
+    const as = async (who: string) => (await app.fetch(new Request(`http://localhost:3000/login?as=${who}`))).headers.getSetCookie().find((c) => c.startsWith("gw_session="))!.split(";")[0]!;
+    const page = async (cookie: string, path: string) => app.fetch(new Request(`http://localhost:3000${path}`, { headers: { cookie } }));
+    const mkt = await as("mkt");
+    const hooks = await (await page(mkt, "/hooks")).text();
+    expect(hooks).toContain("Dữ liệu mẫu");
+    expect(hooks).toContain("HK-01");
+    expect(await (await page(mkt, "/creative")).text()).toContain("oneibc_meta_all_hk-01_20261109_v1");
+    expect((await page(mkt, "/budget")).status).toBe(403);
+    const budget = await (await page(await as("mark"), "/budget")).text();
+    expect(budget).toContain("Sample HK Q4");
+    expect(budget).toContain("Win gate (Mi1-mkt-01) (Tạm)");
+    expect((await page(mkt, "/leads")).status).toBe(403);
+    const bod = await as("bod");
+    expect((await page(bod, "/partners")).status).toBe(200);
+    expect(await (await page(bod, "/queue")).text()).not.toContain("/confirm");
+  });
+
   test("T-Q-06 (demo) chỉ nghe trên 127.0.0.1; mã chạy thật không import src/demo", async () => {
     expect(DEMO_HOST).toBe("127.0.0.1");
     const root = new URL("../../", import.meta.url).pathname;
