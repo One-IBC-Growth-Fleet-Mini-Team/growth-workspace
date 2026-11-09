@@ -72,5 +72,25 @@ describe("T-CF-07 trang /creative có nút đóng gói khi QA PASS", () => {
     const page = await (await app.fetch(new Request("https://queue.example.invalid/creative", { headers: { cookie: session(MARK).cookie } }))).text();
     expect(page).toContain('action="/creative/export"');
     expect(page).toContain("meta 9:16 (4), google 16:9 (3)");
+    expect(page).toContain('action="/creative/analyze"');
+  });
+});
+
+describe("T-CF-08 phân tích bước 7", () => {
+  test("T-CF-08 gọi analyze_campaign, trả số asset, QA và khuyến nghị; sai hợp đồng thì báo lỗi", async () => {
+    const { analyzeCampaign } = await import("../../src/creative/factory.ts");
+    const db = freshDb();
+    const s = new McpServer({ name: "fake", version: "0" });
+    s.registerTool("analyze_campaign", { inputSchema: { creative_ir_id: z.string() } }, async () => ({ content: [{ type: "text" as const, text: JSON.stringify({
+      report_id: "an-1", assets: { total: 33, generated: 26, approved: 26, rejected: 0, pending: 7 }, quality: { assessed: 26, passed: 26, failed: 0, pass_rate: 1 },
+      recommendations: [{ severity: "warning", category: "lifecycle", message: "Campaign has not reached COMPLETED." }] }) }] }));
+    const [x, y] = InMemoryTransport.createLinkedPair();
+    await s.connect(x);
+    expect(await analyzeCampaign(db, { transport: y }, "IR-1")).toEqual({ status: "succeeded", generated: 26, approved: 26, pending: 7, passRate: 1, recommendations: [{ severity: "warning", message: "Campaign has not reached COMPLETED." }] });
+    const bad = new McpServer({ name: "fake", version: "0" });
+    bad.registerTool("analyze_campaign", {}, async () => ({ content: [{ type: "text" as const, text: "{}" }] }));
+    const [p, q] = InMemoryTransport.createLinkedPair();
+    await bad.connect(p);
+    expect(await analyzeCampaign(db, { transport: q }, "IR-1")).toEqual({ status: "failed", errorCode: "CREATIVE_MCP_CONTRACT" });
   });
 });

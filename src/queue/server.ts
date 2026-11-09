@@ -82,7 +82,7 @@ import { renderCompetitorsPage } from "./views/competitors.ts";
 import { importHookCsv, importHooksFromMcp } from "../crm/hook-import.ts";
 import { buildHookBoard } from "../db/hooks.ts";
 import { renderHooksPage } from "./views/hooks.ts";
-import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, exportBundles } from "../creative/factory.ts";
+import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, exportBundles, analyzeCampaign } from "../creative/factory.ts";
 import { renderCreativePage } from "./views/creative.ts";
 import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
 import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
@@ -619,7 +619,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       }
 
       // Creative Factory (D-44): duyệt Storyboard là quyết định có tiền, ghi người duyệt; gọi ra ngoài chỉ khi CREATIVE_SOURCE=mcp.
-      if (path === "/creative/decide" || path === "/creative/compile" || path === "/creative/run" || path === "/creative/export") {
+      if (path === "/creative/decide" || path === "/creative/compile" || path === "/creative/run" || path === "/creative/export" || path === "/creative/analyze") {
         const by = { now: now(), actor: userOf(session).id };
         const src = deps.creativeSource;
         const target = src?.mode === "mcp" ? { url: src.url, token: src.token } : null;
@@ -639,6 +639,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const r = h ? await compileFromHook(deps.db, target, { hookId: h.hookId, text: h.text, jurisdiction: h.jurisdiction }, by) : { status: "failed" as const, errorCode: "HOOK_NOT_FOUND" };
           ok = r.status === "succeeded";
           msg = r.status === "succeeded" ? `Đã tạo Storyboard ${r.creativeIrId}, chờ duyệt.` : `Chưa tạo được Storyboard (${r.errorCode}).`;
+        } else if (path === "/creative/analyze") {
+          const r = await analyzeCampaign(deps.db, target, String(form.get("id") ?? ""));
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded"
+            ? `Phân tích (bước 7): ${r.generated} asset đã tạo, ${r.approved} đã duyệt, ${r.pending} chưa tạo; QA pass ${(r.passRate * 100).toFixed(0)}%. ${r.recommendations.map((x) => `[${x.severity}] ${x.message}`).join(" ")}`
+            : `Chưa phân tích được (${r.errorCode}).`;
         } else if (path === "/creative/export") {
           const r = await exportBundles(deps.db, target, String(form.get("id") ?? ""), by);
           ok = r.status === "succeeded";

@@ -21,5 +21,6 @@ ${s.note ? html`<p class="meta">Ghi chú: ${s.note}</p>` : ""}${s.lastRun ? html
 <button name="decision" value="approve">Duyệt</button><button name="decision" value="reject">Từ chối</button></form>
 ${args.connected && s.status === "approved" ? html`<form method="post" action="/creative/run"><input type="hidden" name="csrf" value="${args.csrf}"><input type="hidden" name="id" value="${s.creativeIrId}"><button name="run" value="1">Chạy tạo ảnh, video (STRICT)</button></form>` : ""}
 ${s.lastExport ? html`<p class="meta">Đóng gói ${s.lastExport.exportedAt} (chạy thử, chưa đăng): ${s.lastExport.bundles.map((b) => `${b.channel} ${b.aspectRatio} (${b.entries})`).join(", ")}</p>` : ""}
+${args.connected && s.lastRun ? html`<form method="post" action="/creative/analyze"><input type="hidden" name="csrf" value="${args.csrf}"><input type="hidden" name="id" value="${s.creativeIrId}"><button type="submit">Phân tích (bước 7)</button></form>` : ""}
 ${args.connected && s.status === "approved" && s.lastRun?.qaStatus === "PASS" ? html`<form method="post" action="/creative/export"><input type="hidden" name="csrf" value="${args.csrf}"><input type="hidden" name="id" value="${s.creativeIrId}"><button type="submit">Đóng gói cho kênh (chạy thử)</button></form>` : ""}</div>`) : html`<p class="meta">Chưa có Storyboard.</p>`}</section>`);
 }

@@ -104,6 +104,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - CRON-03 (D-61, phiên 12): job kéo nguồn MCP 06:30, timer trong bản cài. Test T-PULL-01.
   - Eval Gate Mi1 hỏi đáp (D-62, phiên 12): `evals/mi1-ask/EVAL_mi1-ask.json` theo chuẩn repo Mi1, `bun run eval:mi1`; `/ask` khoá tới khi eval pass. Chưa chạy với Claude thật (môi trường build không có API key). Test T-ASK-05 tới T-ASK-07.
   - Phân quyền MKT, BOD (D-63, phiên 12): MKT chỉ thấy trang số tổng hợp, không thấy mã khách; BOD xem như Mark. Persona cho MKT chờ dữ liệu CRM. Test T-ROLE-01 tới T-ROLE-03.
+  - Bước 7 analyze (D-64, phiên 12): nút trên `/creative`, tool `analyze_campaign` bên creative-factory-v2 (#20). Test T-CF-08.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -151,7 +152,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 5a. Phần spec xây được ngay bằng dữ liệu tổng hợp (so lại spec 09/11/2026), làm lần lượt: lịch trong `deploy/local` đã có CRON-05, CRON-06, CRON-08; CRON-03 kéo nguồn MCP lúc 06:30 (D-61), CRON-01 chờ nguồn sự kiện, CRON-02, 04 nằm trong Brief sáng, CRON-09 có job và trang `/monthly` (D-55), CRON-07 chưa có job (mục 10). Đã làm xong cả bốn mục (D-50 tới D-53).
 5b. Để sau (Mark 09/11/2026): trang persona tổng hợp cho Team MKT (spec mục 1 câu 2, D-63): phân khúc và persona từ deal Closed Won, không tên, không mã khách. Cần file Opportunity, Account xuất từ CRM (chặn a); làm adapter tải file trước khi có API.
 5c. Việc kỹ thuật làm tiếp, theo thứ tự (lập 09/11/2026, không cần ai chốt):
-   1. Bước 7 "analyze" của Creative Factory (spec mục 7, Mi1-mkt-01): bọc package `analytics-engine` của creative-factory-v2 thành tool MCP bên repo đó, rồi Growth gọi và hiện ở `/creative` hoặc `/ads-overview`.
+   1. Xong (D-64): bước 7 "analyze" của Creative Factory (spec mục 7, Mi1-mkt-01): bọc package `analytics-engine` của creative-factory-v2 thành tool MCP bên repo đó, rồi Growth gọi và hiện ở `/creative` hoặc `/ads-overview`.
    2. `match_to_contact` (partner-mcp): giới hạn số lần tra mỗi phút và ghi log số lần tra (không ghi giá trị).
    3. `/tasks`: không tính lại toàn bộ bảng sự kiện; chỉ tính độ phủ 7 ngày.
    4. Truy vấn tự viết gắn nhãn "Chưa xác minh" kèm tỷ lệ độ phủ nối (spec mục 4), sau khi eval Mi1 đã chạy thật.
