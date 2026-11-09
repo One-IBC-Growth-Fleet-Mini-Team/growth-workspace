@@ -237,5 +237,9 @@ export const AD_RULES = {
 } as const;
 export type AdRules = { banned: readonly string[]; review: readonly string[]; brandAllow: readonly string[]; maxOpening: number; maxHeadline: number; maxDescription: number };
 
+// Mi1-mkt-01 tầng 2 (spec mục 8; D-39): xét quảng cáo từ 3.000 impressions mỗi tuần; Frequency trên 2,5.
+export const ADS_TIER2_PARAMS = { minImpressions: 3000, maxFrequency: 2.5 } as const;
+export type AdsTier2Params = { minImpressions: number; maxFrequency: number };
+
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;
