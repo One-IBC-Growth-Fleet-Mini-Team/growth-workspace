@@ -8,6 +8,7 @@ import { z } from "zod";
 import { log } from "../log.ts";
 import { callRemoteTool, RemoteToolError, type RemoteTarget } from "../mcp/remote.ts";
 import { redactR1 } from "../pii/redact-regex.ts";
+import { repeatedRejections } from "../db/rejections.ts";
 
 const Compiled = z.object({ creative_ir_id: z.string().min(1), storyboard: z.object({ title: z.string().min(1), scenes: z.array(z.string()).min(1) }) });
 const Ran = z.object({ run_id: z.string(), qa_status: z.string(), assets: z.array(z.object({ asset_id: z.string(), kind: z.string() })) });
@@ -15,7 +16,9 @@ const failCode = (e: unknown) => (e instanceof RemoteToolError ? e.code : "CREAT
 
 export async function compileFromHook(db: Database, target: RemoteTarget, hook: { hookId: string; text: string; jurisdiction: string | null }, opts: { now: Date; actor: string }) {
   try {
-    const r = Compiled.safeParse(await callRemoteTool(target, "compile_creative_ir", { hook_id: hook.hookId, hook_text: hook.text, jurisdiction: hook.jurisdiction, validation_mode: "STRICT" }));
+    const r = Compiled.safeParse(await callRemoteTool(target, "compile_creative_ir", { hook_id: hook.hookId, hook_text: hook.text, jurisdiction: hook.jurisdiction, validation_mode: "STRICT",
+      // Tầng 4 (D-54): mã lý do từ chối lặp lại để bước 1 thêm câu lọc vào câu 2 tới 3.
+      rejection_reasons: repeatedRejections(db, opts.now).map((x) => x.code) }));
     if (!r.success) return { status: "failed" as const, errorCode: "CREATIVE_MCP_CONTRACT" };
     db.run("INSERT OR IGNORE INTO storyboards (creative_ir_id, hook_id, jurisdiction, title, scenes, created_at, actor) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [r.data.creative_ir_id.slice(0, 64), hook.hookId, hook.jurisdiction, r.data.storyboard.title.slice(0, 200), JSON.stringify(r.data.storyboard.scenes.map((x) => x.slice(0, 300))), opts.now.toISOString(), opts.actor]);

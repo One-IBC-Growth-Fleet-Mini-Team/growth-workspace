@@ -1,7 +1,7 @@
 // Quy tắc thao tác trên mục hàng chờ (design doc mục 4.4, 5.7). Mỗi thao tác hợp lệ ghi đúng một queue_event.
 // Form chỉ có trường cố định theo loại mục; ghi chú giới hạn độ dài và qua R1, R3 trước khi lưu (T-PII-06).
 import type { Database } from "bun:sqlite";
-import { METRIC_PARAMS } from "../config.ts";
+import { currentTuning } from "../db/tuning.ts";
 import { getQueueItem, insertQueueEvent, listItemEvents, type QueueAction, type QueueItemRow } from "../db/queue.ts";
 import { guardOutput } from "../pii/name-guard.ts";
 import { REASON_CODES } from "../agents/sa-01/catalog.ts";
@@ -91,7 +91,7 @@ export function recordItemAction(
     case "pii_flag":
       break;
     case "escalate":
-      if (item.confidence >= METRIC_PARAMS.confidenceEscalateBelow) return fail(422, "ESCALATE_ONLY_BELOW_THRESHOLD");
+      if (item.confidence >= currentTuning(db).confidenceEscalateBelow) return fail(422, "ESCALATE_ONLY_BELOW_THRESHOLD");
       break;
     case "reject": {
       const reason = cleanText(args.form.get("reason") as string | null, args.rmNames, true);

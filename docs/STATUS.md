@@ -93,6 +93,9 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Lịch chạy trên máy Ubuntu (phiên 12): thêm timer CRON-05 (Mi1-sa-01 08:00, 13:00 thứ Hai tới thứ Bảy) và CRON-08 (`src/jobs/digest-weekly.ts`, báo Digest qua Teams 08:30 thứ Hai); tin Teams nhận link http localhost theo D-26. Test T-N-03.
   - `execute_approved_cypher` (D-51, phiên 12): growth-mcp chạy 5 truy vấn mẫu đã duyệt trên Growth DB (câu hỏi đầu ra 3, 4, 5, 7). Test T-AQ-01, T-AQ-02.
   - Chuỗi 12 ID (D-52, phiên 12): khối trên `/data`, độ phủ từng mắt nối; 3 mắt nối chưa có sự kiện trong Phụ lục A2, cần hỏi MobCEC bổ sung. Test T-DATA-05.
+  - Ngưỡng và trọng số (D-53, phiên 12): trang `/tuning`, chỉ Mark đổi ngưỡng escalate và trọng số Hook, kích hoạt sau khi eval chạy lại và pass. Test T-TUNE-01 tới T-TUNE-03.
+  - Tầng 4 (D-54, phiên 12): lý do từ chối Amy đã xác nhận lặp từ 3 lần trong 28 ngày được gửi kèm `compile_creative_ir`, hiện ở `/creative`. Test T-T4-01, T-T4-02.
+  - Báo cáo tháng (D-55, phiên 12): trang `/monthly`, job CRON-09 báo Mark 07:00 ngày 1. Test T-MON-01, T-MON-02.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -107,7 +110,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## Tiến độ toàn dự án (ước tính 09/11/2026, tính cả PR đang mở)
 
-Khoảng **55%** spec v0.3.2 (tính cả chuỗi PR #35 tới #41). GĐ0 khoảng 85% (thiếu Neo4j, execute_approved_cypher); GĐ1 khoảng 80%; GĐ2 khoảng 60% (đủ 4 thuyền viên mkt và ổ cắm MCP; còn Win gate, lịch kênh, phía repo creative-factory-v2); GĐ3 chưa bắt đầu. Phần còn lại phần lớn là nối nguồn thật vào các ổ cắm đã có.
+Khoảng **60%** spec v0.3.2 (cập nhật phiên 12). GĐ0 khoảng 90% (thiếu Neo4j; `execute_approved_cypher` đã có, chạy trên Growth DB); GĐ1 khoảng 85%; GĐ2 khoảng 65% (đủ 4 thuyền viên mkt, ổ cắm MCP, tầng 4 nối về Creative; còn Win gate, lịch kênh, tầng 3B); GĐ3 chưa bắt đầu. Phần còn lại phần lớn là nối nguồn thật vào các ổ cắm đã có.
 
 | Hạng mục | Trạng thái |
 |---|---|
@@ -137,7 +140,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật: đã biết cấu trúc CRM và tên Stage thật (D-42). Còn thiếu đường lấy dữ liệu: trang quản trị CRM không có nút xuất CSV, cần MobCEC xuất hộ file Opportunity, Lead, Order, Account (đủ cột theo `deploy/crm-columns.example.json`) hoặc mở API (chặn a). Danh bạ RM: lấy từ file "CRM MobCEC - New - Oct 22 2026.xlsx" (danh sách tài khoản CRM), nạp bằng `scripts/load-rm-directory.ts`, giữ ngoài repo.
 5. Đã có ổ cắm cho mọi nguồn ngoài trong spec mục 9 trừ partner-mcp và atlassian-m365-drive-mcp (hợp đồng ở `docs/context/hop-dong-mcp.md`); nối khi hệ thống có: HOOK (SEO/AIO), CREATIVE (creative-factory-v2 đã merge #12 tới #16; chạy `packages/mcp-server` với `PORT=8787 CF_MCP_TOKEN=...`, rồi đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL=http://127.0.0.1:8787/mcp`, `CREATIVE_MCP_TOKEN` cùng giá trị. Đã chạy thử thật 09/11/2026: compile ra Storyboard; chạy khi chưa duyệt bị chặn `STORYBOARD_NOT_APPROVED`; sau khi duyệt chạy xong, QA PASS, 26 asset. Token sai hiện báo `REMOTE_UNREACHABLE`, chưa tách mã lỗi riêng), ADS, MARKET. Còn chờ định nghĩa: Win gate, lịch kênh (`schedule_channel_post`), chính sách hoa hồng (partner-mcp `calc_commission`), kiểm màu ảnh. Phơi MCP qua HTTP khi có máy chủ.
-5a. Phần spec xây được ngay bằng dữ liệu tổng hợp (so lại spec 09/11/2026), làm lần lượt: lịch trong `deploy/local` đã có CRON-05, CRON-06, CRON-08; CRON-01, 03 chờ nguồn sự kiện và ads, CRON-02, 04 nằm trong Brief sáng, CRON-07, 09 chưa có job (mục 10); ngưỡng 0,8 và trọng số chỉ Mark đổi, chạy lại eval trước khi có hiệu lực (mục 6).
+5a. Phần spec xây được ngay bằng dữ liệu tổng hợp (so lại spec 09/11/2026), làm lần lượt: lịch trong `deploy/local` đã có CRON-05, CRON-06, CRON-08; CRON-01, 03 chờ nguồn sự kiện và ads, CRON-02, 04 nằm trong Brief sáng, CRON-09 có job và trang `/monthly` (D-55), CRON-07 chưa có job (mục 10). Đã làm xong cả bốn mục (D-50 tới D-53).
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn
@@ -156,4 +159,4 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- growth-workspace: PR nhánh `claude/tender-gates-nn4rif` (STATUS, `/runs`). PR #23 tới #43 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
+- growth-workspace: PR nhánh `claude/tender-gates-nn4rif` (`/tuning`, tầng 4, báo cáo tháng). PR #23 tới #44 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#17 (câu lọc tầng 4). creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
