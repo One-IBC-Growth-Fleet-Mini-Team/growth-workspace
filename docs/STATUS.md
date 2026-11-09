@@ -114,7 +114,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 1. Các team đã sửa sheet giá, ma trận ngân hàng và xác nhận bộ SKD (ghi nhận 09/11/2026 ở `decisions.md`). Nạp lại file mới ở `/jurisdictions` và `/banks`.
 1a. Mi1-mkt-05 phần còn lại: lịch kênh (chờ phạm vi); verify Meta TW/IN. Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
-2. Thêm `price_row_status`, `skd_kit_done`, `suggestBanks` vào `docs/spec/metric-definitions.md` bằng PR tài liệu riêng (Mark duyệt), cùng các hàm của PR #17, #20, #21 nếu chưa có.
+2. PR tài liệu `metric-definitions.md` (nhánh `claude/tender-gates-nn4rif-metrics`) chờ Mark duyệt: thêm định nghĩa các hàm tính từ PR #20 tới PR #27.
 3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật khi Harvey gửi dòng tên cột CSV, tự báo thật, danh sách RM.
 5. GĐ2 theo spec mục 7, 8: Creative Factory, cổng tuân thủ (bộ từ cấm chờ chốt), mkt-01 tới mkt-04.
@@ -140,5 +140,6 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 - Nhánh `claude/tender-gates-nn4rif-banks` (gợi ý ngân hàng, D-34): PR #24, chồng lên PR #23.
 - Nhánh `claude/tender-gates-nn4rif-sandbox8` (issue log sandbox8, D-35): PR #25, chồng lên #24.
 - Nhánh `claude/tender-gates-nn4rif-data01` (Mi1-data-01, D-36): PR #26, chồng lên #25.
-- Nhánh `claude/tender-gates-nn4rif-channels` (CRON-02, D-37): chồng lên #26. Thứ tự merge: #23, #24, #25, #26, rồi PR này.
+- Nhánh `claude/tender-gates-nn4rif-channels` (CRON-02, D-37): PR #27, chồng lên #26.
+- Nhánh `claude/tender-gates-nn4rif-metrics` (định nghĩa chỉ số, chỉ tài liệu): chồng lên #27, Mark duyệt. Thứ tự merge: #23 tới #27, rồi PR này.
 - PR #12 tới #22 đã merge.
