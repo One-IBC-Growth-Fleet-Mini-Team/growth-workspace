@@ -73,6 +73,9 @@ import { renderAdsPage } from "./views/ads.ts";
 import { importAdReport } from "../crm/ad-report-import.ts";
 import { buildAdsOverview } from "../db/ads-overview.ts";
 import { renderAdsOverviewPage } from "./views/ads-overview.ts";
+import { importCompetitorPrices } from "../crm/competitor-import.ts";
+import { buildCompetitorBoard } from "../db/competitors.ts";
+import { renderCompetitorsPage } from "./views/competitors.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -323,6 +326,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(adsOverviewPage(session, url.searchParams.get("week"), null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/competitors") {
+      if (!session) return redirect("/login");
+      return respond(renderCompetitorsPage({ board: buildCompetitorBoard(deps.db), csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -359,7 +367,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -458,6 +466,15 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const why: Record<string, string> = { AD_FILE_REQUIRED: "Cần chọn file.", AD_WEEK_NOT_MONDAY: "Tuần phải bắt đầu từ thứ Hai.", AD_REPORT_HEADER_NOT_FOUND: "File thiếu cột tên quảng cáo hoặc Impressions.", CSV_INVALID: "File không đúng dạng CSV." };
         const msg = r.status === "succeeded" ? `Đã nạp ${r.ads} quảng cáo ${platform === "meta" ? "Meta" : "Google Ads"} tuần ${week.slice(8, 10)}/${week.slice(5, 7)}.` : `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được file."}`;
         return respond(adsOverviewPage(session, /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : null, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Mark giám sát Mi1-mkt-04 (spec mục 6) nên cả hai người dùng nạp được (D-40).
+      if (path === "/competitors") {
+        const f = form.get("prices");
+        const r = f instanceof File && f.size > 0 ? importCompetitorPrices(deps.db, await f.text(), { now: now(), actor: userOf(session).id }) : { status: "failed" as const, prices: 0, errorCode: "COMPETITOR_FILE_REQUIRED" };
+        const why: Record<string, string> = { COMPETITOR_FILE_REQUIRED: "Cần chọn file.", COMPETITOR_HEADER_NOT_FOUND: "File cần cột competitor, jurisdiction, price_usd.", CSV_INVALID: "File không đúng dạng CSV." };
+        const msg = r.status === "succeeded" ? `Đã nạp ${r.prices} giá đối thủ.` : `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được file."} Dữ liệu cũ vẫn giữ nguyên.`;
+        return respond(renderCompetitorsPage({ board: buildCompetitorBoard(deps.db), csrf: session.csrf, message: msg }), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {
