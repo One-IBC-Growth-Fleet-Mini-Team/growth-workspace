@@ -23,6 +23,7 @@ const FILES: [file: string, marker: string][] = [
   ["014-meta-verify.sql", "meta_country_verifications"],
   ["015-hooks.sql", "hook_imports"],
   ["016-creative.sql", "storyboards"],
+  ["017-budget.sql", "campaign_imports"],
 ];
 const MIGRATIONS: { version: number; marker: string; sql: string }[] = [];
 for (const [name, marker] of FILES) {

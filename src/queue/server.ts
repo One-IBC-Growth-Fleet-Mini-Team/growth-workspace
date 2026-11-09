@@ -85,6 +85,9 @@ import { buildHookBoard } from "../db/hooks.ts";
 import { renderHooksPage } from "./views/hooks.ts";
 import { compileFromHook, decideStoryboard, listStoryboards, runPipeline } from "../creative/factory.ts";
 import { renderCreativePage } from "./views/creative.ts";
+import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
+import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
+import { renderBudgetPage } from "./views/budget.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -117,6 +120,8 @@ export type QueueAppDeps = {
   hookSource?: RemoteSource;
   // Creative Factory (D-44): "mcp" thì bật tạo Storyboard và chạy pipeline; thiếu thì chỉ xem, duyệt.
   creativeSource?: RemoteSource;
+  // Kết quả theo chiến dịch (D-45): "mcp" thì có nút kéo từ ads-mcp.
+  adsSource?: RemoteSource;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
@@ -204,6 +209,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   function creativePage(session: Session, message: string | null): string {
     const hooks = buildHookBoard(deps.db).hooks.filter((h) => h.verdict === "pass" || h.verdict === "review").map((h) => ({ hookId: h.hookId, text: h.text }));
     return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, csrf: session.csrf, message });
+  }
+
+  function budgetPage(session: Session, message: string | null): string {
+    return renderBudgetPage({ board: buildBudgetBoard(deps.db, now()), canPull: deps.adsSource?.mode === "mcp", csrf: session.csrf, message });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -363,6 +372,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(creativePage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/budget") {
+      if (!session) return redirect("/login");
+      return respond(budgetPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -399,7 +413,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" || path === "/hooks" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" || path === "/hooks" || path === "/budget" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -556,6 +570,22 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(creativePage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
+      // Tầng 5 (D-45): nạp kết quả rồi tạo nháp bằng code; duyệt chỉ ghi quyết định, ghi người duyệt.
+      if (path === "/budget" || path === "/budget/decide") {
+        const by = { now: now(), actor: userOf(session).id };
+        if (path === "/budget/decide") {
+          const r = decideBudgetDraft(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), by);
+          return respond(budgetPage(session, r === "ok" ? "Đã ghi quyết định." : "Chưa ghi. Không thấy nháp hoặc quyết định không hợp lệ."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+        }
+        const f = form.get("file");
+        const src = deps.adsSource;
+        const r = form.get("pull") && src?.mode === "mcp" ? await importCampaignsFromMcp(deps.db, { url: src.url, token: src.token }, by)
+          : f instanceof File && f.size > 0 ? importCampaignCsv(deps.db, await f.text(), by) : { status: "failed" as const, campaigns: 0, errorCode: "CAMPAIGN_FILE_REQUIRED" };
+        const made = r.status === "succeeded" ? proposeBudgetDrafts(deps.db, now()) : 0;
+        const msg = r.status === "succeeded" ? `Đã nạp ${r.campaigns} chiến dịch, tạo ${made} nháp đổi ngân sách.` : `Chưa nạp (${r.errorCode}). Dữ liệu cũ vẫn giữ nguyên.`;
+        return respond(budgetPage(session, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
       if (path === "/billing") {
         if (userOf(session).role !== "approver") return text(403, "Không có quyền.");
         const files: BillingFiles = {};
@@ -698,6 +728,7 @@ if (import.meta.main) {
     columns,
     hookSource: getRemoteSource("HOOK"),
     creativeSource: getRemoteSource("CREATIVE"),
+    adsSource: getRemoteSource("ADS"),
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
   Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });
