@@ -25,7 +25,7 @@ import {
   WO_PARAMS,
 } from "../config.ts";
 import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
-import { readEvalStats } from "../agents/sa-01/eval/runner.ts";
+import { latestEvalRun, readEvalStats } from "../agents/sa-01/eval/runner.ts";
 import { runSa01 } from "../agents/sa-01/run.ts";
 import { directCrmReadTools } from "../mcp/crm-read/client.ts";
 import { latestSucceededSnapshot } from "../db/crm-read.ts";
@@ -94,6 +94,8 @@ import { renderMarketPage } from "./views/market.ts";
 import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
 import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
+import { renderTuningPage } from "./views/tuning.ts";
+import { activateTuning, currentTuning, type EvalRun, listTuning, proposeTuning } from "../db/tuning.ts";
 import { buildRunLog, markRunSeen } from "../db/runs.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
@@ -133,6 +135,8 @@ export type QueueAppDeps = {
   marketSource?: RemoteSource;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
+  // Lượt eval gần nhất (D-53): trang /tuning chỉ kích hoạt giá trị mới khi eval đã chạy lại sau lúc đề xuất và pass.
+  evalRun?: () => EvalRun;
 };
 
 const MAX_BODY = 16 * 1024;
@@ -180,6 +184,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     PASSWORD_USERS[s.sub] ?? [...deps.users.values()].find((u) => u.id === s.sub)!;
   // Đếm lần đăng nhập sai theo người dùng, trong bộ nhớ (khởi động lại thì xoá, chấp nhận được với 2 người dùng).
   const fails = new Map<string, { count: number; until: number }>();
+
+  function tuningPage(session: Session, message: string | null): string {
+    return renderTuningPage({ current: currentTuning(deps.db), changes: listTuning(deps.db), evalRun: deps.evalRun?.() ?? { ranAt: null, passed: false }, canTune: userOf(session).id === "mark", csrf: session.csrf, message });
+  }
 
   function billingPage(session: Session, message: string | null): string {
     const board = buildBillingBoard(deps.db, now());
@@ -313,7 +321,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         effectivePayload: latestEditPayload(deps.db, i.id) ?? i.payload,
       }));
       const src = sourceStatus(deps.db, queueDate, now());
-      const page = renderQueuePage({ queueDate, items, user, csrf: session.csrf, now: now(), canPaste: Boolean(deps.onPaste), canImport: Boolean(deps.onImport || deps.onWoImport), canWo: Boolean(deps.onWoImport), ...src });
+      const page = renderQueuePage({ queueDate, items, user, csrf: session.csrf, now: now(), canPaste: Boolean(deps.onPaste), canImport: Boolean(deps.onImport || deps.onWoImport), canWo: Boolean(deps.onWoImport), threshold: currentTuning(deps.db).confidenceEscalateBelow, ...src });
       return respond(page, 200, { "content-type": "text/html; charset=utf-8" });
     }
 
@@ -393,6 +401,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/market") {
       if (!session) return redirect("/login");
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/tuning") {
+      if (!session) return redirect("/login");
+      return respond(tuningPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/runs") {
@@ -635,6 +648,17 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(marketPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
+      if (path === "/tuning") {
+        const actor = userOf(session).id;
+        if (actor !== "mark") return text(403, "Chỉ Mark đổi ngưỡng và trọng số.");
+        const by = { now: now(), actor };
+        const why: Record<string, string> = { VALUE_INVALID: "Giá trị không hợp lệ (ngưỡng trong khoảng 0 tới 1; trọng số là 5 số nguyên, tổng 100).", PARAM_NOT_TUNABLE: "Tham số này không chỉnh được.", EVAL_NOT_RERUN: "Chưa chạy lại eval sau lúc đề xuất (bun run eval:sa01).", EVAL_FAILED: "Lượt eval gần nhất chưa pass.", ALREADY_ACTIVE: "Đã kích hoạt.", NOT_FOUND: "Không thấy đề xuất." };
+        let code: string;
+        if (form.get("op") === "activate") code = activateTuning(deps.db, String(form.get("id") ?? ""), deps.evalRun?.() ?? { ranAt: null, passed: false }, by);
+        else { const r = proposeTuning(deps.db, String(form.get("param") ?? ""), String(form.get("value") ?? ""), by); code = r.status === "ok" ? "ok" : r.errorCode; }
+        return respond(tuningPage(session, code === "ok" ? "Đã ghi." : `Chưa ghi. ${why[code] ?? ""}`), code === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
       if (path === "/runs") {
         const r = markRunSeen(deps.db, String(form.get("run_id") ?? ""), { now: now(), actor: userOf(session).id });
         if (r === "NOT_SUPERVISOR") return text(403, "Chỉ người giám sát của agent này được đánh dấu.");
@@ -768,6 +792,7 @@ if (import.meta.main) {
     return { ok: r.status === "succeeded", message: woImportMessage(r) };
   };
   const app = createQueueApp({
+    evalRun: () => latestEvalRun(getEvalResultsDir(root)),
     db,
     sessionSecret: cfg.sessionSecret,
     baseUrl: cfg.baseUrl,

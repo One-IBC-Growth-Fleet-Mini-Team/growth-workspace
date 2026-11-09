@@ -197,3 +197,13 @@ export function readEvalStats(dir: string): { stats: EvalStats; evalVersion: str
     evalVersion: s.eval_version,
   };
 }
+
+// Lượt eval gần nhất cho trang đổi ngưỡng (D-53): pass khi đúng phiên bản prompt, danh mục và không có ca hard nào hỏng.
+export function latestEvalRun(dir: string): { ranAt: string | null; passed: boolean } {
+  const file = join(dir, "latest.json");
+  if (!existsSync(file)) return { ranAt: null, passed: false };
+  const s = JSON.parse(readFileSync(file, "utf8")) as EvalSummary;
+  const fresh = s.prompt_version === PROMPT_VERSION && s.catalog_version === CATALOG_VERSION;
+  const tasks = Object.values(s.tasks);
+  return { ranAt: s.ran_at, passed: fresh && (s.tasks.pii?.total ?? 0) > 0 && tasks.length > 0 && tasks.every((t) => t.hard_failures === 0) };
+}

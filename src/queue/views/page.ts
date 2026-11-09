@@ -157,7 +157,7 @@ function rmListText(payload: Record<string, unknown>): string {
   return lines.join("\n");
 }
 
-function card(item: PageItem, user: QueueUser, csrf: string, now: Date): SafeHtml {
+function card(item: PageItem, user: QueueUser, csrf: string, now: Date, threshold: number): SafeHtml {
   const payload = JSON.parse(item.effectivePayload) as Record<string, unknown>;
   const inputs = JSON.parse(item.confidence_inputs) as Record<string, unknown>;
   const rules = JSON.parse(item.rules_fired) as string[];
@@ -166,7 +166,7 @@ function card(item: PageItem, user: QueueUser, csrf: string, now: Date): SafeHtm
   const hasOutcome = item.events.some((e) => e.action === "rm_outcome");
   const link = typeof payload.source_link === "string" && payload.source_link.startsWith("https://") ? payload.source_link : null;
   return html`<article class="card" id="item-${item.id}">
-<div class="meta">${displayState(item)} · tuổi ${ageText(item.created_at, now)} · điểm tự tin ${item.confidence.toFixed(2)} ${item.confidence < METRIC_PARAMS.confidenceEscalateBelow ? html`<strong>(dưới 0,80)</strong>` : ""}</div>
+<div class="meta">${displayState(item)} · tuổi ${ageText(item.created_at, now)} · điểm tự tin ${item.confidence.toFixed(2)} ${item.confidence < threshold ? html`<strong>(dưới ${threshold.toFixed(2).replace(".", ",")})</strong>` : ""}</div>
 ${itemBody(item, payload)}
 <details class="tech"><summary>Chi tiết kỹ thuật</summary><div class="meta">Luật: ${rules.length ? rules.join(", ") : "không"} · Thành phần điểm: ${JSON.stringify(inputs)}</div><pre>${JSON.stringify(payload, null, 2)}</pre></details>
 ${link ? html`<div><a href="${link}" rel="noreferrer">Mở bản gốc trong Teams</a></div>` : ""}
@@ -175,7 +175,7 @@ ${canAct ? html`<div>
 ${actionForm(item, "confirm", csrf, "Xác nhận")}
 <details style="display:inline-block"><summary>Sửa</summary>${actionForm(item, "edit", csrf, "Lưu bản sửa", editFields(item, payload))}</details>
 ${actionForm(item, "reject", csrf, "Bác", html`<input name="reason" required maxlength="300" placeholder="Lý do bác"> `)}
-${item.confidence < METRIC_PARAMS.confidenceEscalateBelow ? actionForm(item, "escalate", csrf, "Escalate lên Mark") : ""}
+${item.confidence < threshold ? actionForm(item, "escalate", csrf, "Escalate lên Mark") : ""}
 ${actionForm(item, "pii_flag", csrf, "Báo PII")}
 ${confirmed && !hasOutcome ? actionForm(item, "rm_outcome", csrf, "Ghi phản hồi RM", html`<select name="outcome">${RM_OUTCOMES.map((o) => html`<option value="${o}">${OUTCOME_TEXT[o]}</option>`)}</select> `) : ""}
 </div>` : ""}
@@ -193,6 +193,7 @@ export function renderQueuePage(args: {
   canPaste?: boolean;
   canImport?: boolean;
   canWo?: boolean;
+  threshold?: number;
 }): string {
   const visible = args.items.filter((i) => i.state !== "pii_flag");
   const statusText =
@@ -200,11 +201,11 @@ export function renderQueuePage(args: {
   const body = html`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hàng chờ ${ddmm(args.queueDate)}</title><style>${new SafeHtml(STYLE)}</style></head><body>
 <h1>Hàng chờ ngày ${ddmm(args.queueDate)}</h1>
-<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}<a href="/leads">Lead trùng</a>${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}<a href="/partners">Đối tác</a><a href="/jurisdictions">45 tài phán</a><a href="/banks">Gợi ý ngân hàng</a><a href="/data">Độ phủ ID</a><a href="/channels">Tài khoản kênh</a><a href="/ads-check">Kiểm quảng cáo</a><a href="/ads-overview">Quảng cáo tuần</a><a href="/competitors">Giá đối thủ</a><a href="/hooks">Hook</a><a href="/creative">Creative</a><a href="/budget">Ngân sách</a><a href="/market">Thị trường</a><a href="/lessons">Bài học</a><a href="/runs">Phiên chạy</a><a href="/billing">Đơn hàng và invoice</a><a href="/brief">Brief sáng</a><a href="/digest">Digest tuần</a></nav>
+<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}<a href="/leads">Lead trùng</a>${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}<a href="/partners">Đối tác</a><a href="/jurisdictions">45 tài phán</a><a href="/banks">Gợi ý ngân hàng</a><a href="/data">Độ phủ ID</a><a href="/channels">Tài khoản kênh</a><a href="/ads-check">Kiểm quảng cáo</a><a href="/ads-overview">Quảng cáo tuần</a><a href="/competitors">Giá đối thủ</a><a href="/hooks">Hook</a><a href="/creative">Creative</a><a href="/budget">Ngân sách</a><a href="/market">Thị trường</a><a href="/lessons">Bài học</a><a href="/runs">Phiên chạy</a><a href="/tuning">Ngưỡng</a><a href="/billing">Đơn hàng và invoice</a><a href="/brief">Brief sáng</a><a href="/digest">Digest tuần</a></nav>
 <div class="status ${args.status}">${statusText} · Snapshot CRM: ${args.snapshotAt ?? "chưa có"} · Người dùng: ${args.user.id}</div>
 ${GROUPS.map((g) => {
     const list = visible.filter((i) => i.item_type === g.type);
-    return html`<section><h2>${g.title} (${list.length})</h2>${list.length ? list.map((i) => card(i, args.user, args.csrf, args.now)) : html`<p class="meta">Không có mục.</p>`}</section>`;
+    return html`<section><h2>${g.title} (${list.length})</h2>${list.length ? list.map((i) => card(i, args.user, args.csrf, args.now, args.threshold ?? METRIC_PARAMS.confidenceEscalateBelow)) : html`<p class="meta">Không có mục.</p>`}</section>`;
   })}
 <form method="post" action="/logout"><input type="hidden" name="csrf" value="${args.csrf}"><button type="submit">Đăng xuất</button></form>
 </body></html>`;
