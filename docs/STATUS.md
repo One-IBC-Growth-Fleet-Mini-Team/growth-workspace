@@ -83,6 +83,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Mi1-mkt-04 (D-40, phiên 11): trang `/competitors` so giá gói đối thủ với sheet FINAL theo tài phán và gói. Test T-MKT4-01 tới T-MKT4-03. Mi1-mkt-02 chờ tiêu chí chấm Hook (K-08).
   - Mi1-mkt-03 verify Meta TW/IN (D-41, phiên 11): ghi trạng thái verify theo quốc gia ở `/channels`; `/ads-check` giữ lại mẫu nhắm quốc gia chưa verify. Test T-MKT3-01 tới T-MKT3-03.
   - Mi1-mkt-02 (D-43, phiên 11): trang `/hooks` chấm Hook 25/25/20/15/15 từ điểm tiêu chí của nguồn (file hoặc MCP `get_hook_scores` của hệ thống SEO/AIO), qua cổng tuân thủ, đề xuất Hook card. Test T-HOOK-01 tới T-HOOK-04.
+  - Creative Factory (D-44, phiên 11): trang `/creative`, cổng MCP tới creative-factory-v2; cổng Storyboard chặn bước tạo ảnh, video khi chưa duyệt. Test T-CF-01 tới T-CF-04.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -126,7 +127,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 2. `metric-definitions.md` đã có định nghĩa các hàm tính tới PR #27 (PR #28 đã merge); hàm mới sau này thêm bằng PR tài liệu riêng.
 3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật: đã biết cấu trúc CRM và tên Stage thật (D-42). Còn thiếu đường lấy dữ liệu: trang quản trị CRM không có nút xuất CSV, cần MobCEC xuất hộ file Opportunity, Lead, Order, Account (đủ cột theo `deploy/crm-columns.example.json`) hoặc mở API (chặn a). Danh bạ RM: lấy từ file "CRM MobCEC - New - Oct 22 2026.xlsx" (danh sách tài khoản CRM), nạp bằng `scripts/load-rm-directory.ts`, giữ ngoài repo.
-5. GĐ2 còn lại, mỗi việc đang chờ một đầu vào: Win gate và nháp đổi ngân sách tầng 5 (chuỗi ID từ quảng cáo tới đơn hàng, cần sự kiện thật của MobCEC); Mi1-mkt-03 quy định và tiếng khách (nguồn market-scan); Creative Factory (4 việc trên repo creative-factory-v2, chưa gắn vào phiên); kiểm màu ảnh của cổng tuân thủ. Đã xong bản đầu: cổng tuân thủ (D-38), mkt-01 tổng quan và tầng 2 (D-39), mkt-04 (D-40), verify Meta (D-41).
+5. GĐ2 còn lại, mỗi việc đang chờ một đầu vào: Win gate và nháp đổi ngân sách tầng 5 (chuỗi ID từ quảng cáo tới đơn hàng, cần sự kiện thật của MobCEC); Mi1-mkt-03 quy định và tiếng khách (nguồn market-scan); Creative Factory phía repo creative-factory-v2 (4 việc, gắn repo sau; phía Growth đã có cổng D-44); kiểm màu ảnh của cổng tuân thủ. Đã xong bản đầu: cổng tuân thủ (D-38), mkt-01 tổng quan và tầng 2 (D-39), mkt-04 (D-40), verify Meta (D-41).
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn

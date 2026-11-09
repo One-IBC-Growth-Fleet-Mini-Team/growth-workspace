@@ -1,0 +1,64 @@
+// Cổng creative-factory-mcp (spec mục 7, 9; D-44). Growth Workspace là nơi gọi Creative Factory:
+//   compile_creative_ir: từ Hook sinh Creative IR và Storyboard, lưu chờ duyệt.
+//   run_creative_pipeline: bước translate, generate, qa ở ValidationMode STRICT (Mi1-mkt-02 bước 1 tới 4).
+// Cổng Storyboard (GATE_REQUIRED): bước generate (gọi model tạo ảnh, video, tốn tiền) chỉ chạy khi quyết định mới
+// nhất về Storyboard là approve; kiểm tại đây, trước khi gọi ra ngoài. Hợp đồng ở docs/context/hop-dong-mcp.md.
+import type { Database } from "bun:sqlite";
+import { z } from "zod";
+import { log } from "../log.ts";
+import { callRemoteTool, RemoteToolError, type RemoteTarget } from "../mcp/remote.ts";
+import { redactR1 } from "../pii/redact-regex.ts";
+
+const Compiled = z.object({ creative_ir_id: z.string().min(1), storyboard: z.object({ title: z.string().min(1), scenes: z.array(z.string()).min(1) }) });
+const Ran = z.object({ run_id: z.string(), qa_status: z.string(), assets: z.array(z.object({ asset_id: z.string(), kind: z.string() })) });
+const failCode = (e: unknown) => (e instanceof RemoteToolError ? e.code : "CREATIVE_FAILED");
+
+export async function compileFromHook(db: Database, target: RemoteTarget, hook: { hookId: string; text: string; jurisdiction: string | null }, opts: { now: Date; actor: string }) {
+  try {
+    const r = Compiled.safeParse(await callRemoteTool(target, "compile_creative_ir", { hook_id: hook.hookId, hook_text: hook.text, jurisdiction: hook.jurisdiction, validation_mode: "STRICT" }));
+    if (!r.success) return { status: "failed" as const, errorCode: "CREATIVE_MCP_CONTRACT" };
+    db.run("INSERT OR IGNORE INTO storyboards (creative_ir_id, hook_id, jurisdiction, title, scenes, created_at, actor) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [r.data.creative_ir_id.slice(0, 64), hook.hookId, hook.jurisdiction, r.data.storyboard.title.slice(0, 200), JSON.stringify(r.data.storyboard.scenes.map((x) => x.slice(0, 300))), opts.now.toISOString(), opts.actor]);
+    log({ event: "creative.compiled", run_id: r.data.creative_ir_id });
+    return { status: "succeeded" as const, creativeIrId: r.data.creative_ir_id };
+  } catch (e) {
+    return { status: "failed" as const, errorCode: failCode(e) };
+  }
+}
+
+export function storyboardApproved(db: Database, id: string): boolean {
+  const d = db.query("SELECT decision FROM storyboard_decisions WHERE creative_ir_id = ? ORDER BY decided_at DESC, id DESC LIMIT 1").get(id) as { decision: string } | null;
+  return d?.decision === "approve";
+}
+
+export function decideStoryboard(db: Database, id: string, decision: string, note: string, opts: { now: Date; actor: string }): "ok" | "NOT_FOUND" | "INVALID" {
+  if (decision !== "approve" && decision !== "reject") return "INVALID";
+  if (!db.query("SELECT 1 FROM storyboards WHERE creative_ir_id = ?").get(id)) return "NOT_FOUND";
+  db.run("INSERT INTO storyboard_decisions (id, creative_ir_id, decision, note, decided_at, actor) VALUES (?, ?, ?, ?, ?, ?)",
+    [Bun.randomUUIDv7(), id, decision, redactR1(note.trim().slice(0, 300)).text || null, opts.now.toISOString(), opts.actor]);
+  return "ok";
+}
+
+export async function runPipeline(db: Database, target: RemoteTarget, id: string, opts: { now: Date; actor: string }) {
+  if (!storyboardApproved(db, id)) return { status: "refused" as const, errorCode: "STORYBOARD_NOT_APPROVED" };
+  try {
+    const r = Ran.safeParse(await callRemoteTool(target, "run_creative_pipeline", { creative_ir_id: id, steps: ["translate", "generate", "qa"], validation_mode: "STRICT" }));
+    if (!r.success) return { status: "failed" as const, errorCode: "CREATIVE_MCP_CONTRACT" };
+    db.run("INSERT INTO creative_runs (id, creative_ir_id, run_at, actor, qa_status, assets) VALUES (?, ?, ?, ?, ?, ?)", [Bun.randomUUIDv7(), id, opts.now.toISOString(), opts.actor, r.data.qa_status.slice(0, 20), r.data.assets.length]);
+    log({ event: "creative.ran", run_id: id, count: r.data.assets.length });
+    return { status: "succeeded" as const, qaStatus: r.data.qa_status, assets: r.data.assets.length };
+  } catch (e) {
+    return { status: "failed" as const, errorCode: failCode(e) };
+  }
+}
+
+export function listStoryboards(db: Database) {
+  const rows = db.query("SELECT creative_ir_id, hook_id, jurisdiction, title, scenes, created_at FROM storyboards ORDER BY created_at DESC, creative_ir_id").all() as
+    { creative_ir_id: string; hook_id: string | null; jurisdiction: string | null; title: string; scenes: string; created_at: string }[];
+  return rows.map((r) => {
+    const d = db.query("SELECT decision, note FROM storyboard_decisions WHERE creative_ir_id = ? ORDER BY decided_at DESC, id DESC LIMIT 1").get(r.creative_ir_id) as { decision: string; note: string | null } | null;
+    const run = db.query("SELECT qa_status AS qaStatus, assets, run_at AS runAt FROM creative_runs WHERE creative_ir_id = ? ORDER BY run_at DESC, id DESC LIMIT 1").get(r.creative_ir_id) as { qaStatus: string | null; assets: number; runAt: string } | null;
+    return { creativeIrId: r.creative_ir_id, hookId: r.hook_id, jurisdiction: r.jurisdiction, title: r.title, scenes: JSON.parse(r.scenes) as string[], createdAt: r.created_at,
+      status: d ? (d.decision === "approve" ? "approved" : "rejected") : "pending", note: d?.note ?? null, lastRun: run };
+  });
+}

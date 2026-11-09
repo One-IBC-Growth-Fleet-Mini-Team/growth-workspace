@@ -83,6 +83,8 @@ import { renderCompetitorsPage } from "./views/competitors.ts";
 import { importHookCsv, importHooksFromMcp } from "../crm/hook-import.ts";
 import { buildHookBoard } from "../db/hooks.ts";
 import { renderHooksPage } from "./views/hooks.ts";
+import { compileFromHook, decideStoryboard, listStoryboards, runPipeline } from "../creative/factory.ts";
+import { renderCreativePage } from "./views/creative.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -113,6 +115,8 @@ export type QueueAppDeps = {
   columns?: ColumnMap;
   // Nguồn điểm Hook (D-43): thiếu hoặc "file" thì chỉ tải file; "mcp" thì có nút kéo từ hệ thống SEO/AIO.
   hookSource?: RemoteSource;
+  // Creative Factory (D-44): "mcp" thì bật tạo Storyboard và chạy pipeline; thiếu thì chỉ xem, duyệt.
+  creativeSource?: RemoteSource;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
@@ -195,6 +199,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
   function hooksPage(session: Session, message: string | null): string {
     return renderHooksPage({ board: buildHookBoard(deps.db), weights: HOOK_PARAMS.weights, canPull: deps.hookSource?.mode === "mcp", csrf: session.csrf, message });
+  }
+
+  function creativePage(session: Session, message: string | null): string {
+    const hooks = buildHookBoard(deps.db).hooks.filter((h) => h.verdict === "pass" || h.verdict === "review").map((h) => ({ hookId: h.hookId, text: h.text }));
+    return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, csrf: session.csrf, message });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -347,6 +356,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/hooks") {
       if (!session) return redirect("/login");
       return respond(hooksPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/creative") {
+      if (!session) return redirect("/login");
+      return respond(creativePage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/billing") {
@@ -513,6 +527,35 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(hooksPage(session, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
+      // Creative Factory (D-44): duyệt Storyboard là quyết định có tiền, ghi người duyệt; gọi ra ngoài chỉ khi CREATIVE_SOURCE=mcp.
+      if (path === "/creative/decide" || path === "/creative/compile" || path === "/creative/run") {
+        const by = { now: now(), actor: userOf(session).id };
+        const src = deps.creativeSource;
+        const target = src?.mode === "mcp" ? { url: src.url, token: src.token } : null;
+        let msg: string;
+        let ok = true;
+        if (path === "/creative/decide") {
+          const id = String(form.get("id") ?? "");
+          const d = String(form.get("decision") ?? "");
+          const r = decideStoryboard(deps.db, id, d, String(form.get("note") ?? ""), by);
+          ok = r === "ok";
+          msg = ok ? `Đã ${d === "approve" ? "duyệt" : "từ chối"} Storyboard ${id}.` : "Chưa ghi. Không thấy Storyboard hoặc quyết định không hợp lệ.";
+        } else if (!target) {
+          ok = false;
+          msg = "Chưa nối Creative Factory.";
+        } else if (path === "/creative/compile") {
+          const h = buildHookBoard(deps.db).hooks.find((x) => x.hookId === String(form.get("hook") ?? ""));
+          const r = h ? await compileFromHook(deps.db, target, { hookId: h.hookId, text: h.text, jurisdiction: h.jurisdiction }, by) : { status: "failed" as const, errorCode: "HOOK_NOT_FOUND" };
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã tạo Storyboard ${r.creativeIrId}, chờ duyệt.` : `Chưa tạo được Storyboard (${r.errorCode}).`;
+        } else {
+          const r = await runPipeline(deps.db, target, String(form.get("id") ?? ""), by);
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã chạy: QA ${r.qaStatus}, ${r.assets} asset.` : r.errorCode === "STORYBOARD_NOT_APPROVED" ? "Storyboard chưa được duyệt nên không chạy." : `Chạy lỗi (${r.errorCode}).`;
+        }
+        return respond(creativePage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
       if (path === "/billing") {
         if (userOf(session).role !== "approver") return text(403, "Không có quyền.");
         const files: BillingFiles = {};
@@ -654,6 +697,7 @@ if (import.meta.main) {
     onWoImport,
     columns,
     hookSource: getRemoteSource("HOOK"),
+    creativeSource: getRemoteSource("CREATIVE"),
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
   Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });
