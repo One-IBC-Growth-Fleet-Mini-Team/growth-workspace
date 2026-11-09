@@ -170,8 +170,9 @@ export const METRIC_PARAMS = {
 export const NBA_PARAMS = {
   // Stage coi là đã đóng (không thuộc "Opportunity mở"). [ĐỐI CHIẾU SCHEMA] tên Stage thật của CRM.
   closedStages: ["Closed Won", "Closed Lost"] as readonly string[],
-  // Trọng số ưu tiên theo Stage, gần chốt cao hơn. Chờ Amy cho thứ tự (Q-09); Stage lạ lấy unknownStageWeight.
-  stageWeights: { Negotiation: 3, Quotation: 2, Qualification: 1, Prospecting: 0.5 } as Readonly<Record<string, number>>,
+  // Trọng số ưu tiên theo Stage, gần chốt cao hơn. Tên Stage thật của CRM (D-42, đọc từ màn hình Data Opportunity
+  // ngày 06/10/2026); thứ tự theo phễu là TẠM, chờ Amy xác nhận (Q-09). Stage lạ lấy unknownStageWeight.
+  stageWeights: { "Payment Waiting": 4, Negotiation: 3, Quotation: 2, "Needs Analysis": 1, Nurturing: 0.5 } as Readonly<Record<string, number>>,
   unknownStageWeight: 0.5,
   // Giới hạn số mục NBA mỗi sáng. Đề xuất 20, chờ Amy (Q-10).
   maxItemsPerMorning: 20,
