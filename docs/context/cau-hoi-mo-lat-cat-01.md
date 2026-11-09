@@ -57,6 +57,7 @@ Sau khi có token: chạy `bun run preflight -- --network`, lệnh tự báo tê
 | B-01 (D-34) | Bank Team sửa ma trận: Mercury chỉ nhận công ty Mỹ; Currenxie không nhận công ty Mỹ; Airwallex với Belize, Marshall Islands; cột "UAE" là vùng nào; sheet Product Matrix đang ẩn có phải bản đang dùng? | Gợi ý ở `/banks` | **Đã xong 09/11/2026** |
 | K-06 (D-35) | "Sẵn sàng nghiệm thu sandbox8" nghĩa là gì: không còn bug Critical, High mở là đủ, hay cần 0 bug mở, hay cần tiêu chí A6 của data contract (sự kiện, session_id)? Và nhờ MobCEC ghi mức độ thống nhất một thứ tiếng (7 bug đang ghi Cao, Trung bình, Thấp nên tab Tổng hợp đếm thiếu: 94 thay vì 101) | Ngưỡng ở `/jurisdictions` và Brief sáng | Không còn bug Critical, High mở |
 | K-07 (D-38) | Chốt bộ từ cấm: giữ "offshore" là từ cấm nhưng loại tên thương hiệu Offshore Company Corp ra trước khi so có đúng ý không? "banking", "finance" là cần người duyệt hay chặn cứng? "Hook + câu 1" đo câu đầu của primary text có đúng không? | Cổng tuân thủ `/ads-check` | Cột "Đề xuất" của spec mục 7 (`AD_RULES`) |
+| K-08 | Chấm Hook 25/25/20/15/15 (Mi1-mkt-02): 5 tiêu chí là gì, thang điểm từng tiêu chí, ai chấm (code, người, hay LLM có eval)? | Mi1-mkt-02 | Chưa làm |
 
 ## 5. Người chịu trách nhiệm kỹ thuật
 

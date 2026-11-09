@@ -23,6 +23,7 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | Sự kiện web và CRM (Mi1-data-01, D-36) | không có biến | tải CSV sự kiện (tên cột theo Phụ lục A) ở `/data` | | API hoặc webhook sự kiện của MobCEC (Phụ lục A2, A3), GA4 | `src/crm/event-import.ts` |
 | Sức khoẻ tài khoản kênh (CRON-02, D-37) | không có biến | nhập tay ở `/channels` | | Meta Graph API, WhatsApp Business Management API (cần quyền BM) | `src/db/channels.ts` |
 | Meta Ads, Google Ads (Mi1-mkt-01, D-39) | không có biến | tải CSV báo cáo tuần ở `/ads-overview` | | ads-mcp (`sync_meta_gg_report`), Marketing API (cần quyền tài khoản quảng cáo) | `src/crm/ad-report-import.ts` |
+| Giá đối thủ (Mi1-mkt-04, D-40) | không có biến | tải CSV giá gói đối thủ ở `/competitors` | | market-scan-mcp (`scan_competitor_packages`, chỉ đọc) | `src/crm/competitor-import.ts` |
 | Work Order Bank Team (BK-08, tạm dừng) | không có biến | tải file ở `/import` | | | `src/crm/wo-import.ts` |
 
 ## Nguồn spec cần, chưa có cổng
