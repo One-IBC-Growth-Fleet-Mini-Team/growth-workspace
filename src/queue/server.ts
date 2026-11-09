@@ -787,7 +787,9 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         // Phiên MKT: ẩn form không được dùng (D-66).
         const s = readSession(req, deps.sessionSecret, now());
         if (s && userOf(s).role === "mkt" && res.headers.get("content-type")?.startsWith("text/html")) {
-          return new Response(stripForbiddenForms(userOf(s), await res.text()), { status: res.status, headers: res.headers as unknown as HeadersInit });
+          const headers = new Headers();
+          res.headers.forEach((v, k) => headers.append(k, v));
+          return new Response(stripForbiddenForms(userOf(s), await res.text()), { status: res.status, headers });
         }
         return res;
       } catch {
