@@ -211,5 +211,10 @@ export const PARTNER_PARAMS = { wonStages: ["Closed Won"] as readonly string[] }
 export const JURISDICTION_PARAMS = { total: 45, absTolerance: 150, relTolerance: 0.05, skdFiles: 10, skdClips: 2 } as const;
 export type JurisdictionParams = { total: number; absTolerance: number; relTolerance: number; skdFiles: number; skdClips: number };
 
+// Gợi ý ngân hàng (D-34). Thứ tự EMI ưu tiên theo sheet "GLOBAL EMI" của Bank Team (19/05/2026, TẠM);
+// mục tiêu ít nhất 2 tài khoản cho mỗi khách theo sheet "Read me".
+export const BANK_PARAMS = { priorityEmi: ["Airwallex", "Payoneer", "Aspire"] as readonly string[], minAccounts: 2 } as const;
+export type BankParams = { priorityEmi: readonly string[]; minAccounts: number };
+
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;

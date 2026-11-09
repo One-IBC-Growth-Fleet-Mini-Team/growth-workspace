@@ -11,6 +11,7 @@ import { CsvError, parseCsv } from "./csv.ts";
 const ALIASES: Record<string, string> = {
   "UK": "United Kingdom",
   "U.S.A": "United States",
+  "USA": "United States",
   "BVI": "British Virgin Islands",
   "Cayman": "Cayman Islands",
   "UAE": "UAE - RAK ICC",
