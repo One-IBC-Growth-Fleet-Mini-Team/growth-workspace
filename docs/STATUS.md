@@ -121,11 +121,12 @@ Khoảng **45%** spec v0.3.2 (tính cả PR đang mở #23 tới #32). GĐ0 kho�
 Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng chưa tính test, dữ liệu tổng hợp, adapter tải file chạy ngay cho mỗi nguồn mới (thêm dòng vào `ports.md`). PR song song: migration áp theo bảng đánh dấu (`src/db/migrate.ts` sau PR #20, #21), nên số migration không cần liên tiếp.
 
 1. Các team đã sửa sheet giá, ma trận ngân hàng và xác nhận bộ SKD (ghi nhận 09/11/2026 ở `decisions.md`). Nạp lại file mới ở `/jurisdictions` và `/banks`.
-1a. Mi1-mkt-05 phần còn lại: lịch kênh (chờ phạm vi); verify Meta TW/IN. Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
+1a. Mi1-mkt-05 phần còn lại: lịch kênh (spec chưa mô tả, cần phạm vi). Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
 2. PR tài liệu `metric-definitions.md` (nhánh `claude/tender-gates-nn4rif-metrics`) chờ Mark duyệt: thêm định nghĩa các hàm tính từ PR #20 tới PR #27.
 3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật khi Harvey gửi dòng tên cột CSV, tự báo thật, danh sách RM.
-5. GĐ2 theo spec mục 7, 8: Creative Factory, cổng tuân thủ (bộ từ cấm chờ chốt), mkt-01 tới mkt-04.
+5. GĐ2 còn lại, mỗi việc đang chờ một đầu vào: Mi1-mkt-02 chấm Hook (tiêu chí, K-08); Win gate và nháp đổi ngân sách tầng 5 (chuỗi ID từ quảng cáo tới đơn hàng, cần sự kiện thật của MobCEC); Mi1-mkt-03 quy định và tiếng khách (nguồn market-scan); Creative Factory (4 việc trên repo creative-factory-v2, chưa gắn vào phiên); kiểm màu ảnh của cổng tuân thủ. Đã xong bản đầu: cổng tuân thủ (D-38), mkt-01 tổng quan và tầng 2 (D-39), mkt-04 (D-40), verify Meta (D-41).
+5a. Merge chuỗi PR #23 tới #32 theo đúng thứ tự (mỗi PR chồng lên PR trước).
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn
