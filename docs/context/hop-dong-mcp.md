@@ -50,7 +50,7 @@ Repo `creative-factory-v2` bọc pipeline thành tool MCP (spec mục 7). Growth
 { "creative_ir_id": "IR-1", "storyboard": { "title": "Tên", "scenes": ["Cảnh 1", "Cảnh 2"] } }
 ```
 
-`run_creative_pipeline` đầu vào `{ creative_ir_id, steps: ["translate", "generate", "qa"], validation_mode: "STRICT" }`, đầu ra:
+`run_creative_pipeline` đầu vào `{ creative_ir_id, steps: ["translate", "generate", "qa"], validation_mode: "STRICT", approved_by }` (`approved_by`: người đã duyệt Storyboard trong Growth; thiếu thì creative-factory-v2 từ chối), đầu ra:
 
 ```json
 { "run_id": "R-1", "qa_status": "PASS", "assets": [{ "asset_id": "A-1", "kind": "image" }] }

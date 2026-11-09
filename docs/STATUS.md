@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật lần cuối: 09/11/2026 (phiên 11). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
+Cập nhật lần cuối: 09/11/2026 (phiên 11, cuối phiên). Quy ước: agent hoặc người nào xong một việc phải cập nhật file này **trong cùng PR** với việc đó.
 
 ## Mục tiêu tối thượng
 
@@ -88,6 +88,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - market-scan (D-46, phiên 11): trang `/market` quy định và tiếng khách (lọc R1), giá đối thủ vào `/competitors`; file hoặc MCP. Test T-MS-01 tới T-MS-04.
   - content-dist-mcp (D-47, phiên 11): server MCP chỉ đọc 5 tool (giá 45 tài phán, SKD, sandbox8, kiểm nội dung, sức khoẻ kênh) cho hệ thống khác lấy dữ liệu. Test T-CD-01 tới T-CD-03.
   - growth-mcp và nhật ký bài học (D-48, phiên 11): trang `/lessons`, server MCP growth (search_knowledge, propose_hook_card, log_lesson, log_decision). Test T-KN-01 tới T-KN-03.
+  - creative-factory-v2 (D-49, phiên 11): 4 PR trên repo đó (cổng Storyboard, plugin One IBC, nguồn Google Sheets, server MCP); Growth gửi `approved_by` khi chạy pipeline.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -131,7 +132,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 2. `metric-definitions.md` đã có định nghĩa các hàm tính tới PR #27 (PR #28 đã merge); hàm mới sau này thêm bằng PR tài liệu riêng.
 3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật: đã biết cấu trúc CRM và tên Stage thật (D-42). Còn thiếu đường lấy dữ liệu: trang quản trị CRM không có nút xuất CSV, cần MobCEC xuất hộ file Opportunity, Lead, Order, Account (đủ cột theo `deploy/crm-columns.example.json`) hoặc mở API (chặn a). Danh bạ RM: lấy từ file "CRM MobCEC - New - Oct 22 2026.xlsx" (danh sách tài khoản CRM), nạp bằng `scripts/load-rm-directory.ts`, giữ ngoài repo.
-5. Đã có ổ cắm cho mọi nguồn ngoài trong spec mục 9 trừ partner-mcp và atlassian-m365-drive-mcp (hợp đồng ở `docs/context/hop-dong-mcp.md`); nối khi hệ thống có: HOOK (SEO/AIO), CREATIVE (creative-factory-v2, kèm 4 việc phía repo đó), ADS, MARKET. Còn chờ định nghĩa: Win gate, lịch kênh (`schedule_channel_post`), chính sách hoa hồng (partner-mcp `calc_commission`), kiểm màu ảnh. Phơi MCP qua HTTP khi có máy chủ.
+5. Đã có ổ cắm cho mọi nguồn ngoài trong spec mục 9 trừ partner-mcp và atlassian-m365-drive-mcp (hợp đồng ở `docs/context/hop-dong-mcp.md`); nối khi hệ thống có: HOOK (SEO/AIO), CREATIVE (creative-factory-v2: chạy `packages/mcp-server` sau khi merge markng-byte/creative-factory-v2#12 tới #15, đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL=http://127.0.0.1:8787/mcp`), ADS, MARKET. Còn chờ định nghĩa: Win gate, lịch kênh (`schedule_channel_post`), chính sách hoa hồng (partner-mcp `calc_commission`), kiểm màu ảnh. Phơi MCP qua HTTP khi có máy chủ.
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn
@@ -150,4 +151,5 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- Chuỗi chồng nhau, merge theo thứ tự: #35 (STATUS), #36 (mkt-02 Hook), #37 (Creative Factory), #38 (tầng 5), #39 (market-scan), #40 (content-dist-mcp), #41 (growth-mcp, bài học). Merge bằng "Create a merge commit" và xoá nhánh sau mỗi PR.
+- growth-workspace: PR nhánh `claude/tender-gates-nn4rif` (gửi `approved_by`, D-49). Các PR #23 tới #42 đã merge.
+- creative-factory-v2: markng-byte/creative-factory-v2#12, #13, #14, #15, độc lập, merge thứ tự nào cũng được.

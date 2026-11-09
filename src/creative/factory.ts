@@ -26,9 +26,14 @@ export async function compileFromHook(db: Database, target: RemoteTarget, hook: 
   }
 }
 
+// Người duyệt Storyboard (quyết định mới nhất là approve), hoặc null khi chưa duyệt.
+export function storyboardApprover(db: Database, id: string): string | null {
+  const d = db.query("SELECT decision, actor FROM storyboard_decisions WHERE creative_ir_id = ? ORDER BY decided_at DESC, id DESC LIMIT 1").get(id) as { decision: string; actor: string } | null;
+  return d?.decision === "approve" ? d.actor : null;
+}
+
 export function storyboardApproved(db: Database, id: string): boolean {
-  const d = db.query("SELECT decision FROM storyboard_decisions WHERE creative_ir_id = ? ORDER BY decided_at DESC, id DESC LIMIT 1").get(id) as { decision: string } | null;
-  return d?.decision === "approve";
+  return storyboardApprover(db, id) !== null;
 }
 
 export function decideStoryboard(db: Database, id: string, decision: string, note: string, opts: { now: Date; actor: string }): "ok" | "NOT_FOUND" | "INVALID" {
@@ -40,9 +45,10 @@ export function decideStoryboard(db: Database, id: string, decision: string, not
 }
 
 export async function runPipeline(db: Database, target: RemoteTarget, id: string, opts: { now: Date; actor: string }) {
-  if (!storyboardApproved(db, id)) return { status: "refused" as const, errorCode: "STORYBOARD_NOT_APPROVED" };
+  const approvedBy = storyboardApprover(db, id);
+  if (!approvedBy) return { status: "refused" as const, errorCode: "STORYBOARD_NOT_APPROVED" };
   try {
-    const r = Ran.safeParse(await callRemoteTool(target, "run_creative_pipeline", { creative_ir_id: id, steps: ["translate", "generate", "qa"], validation_mode: "STRICT" }));
+    const r = Ran.safeParse(await callRemoteTool(target, "run_creative_pipeline", { creative_ir_id: id, steps: ["translate", "generate", "qa"], validation_mode: "STRICT", approved_by: approvedBy }));
     if (!r.success) return { status: "failed" as const, errorCode: "CREATIVE_MCP_CONTRACT" };
     db.run("INSERT INTO creative_runs (id, creative_ir_id, run_at, actor, qa_status, assets) VALUES (?, ?, ?, ?, ?, ?)", [Bun.randomUUIDv7(), id, opts.now.toISOString(), opts.actor, r.data.qa_status.slice(0, 20), r.data.assets.length]);
     log({ event: "creative.ran", run_id: id, count: r.data.assets.length });
