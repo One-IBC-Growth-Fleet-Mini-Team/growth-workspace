@@ -220,5 +220,9 @@ export type BankParams = { priorityEmi: readonly string[]; minAccounts: number }
 export const DATA01_PARAMS = { degradedBelow: 0.19, windowDays: 7 } as const;
 export type Data01Params = { degradedBelow: number; windowDays: number };
 
+// CRON-02 (D-37): số tài khoản theo spec mục 10; CRON-02 chạy 08:00 và 14:00 nên lần kiểm cũ hơn 24 giờ là quá hạn.
+export const CHANNEL_PARAMS = { expected: { bm: 3, wa: 3, fanpage: 6 }, staleHours: 24 } as const;
+export type ChannelParams = { expected: Record<"bm" | "wa" | "fanpage", number>; staleHours: number };
+
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;

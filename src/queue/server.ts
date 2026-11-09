@@ -16,6 +16,7 @@ import {
   getTeamsWebhooks,
   BILLING_PARAMS,
   DATA01_PARAMS,
+  CHANNEL_PARAMS,
   isLocalBaseUrl,
   WO_PARAMS,
 } from "../config.ts";
@@ -64,6 +65,8 @@ import { renderJurisdictionsPage } from "./views/jurisdictions.ts";
 import { eventImportMessage, importEvents } from "../crm/event-import.ts";
 import { buildDataBoard } from "../db/data01.ts";
 import { renderDataPage } from "./views/data01.ts";
+import { buildChannelBoard, recordChannelCheck } from "../db/channels.ts";
+import { renderChannelsPage } from "./views/channels.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -157,6 +160,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
   function dataPage(session: Session, message: string | null): string {
     return renderDataPage({ board: buildDataBoard(deps.db, now()), csrf: session.csrf, message, threshold: DATA01_PARAMS.degradedBelow });
+  }
+
+  function channelsPage(session: Session, message: string | null): string {
+    return renderChannelsPage({ board: buildChannelBoard(deps.db, now()), csrf: session.csrf, message, staleHours: CHANNEL_PARAMS.staleHours });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -286,6 +293,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(dataPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/channels") {
+      if (!session) return redirect("/login");
+      return respond(channelsPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -387,6 +399,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const f = form.get("events");
         const r = f instanceof File && f.size > 0 ? importEvents(deps.db, await f.text(), { now: now(), actor: userOf(session).id }) : { status: "failed" as const, events: 0, errorCode: "EVENT_FILE_REQUIRED" };
         return respond(dataPage(session, r.errorCode === "EVENT_FILE_REQUIRED" ? "Chưa nạp. Cần chọn file sự kiện." : eventImportMessage(r)), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Mark giám sát Mi1-data-01 và CRON-02 nên cả hai người dùng ghi được (D-37).
+      if (path === "/channels") {
+        const c = { kind: String(form.get("kind") ?? ""), label: String(form.get("label") ?? ""), status: String(form.get("status") ?? ""), note: String(form.get("note") ?? "") };
+        const r = recordChannelCheck(deps.db, c, { now: now(), actor: userOf(session).id });
+        return respond(channelsPage(session, r === "ok" ? `Đã ghi lần kiểm ${c.label.trim()}.` : "Chưa ghi. Cần chọn loại, trạng thái và điền nhãn."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {
