@@ -96,7 +96,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## Tiến độ toàn dự án (ước tính 09/11/2026, tính cả PR đang mở)
 
-Khoảng **45%** spec v0.3.2 (tính cả PR đang mở #23 tới #32). GĐ0 khoảng 75%; GĐ1 khoảng 80%; GĐ2 khoảng 30% (cổng tuân thủ, mkt-01 tổng quan, mkt-04, verify Meta); GĐ3 chưa bắt đầu.
+Khoảng **45%** spec v0.3.2 (đã merge hết). GĐ0 khoảng 75%; GĐ1 khoảng 80%; GĐ2 khoảng 30% (cổng tuân thủ, mkt-01 tổng quan, mkt-04, verify Meta); GĐ3 chưa bắt đầu.
 
 | Hạng mục | Trạng thái |
 |---|---|
@@ -105,28 +105,27 @@ Khoảng **45%** spec v0.3.2 (tính cả PR đang mở #23 tới #32). GĐ0 kho�
 | Mi1-sa-01 đối soát đơn hàng `/billing` | xong (PR #20) |
 | Mi1 lõi: áp mặc định, Brief sáng, Digest tuần | xong (PR #17) |
 | Mi1-ptn-01 đối tác `/partners` | xong (PR #21) |
-| Mi1-mkt-05 bảng giá và SKD `/jurisdictions` | PR nhánh `claude/tender-gates-nn4rif`; còn issue log sandbox8, lịch kênh |
-| Gợi ý ngân hàng `/banks` (D-34) | PR nhánh `claude/tender-gates-nn4rif-banks` |
-| Issue log sandbox8, dòng Mi1-mkt-05 trên Brief (D-35) | PR nhánh `claude/tender-gates-nn4rif-sandbox8` |
-| Mi1-data-01 độ phủ ID, gãy tracking `/data` (D-36) | PR nhánh `claude/tender-gates-nn4rif-data01` |
-| CRON-02 sức khoẻ BM, số WA, Fanpage `/channels` (D-37) | PR nhánh `claude/tender-gates-nn4rif-channels` |
-| Cổng tuân thủ tầng 1A, 1B `/ads-check` (D-38) | PR nhánh `claude/tender-gates-nn4rif-ads` |
-| Mi1-mkt-01 tổng quan tuần, tầng 2 `/ads-overview` (D-39) | PR nhánh `claude/tender-gates-nn4rif-mkt01` |
-| Mi1-mkt-04 giá đối thủ `/competitors` (D-40) | PR nhánh `claude/tender-gates-nn4rif-mkt04` |
-| Mi1-mkt-03 verify Meta TW/IN (D-41) | PR nhánh `claude/tender-gates-nn4rif-mkt03` |
+| Mi1-mkt-05 bảng giá và SKD `/jurisdictions` | xong (PR #23 tới #33) |
+| Gợi ý ngân hàng `/banks` (D-34) | xong (PR #23 tới #33) |
+| Issue log sandbox8, dòng Mi1-mkt-05 trên Brief (D-35) | xong (PR #23 tới #33) |
+| Mi1-data-01 độ phủ ID, gãy tracking `/data` (D-36) | xong (PR #23 tới #33) |
+| CRON-02 sức khoẻ BM, số WA, Fanpage `/channels` (D-37) | xong (PR #23 tới #33) |
+| Cổng tuân thủ tầng 1A, 1B `/ads-check` (D-38) | xong (PR #23 tới #33) |
+| Mi1-mkt-01 tổng quan tuần, tầng 2 `/ads-overview` (D-39) | xong (PR #23 tới #33) |
+| Mi1-mkt-04 giá đối thủ `/competitors` (D-40) | xong (PR #23 tới #33) |
+| Mi1-mkt-03 verify Meta TW/IN (D-41) | xong (PR #23 tới #33) |
 | GĐ2 còn lại: Win gate, nháp ngân sách (cần chuỗi ID tới đơn hàng), mkt-02 (chờ K-08), mkt-03 quy định và tiếng khách, Creative Factory (repo creative-factory-v2) | chưa làm |
 
 ## Việc tiếp theo
 
 Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng chưa tính test, dữ liệu tổng hợp, adapter tải file chạy ngay cho mỗi nguồn mới (thêm dòng vào `ports.md`). PR song song: migration áp theo bảng đánh dấu (`src/db/migrate.ts` sau PR #20, #21), nên số migration không cần liên tiếp.
 
-1. Các team đã sửa sheet giá, ma trận ngân hàng và xác nhận bộ SKD (ghi nhận 09/11/2026 ở `decisions.md`). Nạp lại file mới ở `/jurisdictions` và `/banks`.
+1. Chạy thật trên máy Ubuntu của Amy: `git pull && bash deploy/local/install.sh`, rồi nạp file thật ở `/jurisdictions` (sheet FINAL, tab Bug, Test Cases của sandbox8, tên file SKD), `/banks`, `/ads-overview`, `/competitors`; ghi lần kiểm đầu ở `/channels`. Ghi lại lỗi gặp khi nạp file thật để sửa (D-27).
 1a. Mi1-mkt-05 phần còn lại: lịch kênh (spec chưa mô tả, cần phạm vi). Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
 2. PR tài liệu `metric-definitions.md` (nhánh `claude/tender-gates-nn4rif-metrics`) chờ Mark duyệt: thêm định nghĩa các hàm tính từ PR #20 tới PR #27.
 3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật: đã biết cấu trúc CRM và tên Stage thật (D-42). Còn thiếu đường lấy dữ liệu: trang quản trị CRM không có nút xuất CSV, cần MobCEC xuất hộ file Opportunity, Lead, Order, Account (đủ cột theo `deploy/crm-columns.example.json`) hoặc mở API (chặn a). Danh bạ RM: lấy từ file "CRM MobCEC - New - Oct 22 2026.xlsx" (danh sách tài khoản CRM), nạp bằng `scripts/load-rm-directory.ts`, giữ ngoài repo.
 5. GĐ2 còn lại, mỗi việc đang chờ một đầu vào: Mi1-mkt-02 chấm Hook (tiêu chí, K-08); Win gate và nháp đổi ngân sách tầng 5 (chuỗi ID từ quảng cáo tới đơn hàng, cần sự kiện thật của MobCEC); Mi1-mkt-03 quy định và tiếng khách (nguồn market-scan); Creative Factory (4 việc trên repo creative-factory-v2, chưa gắn vào phiên); kiểm màu ảnh của cổng tuân thủ. Đã xong bản đầu: cổng tuân thủ (D-38), mkt-01 tổng quan và tầng 2 (D-39), mkt-04 (D-40), verify Meta (D-41).
-5a. Merge chuỗi PR #23 tới #32 theo đúng thứ tự (mỗi PR chồng lên PR trước).
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn
@@ -145,14 +144,4 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- Nhánh `claude/tender-gates-nn4rif` (Mi1-mkt-05, D-32, D-33): PR #23 chờ duyệt.
-- Nhánh `claude/tender-gates-nn4rif-banks` (gợi ý ngân hàng, D-34): PR #24, chồng lên PR #23.
-- Nhánh `claude/tender-gates-nn4rif-sandbox8` (issue log sandbox8, D-35): PR #25, chồng lên #24.
-- Nhánh `claude/tender-gates-nn4rif-data01` (Mi1-data-01, D-36): PR #26, chồng lên #25.
-- Nhánh `claude/tender-gates-nn4rif-channels` (CRON-02, D-37): PR #27, chồng lên #26.
-- Nhánh `claude/tender-gates-nn4rif-metrics` (định nghĩa chỉ số, chỉ tài liệu): PR #28, chồng lên #27, Mark duyệt.
-- Nhánh `claude/tender-gates-nn4rif-ads` (cổng tuân thủ, D-38): PR #29, chồng lên #28.
-- Nhánh `claude/tender-gates-nn4rif-mkt01` (Mi1-mkt-01, D-39): PR #30, chồng lên #29.
-- Nhánh `claude/tender-gates-nn4rif-mkt04` (Mi1-mkt-04, D-40): PR #31, chồng lên #30.
-- Nhánh `claude/tender-gates-nn4rif-mkt03` (verify Meta, D-41): chồng lên #31. Thứ tự merge: #23 tới #31, rồi PR này.
-- PR #12 tới #22 đã merge.
+- Không có. PR #23 tới #33 đã merge ngày 09/11/2026 (`main` 302 test pass).
