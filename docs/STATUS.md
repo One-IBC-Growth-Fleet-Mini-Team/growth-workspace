@@ -106,6 +106,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Phân quyền MKT, BOD (D-63, phiên 12): MKT chỉ thấy trang số tổng hợp, không thấy mã khách; BOD xem như Mark. Persona cho MKT chờ dữ liệu CRM. Test T-ROLE-01 tới T-ROLE-03.
   - Bước 7 analyze (D-64, phiên 12): nút trên `/creative`, tool `analyze_campaign` bên creative-factory-v2 (#20). Test T-CF-08.
   - Giới hạn tra `match_to_contact`, tăng tốc `/tasks` (D-65, phiên 12). Test T-PMCP-02, T-DATA-06.
+  - Rà bảo mật phân quyền MKT (D-66, phiên 12): MKT đăng xuất được; chỉ POST việc không tốn tiền, không đổi dữ liệu dùng chung. Test T-ROLE-01 (thêm ca).
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -176,4 +177,4 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- growth-workspace: PR #23 tới #48 đã merge; PR nhánh `claude/tender-gates-nn4rif` (D-65). creative-factory-v2: markng-byte/creative-factory-v2#20 (analyze). creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
+- growth-workspace: PR #23 tới #48 đã merge; PR nhánh `claude/tender-gates-nn4rif` (D-65, D-66). creative-factory-v2: markng-byte/creative-factory-v2#20 (analyze). creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
