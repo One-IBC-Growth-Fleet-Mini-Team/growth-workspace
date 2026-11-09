@@ -66,7 +66,7 @@ import { importPriceSheet, importSkdList, jurisdictionImportMessage } from "../c
 import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
 import { renderJurisdictionsPage } from "./views/jurisdictions.ts";
 import { eventImportMessage, importEvents } from "../crm/event-import.ts";
-import { buildDataBoard } from "../db/data01.ts";
+import { buildDataBoard, tier3bWindow } from "../db/data01.ts";
 import { renderDataPage } from "./views/data01.ts";
 import { buildChannelBoard, recordChannelCheck } from "../db/channels.ts";
 import { renderChannelsPage } from "./views/channels.ts";
@@ -216,7 +216,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   }
 
   function dataPage(session: Session, message: string | null): string {
-    return renderDataPage({ board: buildDataBoard(deps.db, now()), csrf: session.csrf, message, threshold: DATA01_PARAMS.degradedBelow });
+    return renderDataPage({ board: buildDataBoard(deps.db, now()), csrf: session.csrf, message, threshold: DATA01_PARAMS.degradedBelow, tier3b: tier3bWindow(deps.db, now()) });
   }
 
   function channelsPage(session: Session, message: string | null): string {

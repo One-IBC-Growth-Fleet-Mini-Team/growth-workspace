@@ -2,7 +2,7 @@
 // mục 8 tầng 3A, 4; D-60). Code soạn nháp từ số đã tính; không gửi đi đâu, không gọi Jira. Người đọc rồi tự tạo việc.
 import type { Database } from "bun:sqlite";
 import { DATA01_PARAMS } from "../config.ts";
-import { idCoverageWindow } from "../db/data01.ts";
+import { idCoverageWindow, tier3bWindow } from "../db/data01.ts";
 import { repeatedRejections, tier4Params } from "../db/rejections.ts";
 import { tag } from "../provisional.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
@@ -17,6 +17,12 @@ export function buildTaskDrafts(db: Database, now: Date): TaskDraft[] {
     out.push({ key: "tracking_degraded", project: "MobCEC", evidence: "/data",
       title: `TRACKING_DEGRADED: độ phủ ID 7 ngày ${pct(d.window.rate)} (${d.window.linked}/${d.window.sessions} phiên), dưới ${pct(DATA01_PARAMS.degradedBelow).replace(".0%", "%")}`,
       body: `Tầng 3A (spec mục 8): độ phủ nối Session → WA → Contact từ ${d.window.start} tới ${d.window.end} dưới ngưỡng. Đề nghị MobCEC kiểm sự kiện contact_captured có contact_id (Phụ lục A2). Không tắt quảng cáo vì số này; đánh giá Hook ở tầng 2 và 5 đang đóng băng tới khi tracking phục hồi.` });
+  }
+  const t3 = tier3bWindow(db, now);
+  if (t3.status === "flag") {
+    out.push({ key: "tier3b_landing", project: "MKT", evidence: "/data",
+      title: `Trang đích: ${t3.reasons.includes("ask_per_view") ? `ask_occ_started/asset_view ${pct(t3.askPerView)}` : ""}${t3.reasons.length === 2 ? ", " : ""}${t3.reasons.includes("contact_per_ask") ? `contact_captured/ask_occ_started ${pct(t3.contactPerAsk)}` : ""} dưới ngưỡng${tag("tier3b")}`,
+      body: "Tầng 3B (spec mục 8): tracking bình thường nhưng ít người bắt đầu hỏi hoặc để lại liên hệ. Khớp trang đích theo tài phán, nhúng SKD eKYC (Team MKT và Team Content)." });
   }
   const s = buildSandboxBoard(db);
   if (s.ready === false) {
