@@ -110,7 +110,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## Tiến độ toàn dự án (ước tính 09/11/2026, tính cả PR đang mở)
 
-Khoảng **55%** spec v0.3.2 (tính cả chuỗi PR #35 tới #41). GĐ0 khoảng 85% (thiếu Neo4j, execute_approved_cypher); GĐ1 khoảng 80%; GĐ2 khoảng 60% (đủ 4 thuyền viên mkt và ổ cắm MCP; còn Win gate, lịch kênh, phía repo creative-factory-v2); GĐ3 chưa bắt đầu. Phần còn lại phần lớn là nối nguồn thật vào các ổ cắm đã có.
+Khoảng **60%** spec v0.3.2 (cập nhật phiên 12). GĐ0 khoảng 90% (thiếu Neo4j; `execute_approved_cypher` đã có, chạy trên Growth DB); GĐ1 khoảng 85%; GĐ2 khoảng 65% (đủ 4 thuyền viên mkt, ổ cắm MCP, tầng 4 nối về Creative; còn Win gate, lịch kênh, tầng 3B); GĐ3 chưa bắt đầu. Phần còn lại phần lớn là nối nguồn thật vào các ổ cắm đã có.
 
 | Hạng mục | Trạng thái |
 |---|---|
