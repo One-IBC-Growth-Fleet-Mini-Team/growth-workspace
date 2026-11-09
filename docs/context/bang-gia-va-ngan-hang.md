@@ -1,6 +1,6 @@
 # Bảng giá gói OCC và ma trận ngân hàng: cách đọc, chỗ lệch đã kiểm
 
-Rà ngày 03/11/2026 trên hai file nội bộ (không chép vào repo). Chỉ ghi giá bán (đã công khai trên web) và quy tắc; không ghi giá vốn, liên hệ đối tác, link referral hay case study khách.
+Rà ngày 03/11/2026 trên hai file nội bộ (không chép vào repo). **Cập nhật 09/11/2026:** các chỗ cần sửa dưới đây đã được các team sửa trong file gốc (xem `decisions.md`, ghi nhận 09/11/2026); phần này giữ làm lịch sử và để hiểu cách tính. Chỉ ghi giá bán (đã công khai trên web) và quy tắc; không ghi giá vốn, liên hệ đối tác, link referral hay case study khách.
 
 ## 1. File "Website mới OCC Bảng giá gói Sep 30 2026 v2"
 

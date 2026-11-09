@@ -52,9 +52,8 @@ Sau khi có token: chạy `bun run preflight -- --network`, lệnh tự báo tê
 | K-01 (Q-03) | Được gửi văn bản tự báo (đã xoá email, SĐT, giấy tờ, ngày sinh, URL; có thể còn tên khách) sang Claude API không? | Toàn bộ phần đọc tự báo bằng LLM | **Đã chốt ở PR #8: có** |
 | K-02 (Q-16) | Ngoài xem và nhận escalate, Mark cần quyền gì trên Hàng chờ? | Phân quyền | **Đã chốt ở PR #8: chỉ xem** |
 | K-03 | Trả lời Sổ quyết định D-14 tới D-22 | Xem `docs/context/so-quyet-dinh-mo.md` | **Đã chốt ở PR #8** |
-| K-04 (D-33) | Bộ SKD eKYC 10 file gồm những gì? Thư mục Userguide hiện có 6 file (PDF, HTML, 4 video của một clip). Có phải còn thiếu 1 clip nữa (4 video) không? | Đếm đủ 10 file | PDF + HTML + 2 clip x (16x9, 9x16) x (sạch, phụ đề); hỏi Team Content (Kylie) |
-| K-05 (D-33) | Sửa sheet FINAL: Premium giảm 5% thay 7%; Singapore Branch và LLP đảo cột gia hạn và gói 2 năm; Hoa Kỳ LLC và Corporation lệch cột gia hạn | Trang `/jurisdictions` đang báo 2 tài phán lệch công thức | Chi tiết ở `docs/context/bang-gia-va-ngan-hang.md` |
-| B-01 (D-34) | Bank Team sửa ma trận: Mercury chỉ nhận công ty Mỹ; Currenxie không nhận công ty Mỹ; Airwallex với Belize, Marshall Islands; cột "UAE" là vùng nào; sheet Product Matrix đang ẩn có phải bản đang dùng? | Gợi ý ở `/banks` | Đọc nguyên ma trận, không tự sửa |
+| K-04 (D-33) | Bộ SKD eKYC 10 file gồm những gì? Thư mục Userguide hiện có 6 file (PDF, HTML, 4 video của một clip). Có phải còn thiếu 1 clip nữa (4 video) không? | Đếm đủ 10 file | **Đã xong 09/11/2026** |
+| K-05 (D-33) | Sửa sheet FINAL: Premium giảm 5% thay 7%; Singapore Branch và LLP đảo cột gia hạn và gói 2 năm; Hoa Kỳ LLC và Corporation lệch cột gia hạn | Trang `/jurisdictions` đang báo 2 tài phán lệch công thức | **Đã xong 09/11/2026** |
 
 ## 5. Người chịu trách nhiệm kỹ thuật
 

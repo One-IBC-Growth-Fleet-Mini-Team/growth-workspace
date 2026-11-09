@@ -60,9 +60,6 @@ import { renderBillingPage } from "./views/billing.ts";
 import { importPriceSheet, importSkdList, jurisdictionImportMessage } from "../crm/jurisdiction-import.ts";
 import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
 import { renderJurisdictionsPage } from "./views/jurisdictions.ts";
-import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
-import { buildBankAdvice } from "../db/banks.ts";
-import { renderBanksPage } from "./views/banks.ts";
 import { importPartners, partnerImportMessage } from "../crm/partner-import.ts";
 import { buildPartnerBoard } from "../db/partners.ts";
 import { renderPartnersPage } from "./views/partners.ts";
@@ -143,10 +140,6 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
   function jurisdictionsPage(session: Session, message: string | null): string {
     return renderJurisdictionsPage({ board: buildJurisdictionBoard(deps.db), csrf: session.csrf, message });
-  }
-
-  function banksPage(session: Session, q: { jurisdiction: string | null; newCompany: boolean }, message: string | null): string {
-    return renderBanksPage({ advice: buildBankAdvice(deps.db, q), ...q, csrf: session.csrf, canImport: userOf(session).role === "approver", message });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -265,12 +258,6 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(jurisdictionsPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
-    if (req.method === "GET" && path === "/banks") {
-      if (!session) return redirect("/login");
-      const j = url.searchParams.get("j");
-      return respond(banksPage(session, { jurisdiction: j ? j.slice(0, 64) : null, newCompany: url.searchParams.get("new") === "1" }, null), 200, { "content-type": "text/html; charset=utf-8" });
-    }
-
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -307,7 +294,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -347,17 +334,6 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const skd = skdText.trim() ? importSkdList(deps.db, skdText, by) : null;
         const ok = (price || skd) && price?.status !== "failed" && skd?.status !== "failed";
         return respond(jurisdictionsPage(session, jurisdictionImportMessage(price, skd)), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
-      }
-
-      if (path === "/banks") {
-        if (userOf(session).role !== "approver") return text(403, "Không có quyền.");
-        const files: { matrix?: string; core?: string } = {};
-        for (const k of ["matrix", "core"] as const) {
-          const f = form.get(k);
-          if (f instanceof File && f.size > 0) files[k] = await f.text();
-        }
-        const r = importBankFiles(deps.db, files, { now: now(), actor: userOf(session).id });
-        return respond(banksPage(session, { jurisdiction: null, newCompany: true }, bankImportMessage(r)), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {
