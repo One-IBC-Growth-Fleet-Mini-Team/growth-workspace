@@ -99,6 +99,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - partner-mcp (D-56, phiên 12): `track_referral`, `match_to_contact` (so mã băm, không lưu). Test T-PMCP-01.
   - QA Chromium 375px (phiên 12) cho `/queue`, `/runs`, `/tuning`, `/monthly`, `/data`, `/creative`, `/hooks`, `/lessons` bằng bản demo: `/runs` tràn ngang khoảng 200px, đã sửa (bảng cuộn ngang như trang WO); `/tuning` sửa cùng lúc; không lỗi console.
   - Hỏi Mi1 (D-58, phiên 12): trang `/ask`, LLM chỉ chọn truy vấn mẫu, số do hàm tính; trần chi phí tính trên cả fleet. Test T-ASK-01 tới T-ASK-03, T-SA-04 (thêm ca).
+  - Đóng gói theo kênh (D-59, phiên 12): bước 5 tới 6 của Creative Factory ở chế độ chạy thử, chỉ khi đã duyệt và QA PASS. Chạy thử thật: 26 asset, 1 bundle. Test T-CF-05 tới T-CF-07.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -162,4 +163,4 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- growth-workspace: PR nhánh `claude/tender-gates-nn4rif` (partner-mcp, mã lỗi sai token, hỏi Mi1). PR #23 tới #45 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
+- growth-workspace: PR nhánh `claude/tender-gates-nn4rif` (partner-mcp, mã lỗi sai token, hỏi Mi1, đóng gói theo kênh). PR #23 tới #45 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.

@@ -55,9 +55,11 @@ Adapter file tương đương: CSV cột `hook_id, text, jurisdiction, score_1 �
 
 ## creative-factory-mcp (cổng "Creative Factory", `CREATIVE_*`, D-44)
 
-Repo `creative-factory-v2` bọc pipeline thành tool MCP (spec mục 7). Growth Workspace gọi hai tool sau; hai tool còn lại (`validate_brand_qa`, `export_channel_bundle`) để lát sau.
+Repo `creative-factory-v2` bọc pipeline thành tool MCP (spec mục 7). Growth Workspace gọi ba tool sau; `validate_brand_qa` để lát sau (pipeline đã chạy QA).
 
 `compile_creative_ir` đầu vào `{ hook_id, hook_text, jurisdiction, validation_mode: "STRICT", rejection_reasons }` (`rejection_reasons`: mảng mã lý do từ chối lặp lại, có thể rỗng; tầng 4, D-54; server chưa dùng thì bỏ qua), đầu ra:
+
+`export_channel_bundle` (D-59) đầu vào `{ creative_ir_id }`, đầu ra `{ package_id, published: false, bundles: [{ bundle_id, channel, aspect_ratio, entries }] }`. Growth chỉ gọi khi Storyboard đang được duyệt và lần chạy gần nhất QA PASS; `published` khác `false` là sai hợp đồng, Growth không ghi gì. Chạy thử thật 09/11/2026: bản hiện tại trả `channel` bằng tỷ lệ khung (ví dụ `16:9`), chưa phải tên kênh.
 
 ```json
 { "creative_ir_id": "IR-1", "storyboard": { "title": "Tên", "scenes": ["Cảnh 1", "Cảnh 2"] } }

@@ -83,7 +83,7 @@ import { renderCompetitorsPage } from "./views/competitors.ts";
 import { importHookCsv, importHooksFromMcp } from "../crm/hook-import.ts";
 import { buildHookBoard } from "../db/hooks.ts";
 import { renderHooksPage } from "./views/hooks.ts";
-import { compileFromHook, decideStoryboard, listStoryboards, runPipeline } from "../creative/factory.ts";
+import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, exportBundles } from "../creative/factory.ts";
 import { renderCreativePage } from "./views/creative.ts";
 import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
 import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
@@ -605,7 +605,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       }
 
       // Creative Factory (D-44): duyệt Storyboard là quyết định có tiền, ghi người duyệt; gọi ra ngoài chỉ khi CREATIVE_SOURCE=mcp.
-      if (path === "/creative/decide" || path === "/creative/compile" || path === "/creative/run") {
+      if (path === "/creative/decide" || path === "/creative/compile" || path === "/creative/run" || path === "/creative/export") {
         const by = { now: now(), actor: userOf(session).id };
         const src = deps.creativeSource;
         const target = src?.mode === "mcp" ? { url: src.url, token: src.token } : null;
@@ -625,6 +625,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const r = h ? await compileFromHook(deps.db, target, { hookId: h.hookId, text: h.text, jurisdiction: h.jurisdiction }, by) : { status: "failed" as const, errorCode: "HOOK_NOT_FOUND" };
           ok = r.status === "succeeded";
           msg = r.status === "succeeded" ? `Đã tạo Storyboard ${r.creativeIrId}, chờ duyệt.` : `Chưa tạo được Storyboard (${r.errorCode}).`;
+        } else if (path === "/creative/export") {
+          const r = await exportBundles(deps.db, target, String(form.get("id") ?? ""), by);
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã đóng gói chạy thử ${r.bundles} bundle (${r.packageId}); chưa đăng gì.` : r.errorCode === "QA_NOT_PASSED" ? "Lần chạy gần nhất chưa QA PASS nên chưa đóng gói." : `Chưa đóng gói (${r.errorCode}).`;
         } else {
           const r = await runPipeline(deps.db, target, String(form.get("id") ?? ""), by);
           ok = r.status === "succeeded";
