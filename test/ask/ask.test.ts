@@ -10,7 +10,7 @@ import { BASE, makeApp, SECRET } from "../helpers/queue.ts";
 
 const NOW = new Date("2026-11-09T02:00:00Z");
 const PRICE = { inputUsdPerMTok: 2, outputUsdPerMTok: 10 };
-const opts = { now: NOW, actor: "mark", price: PRICE };
+const opts = { now: NOW, actor: "mark", price: PRICE, evalGate: { passed: true, version: "1.0.0@t" } };
 // LLM giả: trả đúng chuỗi cho trước, 1000 token vào, 200 token ra.
 function fakeLlm(text = '{"template":null}') {
   const calls: LlmRequest[] = [];
@@ -55,7 +55,7 @@ describe("T-ASK Mi1 nhận câu hỏi", () => {
     const db = freshDb();
     const c = createSessionCookie(SECRET, { sub: "mark", csrf: "k", exp: Date.parse("2026-11-10T00:00:00Z") });
     const llm = fakeLlm('{"template":"channel_health","params":{}}');
-    const { app } = makeApp(db, { now: () => NOW, askLlm: { llm, price: PRICE } });
+    const { app } = makeApp(db, { now: () => NOW, askLlm: { llm, price: PRICE, evalGate: () => ({ passed: true, version: "1.0.0@t" }) } });
     const ask = (csrf: string, a = app) => a.fetch(new Request(`${BASE}/ask`, { method: "POST", headers: { cookie: c, origin: BASE, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ csrf, q: "Kênh có ổn không?" }).toString() }));
     const res = await ask("k");
     expect(res.status).toBe(200);
