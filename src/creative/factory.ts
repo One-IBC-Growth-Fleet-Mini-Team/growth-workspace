@@ -14,6 +14,8 @@ const Compiled = z.object({ creative_ir_id: z.string().min(1), storyboard: z.obj
 const Ran = z.object({ run_id: z.string(), qa_status: z.string(), assets: z.array(z.object({ asset_id: z.string(), kind: z.string() })) });
 // Bước 5 tới 6 chỉ chạy thử: kết quả phải ghi rõ published = false; báo đã đăng là sai hợp đồng.
 const Exported = z.object({ package_id: z.string().min(1), published: z.literal(false), bundles: z.array(z.object({ bundle_id: z.string(), channel: z.string(), aspect_ratio: z.string(), entries: z.number().int().nonnegative() })) });
+const Analyzed = z.object({ assets: z.object({ generated: z.number(), approved: z.number(), pending: z.number() }), quality: z.object({ pass_rate: z.number() }),
+  recommendations: z.array(z.object({ severity: z.string(), message: z.string() })) });
 const failCode = (e: unknown) => (e instanceof RemoteToolError ? e.code : "CREATIVE_FAILED");
 
 export async function compileFromHook(db: Database, target: RemoteTarget, hook: { hookId: string; text: string; jurisdiction: string | null }, opts: { now: Date; actor: string }) {
@@ -77,6 +79,18 @@ export async function exportBundles(db: Database, target: RemoteTarget, id: stri
       [Bun.randomUUIDv7(), id, r.data.package_id.slice(0, 64), JSON.stringify(bundles), opts.now.toISOString(), opts.actor]);
     log({ event: "creative.exported", run_id: id, count: bundles.length });
     return { status: "succeeded" as const, packageId: r.data.package_id, bundles: bundles.length };
+  } catch (e) {
+    return { status: "failed" as const, errorCode: failCode(e) };
+  }
+}
+
+// Bước 7 "analyze" (spec mục 7, Mi1-mkt-01; D-64): chỉ đọc, không tốn tiền nên không cần cổng duyệt; không lưu.
+export async function analyzeCampaign(_db: Database, target: RemoteTarget, id: string) {
+  try {
+    const r = Analyzed.safeParse(await callRemoteTool(target, "analyze_campaign", { creative_ir_id: id }));
+    if (!r.success) return { status: "failed" as const, errorCode: "CREATIVE_MCP_CONTRACT" };
+    return { status: "succeeded" as const, generated: r.data.assets.generated, approved: r.data.assets.approved, pending: r.data.assets.pending, passRate: r.data.quality.pass_rate,
+      recommendations: r.data.recommendations.slice(0, 10).map((x) => ({ severity: x.severity.slice(0, 20), message: x.message.slice(0, 300) })) };
   } catch (e) {
     return { status: "failed" as const, errorCode: failCode(e) };
   }

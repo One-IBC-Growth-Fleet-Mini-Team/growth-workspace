@@ -104,6 +104,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - CRON-03 (D-61, phiên 12): job kéo nguồn MCP 06:30, timer trong bản cài. Test T-PULL-01.
   - Eval Gate Mi1 hỏi đáp (D-62, phiên 12): `evals/mi1-ask/EVAL_mi1-ask.json` theo chuẩn repo Mi1, `bun run eval:mi1`; `/ask` khoá tới khi eval pass. Chưa chạy với Claude thật (môi trường build không có API key). Test T-ASK-05 tới T-ASK-07.
   - Phân quyền MKT, BOD (D-63, phiên 12): MKT chỉ thấy trang số tổng hợp, không thấy mã khách; BOD xem như Mark. Persona cho MKT chờ dữ liệu CRM. Test T-ROLE-01 tới T-ROLE-03.
+  - Bước 7 analyze (D-64, phiên 12): nút trên `/creative`, tool `analyze_campaign` bên creative-factory-v2 (#20). Test T-CF-08.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -149,7 +150,13 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 4. Mi1-sa-01 đối chiếu dữ liệu thật: đã biết cấu trúc CRM và tên Stage thật (D-42). Còn thiếu đường lấy dữ liệu: trang quản trị CRM không có nút xuất CSV, cần MobCEC xuất hộ file Opportunity, Lead, Order, Account (đủ cột theo `deploy/crm-columns.example.json`) hoặc mở API (chặn a). Danh bạ RM: lấy từ file "CRM MobCEC - New - Oct 22 2026.xlsx" (danh sách tài khoản CRM), nạp bằng `scripts/load-rm-directory.ts`, giữ ngoài repo.
 5. Đã có ổ cắm cho mọi nguồn ngoài trong spec mục 9 (partner-mcp từ D-56, thiếu `calc_commission`; atlassian-m365-drive-mcp mới có nháp việc `/tasks` D-60, đọc Teams chờ chặn b) (hợp đồng ở `docs/context/hop-dong-mcp.md`); nối khi hệ thống có: HOOK (SEO/AIO), CREATIVE (creative-factory-v2 đã merge #12 tới #16; markng-byte/creative-factory-v2#17 câu lọc tầng 4, #18 QA miễn tên thương hiệu, #19 chọn nguồn bằng biến môi trường đang mở. Chạy `packages/mcp-server` với `PORT=8787 CF_MCP_TOKEN=... CF_BRANDS_DIR=plugins/brands CF_DEFAULT_BRAND_ID=brand-one-ibc` (sau #19; brief, campaign lấy từ Google Sheet bằng `CF_SHEET_ID`, `CF_BRIEFS_GID`, `CF_CAMPAIGNS_GID`), rồi đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL=http://127.0.0.1:8787/mcp`, `CREATIVE_MCP_TOKEN` cùng giá trị. Đã chạy thử thật 09/11/2026: compile ra Storyboard; chạy khi chưa duyệt bị chặn `STORYBOARD_NOT_APPROVED`; sau khi duyệt chạy xong, QA PASS, 26 asset. Token sai báo `REMOTE_UNAUTHORIZED` từ D-57), ADS, MARKET. Còn chờ định nghĩa: Win gate, lịch kênh (`schedule_channel_post`), chính sách hoa hồng (partner-mcp `calc_commission`), kiểm màu ảnh. Phơi MCP qua HTTP khi có máy chủ.
 5a. Phần spec xây được ngay bằng dữ liệu tổng hợp (so lại spec 09/11/2026), làm lần lượt: lịch trong `deploy/local` đã có CRON-05, CRON-06, CRON-08; CRON-03 kéo nguồn MCP lúc 06:30 (D-61), CRON-01 chờ nguồn sự kiện, CRON-02, 04 nằm trong Brief sáng, CRON-09 có job và trang `/monthly` (D-55), CRON-07 chưa có job (mục 10). Đã làm xong cả bốn mục (D-50 tới D-53).
-5b. Trang persona tổng hợp cho Team MKT (spec mục 1 câu 2, D-63): phân khúc và persona từ deal Closed Won, không tên, không mã khách. Cần file Opportunity, Account xuất từ CRM (chặn a); làm adapter tải file trước khi có API.
+5b. Để sau (Mark 09/11/2026): trang persona tổng hợp cho Team MKT (spec mục 1 câu 2, D-63): phân khúc và persona từ deal Closed Won, không tên, không mã khách. Cần file Opportunity, Account xuất từ CRM (chặn a); làm adapter tải file trước khi có API.
+5c. Việc kỹ thuật làm tiếp, theo thứ tự (lập 09/11/2026, không cần ai chốt):
+   1. Xong (D-64): bước 7 "analyze" của Creative Factory (spec mục 7, Mi1-mkt-01): bọc package `analytics-engine` của creative-factory-v2 thành tool MCP bên repo đó, rồi Growth gọi và hiện ở `/creative` hoặc `/ads-overview`.
+   2. `match_to_contact` (partner-mcp): giới hạn số lần tra mỗi phút và ghi log số lần tra (không ghi giá trị).
+   3. `/tasks`: không tính lại toàn bộ bảng sự kiện; chỉ tính độ phủ 7 ngày.
+   4. Truy vấn tự viết gắn nhãn "Chưa xác minh" kèm tỷ lệ độ phủ nối (spec mục 4), sau khi eval Mi1 đã chạy thật.
+   Cần Mark chốt trước khi làm: ngưỡng tầng 3B, Win gate, lịch kênh, chính sách hoa hồng, CRON-07, bundle theo tên kênh, các giá trị tạm (K-07 banking, finance; tầng 4 3 lần trong 28 ngày; Q-09).
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn
@@ -168,4 +175,4 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- growth-workspace: PR nhánh `claude/tender-gates-nn4rif` (Eval Gate Mi1, phân quyền theo vai trò). PR #23 tới #46 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
+- growth-workspace: PR #23 tới #47 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#17, #18, #19. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
