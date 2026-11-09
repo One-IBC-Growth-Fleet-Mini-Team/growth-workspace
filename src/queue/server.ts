@@ -68,6 +68,7 @@ import { buildDataBoard } from "../db/data01.ts";
 import { renderDataPage } from "./views/data01.ts";
 import { buildChannelBoard, recordChannelCheck } from "../db/channels.ts";
 import { renderChannelsPage } from "./views/channels.ts";
+import { latestCountryStatus, recordCountryVerification } from "../db/meta-verify.ts";
 import { checkAdBatch, checkOne } from "../ads/check.ts";
 import { renderAdsPage } from "./views/ads.ts";
 import { importAdReport } from "../crm/ad-report-import.ts";
@@ -172,7 +173,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   }
 
   function channelsPage(session: Session, message: string | null): string {
-    return renderChannelsPage({ board: buildChannelBoard(deps.db, now()), csrf: session.csrf, message, staleHours: CHANNEL_PARAMS.staleHours });
+    return renderChannelsPage({ board: buildChannelBoard(deps.db, now()), verify: latestCountryStatus(deps.db), required: AD_RULES.metaVerifyRequired, csrf: session.csrf, message, staleHours: CHANNEL_PARAMS.staleHours });
   }
 
   // Tuần mặc định: tuần đã trọn gần nhất (thứ Hai tuần trước, giờ Việt Nam).
@@ -435,6 +436,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       }
 
       // Mark giám sát Mi1-data-01 và CRON-02 nên cả hai người dùng ghi được (D-37).
+      if (path === "/channels/verify") {
+        const v = { country: String(form.get("country") ?? ""), status: String(form.get("status") ?? ""), note: String(form.get("note") ?? "") };
+        const r = recordCountryVerification(deps.db, v, { now: now(), actor: userOf(session).id });
+        return respond(channelsPage(session, r === "ok" ? `Đã ghi trạng thái verify ${v.country.trim()}.` : "Chưa ghi. Cần quốc gia và trạng thái."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
       if (path === "/channels") {
         const c = { kind: String(form.get("kind") ?? ""), label: String(form.get("label") ?? ""), status: String(form.get("status") ?? ""), note: String(form.get("note") ?? "") };
         const r = recordChannelCheck(deps.db, c, { now: now(), actor: userOf(session).id });
@@ -451,7 +458,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           rows = r.rows;
           if (r.status === "failed") message = r.errorCode === "ADS_HEADER_NOT_FOUND" ? "File cần cột primary_text hoặc headline." : "File không đúng dạng CSV.";
         } else {
-          const copy = { primaryText: String(form.get("primary_text") ?? ""), headline: String(form.get("headline") ?? ""), description: String(form.get("description") ?? ""), jurisdiction: String(form.get("jurisdiction") ?? "").trim() || null };
+          const copy = { primaryText: String(form.get("primary_text") ?? ""), headline: String(form.get("headline") ?? ""), description: String(form.get("description") ?? ""), jurisdiction: String(form.get("jurisdiction") ?? "").trim() || null, targetCountry: String(form.get("target_country") ?? "").trim() || null };
           rows = [{ id: "Mẫu vừa dán", jurisdiction: copy.jurisdiction, ...checkOne(deps.db, copy, AD_RULES) }];
         }
         return respond(renderAdsPage({ csrf: session.csrf, rows, message, rules: AD_RULES }), message ? 422 : 200, { "content-type": "text/html; charset=utf-8" });

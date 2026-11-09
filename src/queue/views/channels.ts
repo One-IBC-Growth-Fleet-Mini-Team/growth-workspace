@@ -6,7 +6,9 @@ import { shell } from "./page.ts";
 const KIND = { bm: "Business Manager", wa: "Số WhatsApp Business", fanpage: "Fanpage" } as const;
 const STATUS = { ok: "Ổn", restricted: "Bị hạn chế", disabled: "Bị khoá" } as const;
 
-export function renderChannelsPage(args: { board: ReturnType<typeof buildChannelBoard>; csrf: string; message: string | null; staleHours: number }): string {
+const VERIFY = { not_started: "Chưa bắt đầu", pending: "Đang chờ Meta", verified: "Đã verify", rejected: "Bị từ chối" } as const;
+
+export function renderChannelsPage(args: { board: ReturnType<typeof buildChannelBoard>; verify: { country: string; status: string; checkedAt: string; note: string | null }[]; required: readonly string[]; csrf: string; message: string | null; staleHours: number }): string {
   const b = args.board;
   const s = b.summary;
   const stale = new Set(s.stale.map((x) => `${x.kind}|${x.label}`));
@@ -17,6 +19,13 @@ export function renderChannelsPage(args: { board: ReturnType<typeof buildChannel
 ${args.message ? html`<p class="warn">${args.message}</p>` : ""}
 ${missing.length ? html`<p class="meta">Chưa theo dõi so với spec (3 BM, 3 số WA, 6 Fanpage): ${missing.join(", ")}.</p>` : ""}
 ${b.accounts.length ? html`<table class="kv">${b.accounts.map((a) => html`<tr><td>${a.label}<br><span class="meta">${KIND[a.kind]}</span></td><td>${a.status === "ok" ? STATUS.ok : html`<span class="warn">${STATUS[a.status]}</span>`}</td><td class="meta">${a.checkedAt}${stale.has(`${a.kind}|${a.label}`) ? html` <span class="warn">(quá hạn)</span>` : ""}<br>${a.note ?? ""}</td></tr>`)}</table>` : html`<p class="meta">Chưa có lần kiểm nào.</p>`}
+<section><h2>Verify quảng cáo Meta theo quốc gia</h2><p class="meta">Quảng cáo nhắm quốc gia cần verify mà chưa xong bị giữ lại ở cổng tuân thủ (tầng 1B).</p>
+<ul>${args.required.filter((c) => !args.verify.some((v) => v.country === c)).map((c) => html`<li class="warn">${c}: chưa ghi</li>`)}${args.verify.map((v) => html`<li>${v.country}: ${VERIFY[v.status as keyof typeof VERIFY] ?? v.status} <span class="meta">${v.checkedAt}${v.note ? ` · ${v.note}` : ""}</span></li>`)}</ul>
+<form method="post" action="/channels/verify"><input type="hidden" name="csrf" value="${args.csrf}">
+<label>Quốc gia <input name="country" maxlength="60" required></label>
+<label>Trạng thái <select name="status">${Object.entries(VERIFY).map(([k, v]) => html`<option value="${k}">${v}</option>`)}</select></label>
+<label>Ghi chú <input name="note" maxlength="300"></label>
+<button type="submit">Ghi</button></form></section>
 <section><h2>Ghi lần kiểm</h2><p class="meta">Xem trên Meta Business Suite, rồi ghi trạng thái. Nhãn là tên gọi nội bộ, không ghi số điện thoại.</p>
 <form method="post" action="/channels"><input type="hidden" name="csrf" value="${args.csrf}">
 <label>Loại <select name="kind">${Object.entries(KIND).map(([k, v]) => html`<option value="${k}">${v}</option>`)}</select></label>

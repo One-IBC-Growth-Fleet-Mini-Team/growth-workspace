@@ -81,6 +81,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Cổng tuân thủ (D-38, phiên 11): trang `/ads-check` kiểm một mẫu hoặc CSV nhiều mẫu: từ cấm, từ cần duyệt, độ dài, giữ lại tài phán chưa chốt giá. Test T-ADS-01 tới T-ADS-04.
   - Mi1-mkt-01 (D-39, phiên 11): trang `/ads-overview` nạp CSV báo cáo tuần của Meta, Google Ads; tổng theo nền tảng, gợi ý tầng 2, khoá chéo TRACKING_DEGRADED. Test T-MKT1-01 tới T-MKT1-04.
   - Mi1-mkt-04 (D-40, phiên 11): trang `/competitors` so giá gói đối thủ với sheet FINAL theo tài phán và gói. Test T-MKT4-01 tới T-MKT4-03. Mi1-mkt-02 chờ tiêu chí chấm Hook (K-08).
+  - Mi1-mkt-03 verify Meta TW/IN (D-41, phiên 11): ghi trạng thái verify theo quốc gia ở `/channels`; `/ads-check` giữ lại mẫu nhắm quốc gia chưa verify. Test T-MKT3-01 tới T-MKT3-03.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -93,9 +94,9 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 - **BK-08 (WO tồn đọng) tạm dừng:** giữ code đã merge (PR #13, #14), không làm thêm cho tới khi lát cắt của Amy chạy thật 2 tuần.
 - **Không chờ dữ liệu thật** (`@harveyng710-source`, 02/11/2026): build tiếp bằng dữ liệu tổng hợp, khi nối dữ liệu thật thì sửa tới đâu hay tới đó (D-27).
 
-## Tiến độ toàn dự án (ước tính 03/11/2026, tính cả PR đang mở)
+## Tiến độ toàn dự án (ước tính 09/11/2026, tính cả PR đang mở)
 
-Khoảng **35%** spec v0.3.2. GĐ0 nền móng khoảng 55%; GĐ1 khoảng 65%; GĐ2, GĐ3 chưa bắt đầu.
+Khoảng **45%** spec v0.3.2 (tính cả PR đang mở #23 tới #32). GĐ0 khoảng 75%; GĐ1 khoảng 80%; GĐ2 khoảng 30% (cổng tuân thủ, mkt-01 tổng quan, mkt-04, verify Meta); GĐ3 chưa bắt đầu.
 
 | Hạng mục | Trạng thái |
 |---|---|
@@ -112,18 +113,20 @@ Khoảng **35%** spec v0.3.2. GĐ0 nền móng khoảng 55%; GĐ1 khoảng 65%; 
 | Cổng tuân thủ tầng 1A, 1B `/ads-check` (D-38) | PR nhánh `claude/tender-gates-nn4rif-ads` |
 | Mi1-mkt-01 tổng quan tuần, tầng 2 `/ads-overview` (D-39) | PR nhánh `claude/tender-gates-nn4rif-mkt01` |
 | Mi1-mkt-04 giá đối thủ `/competitors` (D-40) | PR nhánh `claude/tender-gates-nn4rif-mkt04` |
-| GĐ2 còn lại: Win gate, nháp ngân sách, mkt-02 (chờ K-08), mkt-03, Creative Factory | chưa làm |
+| Mi1-mkt-03 verify Meta TW/IN (D-41) | PR nhánh `claude/tender-gates-nn4rif-mkt03` |
+| GĐ2 còn lại: Win gate, nháp ngân sách (cần chuỗi ID tới đơn hàng), mkt-02 (chờ K-08), mkt-03 quy định và tiếng khách, Creative Factory (repo creative-factory-v2) | chưa làm |
 
 ## Việc tiếp theo
 
 Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng chưa tính test, dữ liệu tổng hợp, adapter tải file chạy ngay cho mỗi nguồn mới (thêm dòng vào `ports.md`). PR song song: migration áp theo bảng đánh dấu (`src/db/migrate.ts` sau PR #20, #21), nên số migration không cần liên tiếp.
 
 1. Các team đã sửa sheet giá, ma trận ngân hàng và xác nhận bộ SKD (ghi nhận 09/11/2026 ở `decisions.md`). Nạp lại file mới ở `/jurisdictions` và `/banks`.
-1a. Mi1-mkt-05 phần còn lại: lịch kênh (chờ phạm vi); verify Meta TW/IN. Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
+1a. Mi1-mkt-05 phần còn lại: lịch kênh (spec chưa mô tả, cần phạm vi). Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
 2. PR tài liệu `metric-definitions.md` (nhánh `claude/tender-gates-nn4rif-metrics`) chờ Mark duyệt: thêm định nghĩa các hàm tính từ PR #20 tới PR #27.
 3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật khi Harvey gửi dòng tên cột CSV, tự báo thật, danh sách RM.
-5. GĐ2 theo spec mục 7, 8: Creative Factory, cổng tuân thủ (bộ từ cấm chờ chốt), mkt-01 tới mkt-04.
+5. GĐ2 còn lại, mỗi việc đang chờ một đầu vào: Mi1-mkt-02 chấm Hook (tiêu chí, K-08); Win gate và nháp đổi ngân sách tầng 5 (chuỗi ID từ quảng cáo tới đơn hàng, cần sự kiện thật của MobCEC); Mi1-mkt-03 quy định và tiếng khách (nguồn market-scan); Creative Factory (4 việc trên repo creative-factory-v2, chưa gắn vào phiên); kiểm màu ảnh của cổng tuân thủ. Đã xong bản đầu: cổng tuân thủ (D-38), mkt-01 tổng quan và tầng 2 (D-39), mkt-04 (D-40), verify Meta (D-41).
+5a. Merge chuỗi PR #23 tới #32 theo đúng thứ tự (mỗi PR chồng lên PR trước).
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn
@@ -150,5 +153,6 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 - Nhánh `claude/tender-gates-nn4rif-metrics` (định nghĩa chỉ số, chỉ tài liệu): PR #28, chồng lên #27, Mark duyệt.
 - Nhánh `claude/tender-gates-nn4rif-ads` (cổng tuân thủ, D-38): PR #29, chồng lên #28.
 - Nhánh `claude/tender-gates-nn4rif-mkt01` (Mi1-mkt-01, D-39): PR #30, chồng lên #29.
-- Nhánh `claude/tender-gates-nn4rif-mkt04` (Mi1-mkt-04, D-40): chồng lên #30. Thứ tự merge: #23 tới #30, rồi PR này.
+- Nhánh `claude/tender-gates-nn4rif-mkt04` (Mi1-mkt-04, D-40): PR #31, chồng lên #30.
+- Nhánh `claude/tender-gates-nn4rif-mkt03` (verify Meta, D-41): chồng lên #31. Thứ tự merge: #23 tới #31, rồi PR này.
 - PR #12 tới #22 đã merge.
