@@ -89,6 +89,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - content-dist-mcp (D-47, phiên 11): server MCP chỉ đọc 5 tool (giá 45 tài phán, SKD, sandbox8, kiểm nội dung, sức khoẻ kênh) cho hệ thống khác lấy dữ liệu. Test T-CD-01 tới T-CD-03.
   - growth-mcp và nhật ký bài học (D-48, phiên 11): trang `/lessons`, server MCP growth (search_knowledge, propose_hook_card, log_lesson, log_decision). Test T-KN-01 tới T-KN-03.
   - creative-factory-v2 (D-49, phiên 11): 4 PR trên repo đó (cổng Storyboard, plugin One IBC, nguồn Google Sheets, server MCP); Growth gửi `approved_by` khi chạy pipeline.
+  - Nhật ký phiên chạy (D-50, phiên 12): trang `/runs` theo spec mục 6 quy tắc 2, chi phí tháng so với trần 100 USD, người giám sát đánh dấu đã xem. Test T-RUN-01 tới T-RUN-03.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -133,6 +134,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật: đã biết cấu trúc CRM và tên Stage thật (D-42). Còn thiếu đường lấy dữ liệu: trang quản trị CRM không có nút xuất CSV, cần MobCEC xuất hộ file Opportunity, Lead, Order, Account (đủ cột theo `deploy/crm-columns.example.json`) hoặc mở API (chặn a). Danh bạ RM: lấy từ file "CRM MobCEC - New - Oct 22 2026.xlsx" (danh sách tài khoản CRM), nạp bằng `scripts/load-rm-directory.ts`, giữ ngoài repo.
 5. Đã có ổ cắm cho mọi nguồn ngoài trong spec mục 9 trừ partner-mcp và atlassian-m365-drive-mcp (hợp đồng ở `docs/context/hop-dong-mcp.md`); nối khi hệ thống có: HOOK (SEO/AIO), CREATIVE (creative-factory-v2 đã merge #12 tới #16; chạy `packages/mcp-server` với `PORT=8787 CF_MCP_TOKEN=...`, rồi đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL=http://127.0.0.1:8787/mcp`, `CREATIVE_MCP_TOKEN` cùng giá trị. Đã chạy thử thật 09/11/2026: compile ra Storyboard; chạy khi chưa duyệt bị chặn `STORYBOARD_NOT_APPROVED`; sau khi duyệt chạy xong, QA PASS, 26 asset. Token sai hiện báo `REMOTE_UNREACHABLE`, chưa tách mã lỗi riêng), ADS, MARKET. Còn chờ định nghĩa: Win gate, lịch kênh (`schedule_channel_post`), chính sách hoa hồng (partner-mcp `calc_commission`), kiểm màu ảnh. Phơi MCP qua HTTP khi có máy chủ.
+5a. Phần spec xây được ngay bằng dữ liệu tổng hợp (so lại spec 09/11/2026), làm lần lượt, mỗi việc một PR: lịch CRON-01 tới CRON-09 trong `deploy/local` (mục 10); `execute_approved_cypher` của growth-mcp, bộ truy vấn mẫu đã duyệt chạy trên Growth DB tới khi có Neo4j (mục 4, 9); xem chuỗi 12 ID và bước thiếu (mục 5); ngưỡng 0,8 và trọng số chỉ Mark đổi, chạy lại eval trước khi có hiệu lực (mục 6).
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
 
 ## Đang bị chặn
@@ -151,4 +153,4 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- Không còn. growth-workspace: PR #23 tới #43 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
+- growth-workspace: PR nhánh `claude/tender-gates-nn4rif` (STATUS, `/runs`). PR #23 tới #43 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
