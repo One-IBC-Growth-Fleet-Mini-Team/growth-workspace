@@ -113,6 +113,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Nháp lịch kênh (D-70, PR 4 trong 5): khối trên `/creative`, nhịp đăng tạm. Test T-SCH-01, T-SCH-02.
   - Hoa hồng và tên bundle (D-71, PR 5 trong 5): đề xuất "chưa chi" ở `/partners` và `calc_commission`; bậc đối tác lưu riêng; tên bundle trên thẻ Creative. Test T-COMM-01, T-COMM-02.
   - Dashboard `/overview` (D-76): 4 hàng theo vai trò. Test T-OV-01, T-OV-02.
+  - Điểm vào theo vai trò, thanh điều hướng nhóm theo việc, dòng mô tả, trang trống (D-77). Test T-NAV-01, T-NAV-02.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
