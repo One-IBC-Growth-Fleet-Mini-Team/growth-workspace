@@ -1,6 +1,6 @@
 // T-N-01, T-N-02: thông báo Teams chỉ có ngày và link.
 import { describe, expect, test } from "bun:test";
-import { escalationMessage, postTeams, queueReadyMessage } from "../../src/teams/notify.ts";
+import { digestReadyMessage, escalationMessage, postTeams, queueReadyMessage } from "../../src/teams/notify.ts";
 
 const HOOK = "https://example.webhook.office.com/webhookb2/abc";
 
@@ -18,6 +18,13 @@ describe("T-N-01 nội dung cố định", () => {
     expect(() => queueReadyMessage("02/11", "https://queue.example.invalid")).toThrow();
     expect(() => queueReadyMessage("2026-11-02", "http://queue.example.invalid")).toThrow();
     expect(() => escalationMessage("javascript:alert(1)")).toThrow();
+  });
+
+  test("T-N-03 bản cài máy Ubuntu (D-26): link http chỉ nhận localhost; Digest tuần (CRON-08) chỉ có ngày và link", () => {
+    expect(queueReadyMessage("2026-11-02", "http://localhost:3000").text).toBe("Hàng chờ ngày 02/11 đã sẵn sàng: http://localhost:3000/queue?date=2026-11-02");
+    expect(digestReadyMessage("2026-11-02", "http://127.0.0.1:3000")).toEqual({ text: "Digest tuần từ 02/11 đã sẵn sàng: http://127.0.0.1:3000/digest?week=2026-11-02" });
+    expect(() => digestReadyMessage("2026-11-02", "http://localhost.example.invalid")).toThrow();
+    expect(() => digestReadyMessage("x", "https://queue.example.invalid")).toThrow();
   });
 
   test("T-N-01 thân request gửi đi đúng bằng mẫu, không thêm trường nào", async () => {

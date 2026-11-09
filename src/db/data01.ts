@@ -2,10 +2,11 @@
 // Gộp mọi lượt nạp, bỏ trùng theo event_id (lượt nạp mới nhất thắng). Chỉ đọc.
 import type { Database } from "bun:sqlite";
 import { DATA01_PARAMS, type Data01Params } from "../config.ts";
+import { chainLinkCoverage, type LinkCoverage } from "../metrics/id-chain.ts";
 import { idCoverage } from "../metrics/id-coverage.ts";
 import { addDays, vnDate } from "../time.ts";
 
-type Row = { event_name: string; event_date: string | null; session_id: string | null; linked: number; missing: string | null; known: number };
+type Row = { event_name: string; event_date: string | null; session_id: string | null; linked: number; missing: string | null; known: number; ids: string | null };
 export type DataBoard = {
   importedAt: string | null;
   window: { start: string; end: string; sessions: number; linked: number; rate: number | null; degraded: boolean };
@@ -14,11 +15,13 @@ export type DataBoard = {
   unknownEvents: { eventName: string; count: number }[];
   badTime: number;
   pii: { emailCells: number; forbiddenColumns: string[] } | null; // của lượt nạp mới nhất
+  chain: LinkCoverage[]; // chuỗi 12 ID, chỉ sự kiện nạp từ khi có bảng data_event_chain
 };
 
 export function buildDataBoard(db: Database, now: Date, p: Data01Params = DATA01_PARAMS): DataBoard {
   const last = db.query("SELECT imported_at, email_cells, forbidden_columns FROM data_event_imports ORDER BY imported_at DESC, id DESC LIMIT 1").get() as { imported_at: string; email_cells: number; forbidden_columns: string | null } | null;
-  const rows = db.query(`SELECT e.event_name, e.event_date, e.session_id, e.linked, e.missing, e.known FROM data_events e JOIN data_event_imports i ON i.id = e.import_id
+  const rows = db.query(`SELECT e.event_name, e.event_date, e.session_id, e.linked, e.missing, e.known, c.ids FROM data_events e JOIN data_event_imports i ON i.id = e.import_id
+    LEFT JOIN data_event_chain c ON c.import_id = e.import_id AND c.row_no = e.row_no
     WHERE NOT EXISTS (SELECT 1 FROM data_events e2 JOIN data_event_imports i2 ON i2.id = e2.import_id WHERE e2.event_key = e.event_key AND (i2.imported_at > i.imported_at OR (i2.imported_at = i.imported_at AND (e2.import_id > e.import_id OR (e2.import_id = e.import_id AND e2.row_no > e.row_no)))))`).all() as Row[];
   const end = vnDate(now);
   const start = addDays(end, -(p.windowDays - 1));
@@ -46,6 +49,7 @@ export function buildDataBoard(db: Database, now: Date, p: Data01Params = DATA01
     }),
     unknownEvents: [...unknown].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([eventName, count]) => ({ eventName, count })),
     badTime: rows.filter((r) => r.event_date === null).length,
+    chain: chainLinkCoverage(rows.filter((r) => r.ids !== null).map((r) => ({ eventName: r.event_name, ids: new Set(r.ids ? r.ids.split(",") : []) }))),
     pii: last ? { emailCells: last.email_cells, forbiddenColumns: last.forbidden_columns ? last.forbidden_columns.split(",") : [] } : null,
   };
 }

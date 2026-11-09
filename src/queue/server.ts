@@ -93,6 +93,8 @@ import { buildMarketBoard } from "../db/market.ts";
 import { renderMarketPage } from "./views/market.ts";
 import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
 import { renderLessonsPage } from "./views/lessons.ts";
+import { renderRunsPage } from "./views/runs.ts";
+import { buildRunLog, markRunSeen } from "../db/runs.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -393,6 +395,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/runs") {
+      if (!session) return redirect("/login");
+      return respond(renderRunsPage({ log: buildRunLog(deps.db, now()), me: userOf(session).id, csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/lessons") {
       if (!session) return redirect("/login");
       const q = (url.searchParams.get("q") ?? "").slice(0, 200);
@@ -626,6 +633,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           msg = r.status === "succeeded" ? `Đã nạp ${r.items} mục.` : `Chưa nạp (${r.errorCode}). Dữ liệu cũ vẫn giữ nguyên.`;
         }
         return respond(marketPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      if (path === "/runs") {
+        const r = markRunSeen(deps.db, String(form.get("run_id") ?? ""), { now: now(), actor: userOf(session).id });
+        if (r === "NOT_SUPERVISOR") return text(403, "Chỉ người giám sát của agent này được đánh dấu.");
+        return respond(renderRunsPage({ log: buildRunLog(deps.db, now()), me: userOf(session).id, csrf: session.csrf, message: r === "ok" ? "Đã đánh dấu đã xem." : "Không thấy phiên này." }), r === "ok" ? 200 : 404, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/lessons") {

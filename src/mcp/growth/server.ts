@@ -1,5 +1,5 @@
 // Server MCP growth (spec mục 9, GĐ0; D-48) qua stdio. READ_ONLY: search_knowledge, propose_hook_card.
-// WRITE_INTERNAL: log_lesson, log_decision (chỉ thêm vào Growth DB, kèm bằng chứng). execute_approved_cypher để sau (chưa có Neo4j).
+// WRITE_INTERNAL: log_lesson, log_decision (chỉ thêm vào Growth DB, kèm bằng chứng). READ_ONLY: execute_approved_cypher chạy bộ truy vấn mẫu đã duyệt (D-51; chưa có Neo4j nên chạy trên Growth DB).
 import type { Database } from "bun:sqlite";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -8,6 +8,7 @@ import { getDbPath } from "../../config.ts";
 import { buildHookBoard } from "../../db/hooks.ts";
 import { logKnowledge, searchKnowledge } from "../../db/knowledge.ts";
 import { openReadWrite } from "../../db/open.ts";
+import { APPROVED_QUERIES, runApprovedQuery } from "../../mi1/approved-queries.ts";
 
 const ok = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(v) }] });
 const bad = (code: string) => ({ content: [{ type: "text" as const, text: JSON.stringify({ error_code: code }) }], isError: true });
@@ -23,6 +24,13 @@ export function createGrowthServer(db: Database, opts: { now?: () => Date; actor
     async (a) => ok({ entries: searchKnowledge(db, a.query) }));
   server.registerTool("propose_hook_card", { description: "Đề xuất Hook card đầu tuần: Hook điểm cao nhất đạt cổng tuân thủ hoặc cần duyệt. Team MKT chọn.", annotations: READ_ONLY },
     async () => ok({ proposed: buildHookBoard(db).proposed.map((h) => ({ hook_id: h.hookId, text: h.text, score: h.score, verdict: h.verdict })) }));
+  server.registerTool("execute_approved_cypher", {
+    description: `Chạy một truy vấn mẫu đã duyệt cho câu hỏi vận hành. Mẫu: ${Object.entries(APPROVED_QUERIES).map(([k, t]) => `${k} (câu ${t.question}: ${t.description})`).join("; ")}.`,
+    inputSchema: z.strictObject({ template: z.string().max(64), params: z.record(z.string(), z.unknown()).optional() }), annotations: READ_ONLY,
+  }, async (a) => {
+    const r = runApprovedQuery(db, a.template, a.params, now());
+    return "result" in r ? ok(r) : bad(r.errorCode);
+  });
   for (const kind of ["lesson", "decision"] as const) {
     server.registerTool(`log_${kind}`, { description: `Ghi một ${kind === "lesson" ? "bài học" : "quyết định"} kèm bằng chứng là đường dẫn trang Growth (bắt đầu bằng /). Chỉ thêm.`, inputSchema: Entry, annotations: APPEND },
       async (a) => {
