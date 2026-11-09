@@ -16,7 +16,7 @@ export function canSee(user: QueueUser, path: string): boolean {
 }
 
 export function canPost(user: QueueUser, path: string): boolean {
-  return user.role !== "mkt" || path === "/logout" || MKT_POSTS.has(path);
+  return user.role !== "mkt" || path === "/logout" || path === "/password" || MKT_POSTS.has(path);
 }
 
 // Bỏ khỏi trang các form POST mà vai trò này không được dùng (D-66), để MKT không bấm rồi nhận 403.
