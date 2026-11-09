@@ -5,7 +5,7 @@ import { shell } from "./page.ts";
 
 const WHY: Record<string, string> = {
   QUESTION_REQUIRED: "Cần nhập câu hỏi.", COST_CAP: "Đã chạm trần chi phí LLM tháng (100 USD); Mi1 tạm không gọi LLM.",
-  ASK_LLM_FAILED: "Không gọi được LLM.", ASK_REFUSED: "LLM từ chối câu hỏi này.", ASK_BAD_OUTPUT: "LLM trả sai định dạng; thử hỏi lại.", PARAMS_INVALID: "Tham số không hợp lệ; thử hỏi cụ thể hơn.",
+  ASK_LLM_FAILED: "Không gọi được LLM.", ASK_REFUSED: "LLM từ chối câu hỏi này.", EVAL_NOT_PASSED: "Mi1 chưa qua bộ eval của prompt hiện tại (chạy bun run eval:mi1).", ASK_BAD_OUTPUT: "LLM trả sai định dạng; thử hỏi lại.", PARAMS_INVALID: "Tham số không hợp lệ; thử hỏi cụ thể hơn.",
 };
 
 export function renderAskPage(args: { configured: boolean; q: string; result: AskResult | null; csrf: string }): string {

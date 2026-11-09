@@ -3,7 +3,8 @@
 // Danh sách người dùng cố định: Amy (duyệt), Mark (xem, nhận escalate). Q-16 chờ Mark về quyền thêm.
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-export type QueueUser = { id: "amy" | "mark"; role: "approver" | "viewer" };
+// BOD xem như Mark (viewer); Team MKT chỉ thấy số tổng hợp (D-63, src/queue/roles.ts).
+export type QueueUser = { id: "amy" | "mark" | "mkt" | "bod"; role: "approver" | "viewer" | "mkt" };
 export type Session = { sub: QueueUser["id"]; csrf: string; exp: number };
 
 export const SESSION_COOKIE = "gw_session";
@@ -65,7 +66,7 @@ export function clearCookie(name: string, path = "/", secure = true): string {
 export function readSession(req: Request, secret: string, now: Date): Session | null {
   const s = unsealValue<Session>(secret, cookieValue(req, SESSION_COOKIE));
   if (!s || typeof s.exp !== "number" || s.exp <= now.getTime()) return null;
-  if (s.sub !== "amy" && s.sub !== "mark") return null;
+  if (s.sub !== "amy" && s.sub !== "mark" && s.sub !== "mkt" && s.sub !== "bod") return null;
   return s;
 }
 

@@ -94,11 +94,13 @@ import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
 import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
+import { canPost, canSee } from "./roles.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
 import { renderAskPage } from "./views/ask.ts";
 import { renderTasksPage } from "./views/tasks.ts";
 import { buildTaskDrafts } from "../mi1/task-drafts.ts";
 import { askMi1 } from "../mi1/ask.ts";
+import { readAskEvalGate } from "../mi1/eval.ts";
 import type { LlmClient } from "../agents/sa-01/llm.ts";
 import type { TokenPrice } from "../metrics/cost.ts";
 import { buildMonthly, previousMonth } from "../mi1/monthly.ts";
@@ -146,7 +148,7 @@ export type QueueAppDeps = {
   // Lượt eval gần nhất (D-53): trang /tuning chỉ kích hoạt giá trị mới khi eval đã chạy lại sau lúc đề xuất và pass.
   evalRun?: () => EvalRun;
   // Hỏi Mi1 (D-58): LLM chỉ chọn truy vấn mẫu; thiếu thì trang /ask báo chưa cấu hình.
-  askLlm?: { llm: LlmClient; price: TokenPrice };
+  askLlm?: { llm: LlmClient; price: TokenPrice; evalGate: () => { passed: boolean; version: string } };
 };
 
 const MAX_BODY = 16 * 1024;
@@ -156,7 +158,7 @@ const IMPORT_FIELDS: Record<string, CsvResource> = { opportunity: "Opportunity",
 const WO_IMPORT_FIELDS = { workorder: "WorkOrder", wopic: "WorkOrderPic" } as const;
 const LOGIN_MAX_FAILS = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
-const PASSWORD_USERS: Record<string, QueueUser> = { amy: { id: "amy", role: "approver" }, mark: { id: "mark", role: "viewer" } };
+const PASSWORD_USERS: Record<string, QueueUser> = { amy: { id: "amy", role: "approver" }, mark: { id: "mark", role: "viewer" }, mkt: { id: "mkt", role: "mkt" }, bod: { id: "bod", role: "viewer" } };
 const SECURITY_HEADERS = {
   "content-security-policy":
     "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; script-src 'none'",
@@ -281,7 +283,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(renderLoginPage("Sai tên hoặc mật khẩu."), 401, { "content-type": "text/html; charset=utf-8" });
       }
       fails.delete(who);
-      return redirect("/queue", [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()), secure)], 303);
+      return redirect(PASSWORD_USERS[who]!.role === "mkt" ? "/hooks" : "/queue", [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()), secure)], 303);
     }
 
     if (req.method === "GET" && path === "/login") {
@@ -319,6 +321,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     }
 
     const session = readSession(req, deps.sessionSecret, now());
+    // Phân quyền theo vai trò (D-63): MKT về trang Hook thay cho Hàng chờ; trang có mã khách trả 403.
+    if (session) {
+      const u = userOf(session);
+      if (u.role === "mkt" && req.method === "GET" && (path === "/" || path === "/queue")) return redirect("/hooks");
+      if (!(req.method === "GET" ? canSee(u, path) : canPost(u, path))) return text(403, "Vai trò MKT chỉ xem số tổng hợp, không xem trang có mã khách hay duyệt việc tốn tiền.");
+    }
     if (req.method === "GET" && (path === "/" || path === "/queue")) {
       if (!session) return redirect("/login");
       const user = userOf(session);
@@ -682,7 +690,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       if (path === "/ask") {
         if (!deps.askLlm) return respond(renderAskPage({ configured: false, q: "", result: null, csrf: session.csrf }), 422, { "content-type": "text/html; charset=utf-8" });
         const q = String(form.get("q") ?? "").slice(0, 500);
-        const r = await askMi1(deps.db, deps.askLlm.llm, q, { now: now(), actor: userOf(session).id, price: deps.askLlm.price });
+        const r = await askMi1(deps.db, deps.askLlm.llm, q, { now: now(), actor: userOf(session).id, price: deps.askLlm.price, evalGate: deps.askLlm.evalGate() });
         return respond(renderAskPage({ configured: true, q, result: r, csrf: session.csrf }), r.status === "failed" ? 422 : 200, { "content-type": "text/html; charset=utf-8" });
       }
 
@@ -830,7 +838,7 @@ if (import.meta.main) {
     return { ok: r.status === "succeeded", message: woImportMessage(r) };
   };
   const app = createQueueApp({
-    askLlm: (() => { try { const p = getLlmPricing(); return { llm: createAnthropicLlm({ model: p.model }), price: p }; } catch { return undefined; } })(),
+    askLlm: (() => { try { const p = getLlmPricing(); return { llm: createAnthropicLlm({ model: p.model }), price: p, evalGate: () => readAskEvalGate(getEvalResultsDir(root)) }; } catch { return undefined; } })(),
     evalRun: () => latestEvalRun(getEvalResultsDir(root)),
     db,
     sessionSecret: cfg.sessionSecret,

@@ -46,6 +46,10 @@ Cấu hình, mật khẩu và dữ liệu giữ nguyên.
 
 Mỗi ngày 08:15 (hoặc lần đăng nhập kế tiếp nếu máy tắt lúc đó), Mi1 đánh dấu "quá hạn, giữ nháp" cho mục chưa ai quyết của ngày trước, rồi máy chép Growth DB vào thư mục `~/Growth-backup`, giữ 14 bản gần nhất. Bản sao lưu nằm trên cùng ổ đĩa: nên chép thư mục này sang Google Drive hoặc ổ USB mỗi tuần. File trong đó không có email hay số điện thoại khách (chỉ mã băm) nhưng vẫn là dữ liệu nội bộ, không chia sẻ công khai.
 
+Thêm tài khoản Team MKT hoặc BOD (D-63): chạy `~/.local/share/growth/bun/bin/bun run scripts/hash-password.ts` trong thư mục repo, gõ mật khẩu, rồi thêm dòng `MKT_PASSWORD_HASH='<mã băm>'` (hoặc `BOD_PASSWORD_HASH`) vào `~/.config/growth/growth.env` và chạy `systemctl --user restart growth-queue`. Team MKT chỉ vào được trang số tổng hợp (Hook, Creative, quảng cáo, giá đối thủ, kênh, 45 tài phán, ngân hàng, độ phủ ID, thị trường, bài học, hỏi Mi1, nháp việc); không thấy Hàng chờ, Lead, đối tác, đơn hàng, ngân sách; không duyệt Storyboard. BOD xem như Mark.
+
+Trang "Hỏi Mi1" (`/ask`) chỉ mở sau khi chạy bộ eval một lần: `set -a && . ~/.config/growth/growth.env && set +a && ~/.local/share/growth/bun/bin/bun run eval:mi1` chạy trong thư mục repo đã cài (tốn vài cent token). Đổi phiên bản Growth có đổi prompt Mi1 thì chạy lại.
+
 Lịch khác (spec mục 10): 08:00 và 13:00 thứ Hai tới thứ Bảy, Mi1-sa-01 làm NBA cho Hàng chờ (CRON-05; chế độ dán chỉ làm NBA, NBA chỉ sinh khi bộ eval đã pass). 08:30 thứ Hai, báo Mark Digest tuần qua Teams nếu đã đặt `TEAMS_WEBHOOK_URL_MARK` (CRON-08). 07:00 ngày 1, báo Mark báo cáo tháng trước ở trang `/monthly` (CRON-09). 06:30 hằng ngày, kéo các nguồn đã đặt chế độ MCP: điểm Hook, kết quả chiến dịch, quét thị trường (CRON-03; nguồn chế độ file bỏ qua). Xem lần chạy gần nhất: `systemctl --user list-timers`; xem token và chi phí từng phiên ở trang `/runs`.
 
 ## Việc thỉnh thoảng

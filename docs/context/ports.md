@@ -10,7 +10,7 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 |---|---|---|---|---|---|
 | CRM (Opportunity, Client, Lead, Order) | `CRM_SOURCE` | `csv`: Amy tải file ở `/import`; bảng ghép cột ở `CRM_CSV_COLUMNS_PATH` | `api`: ETL chỉ đọc qua `CRM_API_BASE`, `CRM_API_TOKEN` (chờ MobCEC mở API, Q-01) | MCP của CRM nếu MobCEC cung cấp | `src/crm/csv-import.ts`, `src/crm/etl.ts`, `src/crm/http.ts` |
 | Tự báo RM | `REPORT_SOURCE` | `paste`: Amy dán thread ở `/paste` | `graph`: đọc channel Teams qua Microsoft Graph (chờ admin tenant, Q-02) | | `src/teams/paste-report.ts`, `src/teams/graph-read.ts` |
-| Đăng nhập Hàng chờ | `AUTH_MODE` | `password`: mã băm argon2id `AMY_PASSWORD_HASH`, `MARK_PASSWORD_HASH` | `entra`: Microsoft Entra OIDC (chờ app Entra) | | `src/queue/auth.ts` |
+| Đăng nhập Hàng chờ | `AUTH_MODE` | `password`: mã băm argon2id `AMY_PASSWORD_HASH`, `MARK_PASSWORD_HASH`; tuỳ chọn `MKT_PASSWORD_HASH`, `BOD_PASSWORD_HASH` (D-63) | `entra`: Microsoft Entra OIDC (chờ app Entra) | | `src/queue/auth.ts` |
 | Thông báo | `TEAMS_WEBHOOK_URL_AMY`, `TEAMS_WEBHOOK_URL_MARK` | để trống: không gửi gì | webhook Teams (chỉ ngày và link, D-11) | email, Slack | `src/teams/notify.ts` |
 | LLM | `LLM_MODEL`, `ANTHROPIC_API_KEY`, `LLM_PRICE_*` | Claude API qua `@anthropic-ai/sdk` | LLM giả cho demo và test (không chọn bằng biến, chỉ dùng trong `src/demo` và `test/`) | | `src/agents/sa-01/llm.ts`, `src/demo/fake-llm.ts` |
 | Lưu trữ (Growth DB) | `GROWTH_DB_PATH` | SQLite (`bun:sqlite`, D-02) | | Neo4j cho đồ thị (`NEO4J_*`, GĐ sau) | `src/db/` |
