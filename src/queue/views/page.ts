@@ -200,7 +200,7 @@ export function renderQueuePage(args: {
   const body = html`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hàng chờ ${ddmm(args.queueDate)}</title><style>${new SafeHtml(STYLE)}</style></head><body>
 <h1>Hàng chờ ngày ${ddmm(args.queueDate)}</h1>
-<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}<a href="/leads">Lead trùng</a>${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}<a href="/partners">Đối tác</a><a href="/jurisdictions">45 tài phán</a><a href="/banks">Gợi ý ngân hàng</a><a href="/billing">Đơn hàng và invoice</a><a href="/brief">Brief sáng</a><a href="/digest">Digest tuần</a></nav>
+<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}<a href="/leads">Lead trùng</a>${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}<a href="/partners">Đối tác</a><a href="/jurisdictions">45 tài phán</a><a href="/banks">Gợi ý ngân hàng</a><a href="/data">Độ phủ ID</a><a href="/billing">Đơn hàng và invoice</a><a href="/brief">Brief sáng</a><a href="/digest">Digest tuần</a></nav>
 <div class="status ${args.status}">${statusText} · Snapshot CRM: ${args.snapshotAt ?? "chưa có"} · Người dùng: ${args.user.id}</div>
 ${GROUPS.map((g) => {
     const list = visible.filter((i) => i.item_type === g.type);
@@ -304,6 +304,7 @@ ${b.today.length ? html`<table class="kv">${b.today.map((t) => html`<tr><td>${TY
 <li>Đã escalate lên Mark trong 7 ngày qua: <strong>${b.escalatedWaiting}</strong> mục.</li>
 <li>WO tồn đọng: báo Amy ${b.wo.escalate}, nhắc PIC ${b.wo.remind}, tồn từ trước chưa rà ${b.wo.backlog}${b.wo.importedAt ? "" : " (chưa nạp file Work Order)"}.</li>
 <li>Mi1-mkt-05: ${b.mkt05.priceLocked}/${b.mkt05.total} tài phán đã chốt giá${b.mkt05.priceImported ? "" : " (chưa nạp bảng giá)"}, bộ SKD ${b.mkt05.skdDone}/${b.mkt05.skdTotal}, ${b.mkt05.sandboxOpen === null ? "sandbox8 chưa nạp issue log" : `sandbox8 còn ${b.mkt05.sandboxOpen} bug mở (${b.mkt05.sandboxOpenSevere} Critical, High), ${b.mkt05.sandboxReady ? "sẵn sàng" : "chưa sẵn sàng"} nghiệm thu`}. <a href="/jurisdictions">Xem</a></li>
+<li>Mi1-data-01: ${b.data01.imported ? `độ phủ ID 7 ngày ${b.data01.rate === null ? "chưa có" : `${(b.data01.rate * 100).toFixed(1)}%`} (${b.data01.linked}/${b.data01.sessions} phiên)${b.data01.degraded ? ", TRACKING_DEGRADED" : ""}` : "chưa nạp file sự kiện"}. <a href="/data">Xem</a></li>
 <li>Chi phí Claude API tháng này: ${b.monthCostUsd.toFixed(2)} trên trần ${b.monthCapUsd} USD.</li>
 </ul></section>`);
 }
