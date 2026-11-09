@@ -94,6 +94,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - `execute_approved_cypher` (D-51, phiên 12): growth-mcp chạy 5 truy vấn mẫu đã duyệt trên Growth DB (câu hỏi đầu ra 3, 4, 5, 7). Test T-AQ-01, T-AQ-02.
   - Chuỗi 12 ID (D-52, phiên 12): khối trên `/data`, độ phủ từng mắt nối; 3 mắt nối chưa có sự kiện trong Phụ lục A2, cần hỏi MobCEC bổ sung. Test T-DATA-05.
   - Ngưỡng và trọng số (D-53, phiên 12): trang `/tuning`, chỉ Mark đổi ngưỡng escalate và trọng số Hook, kích hoạt sau khi eval chạy lại và pass. Test T-TUNE-01 tới T-TUNE-03.
+  - Tầng 4 (D-54, phiên 12): lý do từ chối Amy đã xác nhận lặp từ 3 lần trong 28 ngày được gửi kèm `compile_creative_ir`, hiện ở `/creative`. Test T-T4-01, T-T4-02.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -157,4 +158,4 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 
 ## PR đang mở
 
-- growth-workspace: PR nhánh `claude/tender-gates-nn4rif` (STATUS, `/runs`). PR #23 tới #43 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.
+- growth-workspace: PR nhánh `claude/tender-gates-nn4rif` (`/tuning`, tầng 4). PR #23 tới #44 đã merge. creative-factory-v2: markng-byte/creative-factory-v2#12 tới #16 đã merge.

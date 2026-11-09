@@ -48,7 +48,7 @@ Adapter file tương đương: CSV cột `hook_id, text, jurisdiction, score_1 �
 
 Repo `creative-factory-v2` bọc pipeline thành tool MCP (spec mục 7). Growth Workspace gọi hai tool sau; hai tool còn lại (`validate_brand_qa`, `export_channel_bundle`) để lát sau.
 
-`compile_creative_ir` đầu vào `{ hook_id, hook_text, jurisdiction, validation_mode: "STRICT" }`, đầu ra:
+`compile_creative_ir` đầu vào `{ hook_id, hook_text, jurisdiction, validation_mode: "STRICT", rejection_reasons }` (`rejection_reasons`: mảng mã lý do từ chối lặp lại, có thể rỗng; tầng 4, D-54; server chưa dùng thì bỏ qua), đầu ra:
 
 ```json
 { "creative_ir_id": "IR-1", "storyboard": { "title": "Tên", "scenes": ["Cảnh 1", "Cảnh 2"] } }

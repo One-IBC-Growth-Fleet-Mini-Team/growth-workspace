@@ -95,6 +95,7 @@ import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
 import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
+import { repeatedRejections } from "../db/rejections.ts";
 import { activateTuning, currentTuning, type EvalRun, listTuning, proposeTuning } from "../db/tuning.ts";
 import { buildRunLog, markRunSeen } from "../db/runs.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
@@ -225,7 +226,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
   function creativePage(session: Session, message: string | null): string {
     const hooks = buildHookBoard(deps.db).hooks.filter((h) => h.verdict === "pass" || h.verdict === "review").map((h) => ({ hookId: h.hookId, text: h.text }));
-    return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, csrf: session.csrf, message });
+    return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, rejections: repeatedRejections(deps.db, now()), csrf: session.csrf, message });
   }
 
   function budgetPage(session: Session, message: string | null): string {
