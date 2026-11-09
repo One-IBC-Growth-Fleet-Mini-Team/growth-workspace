@@ -1,5 +1,11 @@
 # Hợp đồng MCP cho hệ thống bên ngoài
 
+## Growth cung cấp: content-dist-mcp (D-47)
+
+Chạy `bun run mcp:content-dist` (stdio, Growth DB chỉ đọc). Tool: `sync_45_juris_pricing`, `audit_media_kit_bundle`, `verify_sandbox8_release`, `check_ad_compliance` (`primary_text`, `headline`, `description`, `jurisdiction`, `target_country`), `check_channel_account_health`. Kết quả JSON trong nội dung text. Hệ thống SEO/AIO dùng `sync_45_juris_pricing` để lấy giá đã chốt và `check_ad_compliance` để kiểm nội dung trước khi đăng.
+
+## Growth gọi ra ngoài
+
 Growth Workspace gọi các hệ thống khác qua MCP (Streamable HTTP), chỉ gọi tool đọc. Mỗi cổng chọn bằng biến môi trường `<PREFIX>_SOURCE=mcp`, `<PREFIX>_MCP_URL`, `<PREFIX>_MCP_TOKEN` (tuỳ chọn, gửi dạng `Authorization: Bearer`). Khi chưa có hệ thống, cổng chạy bằng adapter tải file với cùng dữ liệu.
 
 Kết quả tool trả trong `structuredContent`, hoặc JSON trong nội dung text đầu tiên. Sai hợp đồng thì Growth Workspace không nạp gì và báo lỗi trên trang.
