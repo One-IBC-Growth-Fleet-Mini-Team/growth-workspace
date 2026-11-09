@@ -97,6 +97,9 @@ else
   echo "Giữ nguyên cấu hình cũ."
 fi
 
+# Bảng ghép cột theo tên cột của file xuất CRM thật (D-42, D-72); giữ file cũ nếu đã có.
+[ -f "$CONF/crm-columns.json" ] || install -m 600 "$APP_DIR/deploy/crm-columns.example.json" "$CONF/crm-columns.json"
+
 say "4/6 Nâng schema Growth DB"
 (set -a; . "$ENV_FILE"; set +a; cd "$APP_DIR" && "$BUN" run src/db/migrate.ts)
 

@@ -1,0 +1,4 @@
+Opportunity ID,Account ID,Owner ID,Stage,Close Date,Last Modified Date,Next Step,Industry
+OPP-0001,ACC-0001,RM_A,Quotation,20/11/2026,05/11/2026 10:00,Gửi bảng giá,
+OPP-0002,ACC-0002,RM_B,Negotiation,25/11/2026,06/11/2026 09:30,Chờ khách ký,
+OPP-0003,ACC-0003,RM_A,Payment Waiting,15/11/2026,01/11/2026 14:00,Nhắc thanh toán,

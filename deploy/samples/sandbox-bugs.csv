@@ -1,0 +1,4 @@
+Bug ID,Mức độ,Tiêu chí,Test case,Tiêu đề lỗi,Vị trí / URL,Bước tái hiện,Kết quả mong đợi,Kết quả thực tế,Ảnh chụp,Trạng thái,Người xử lý,Ngày phát hiện,Ghi chú Dev
+BUG-001,High,Function,TC-1,Trang trả 404,https://sandbox.example.invalid/a,Mở trang,200,404,,Open,DEV_A,24/10/2026,
+BUG-002,Medium,Content,TC-2,Sai chữ,https://sandbox.example.invalid/b,Mở trang,Đúng chữ,Sai chữ,,Fixed,DEV_A,25/10/2026,
+BUG-003,Low,UI/UX,TC-3,Lệch 2px,https://sandbox.example.invalid/c,Mở trang,Thẳng,Lệch,,Closed,DEV_B,26/10/2026,

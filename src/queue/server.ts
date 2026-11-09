@@ -95,6 +95,7 @@ import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
 import { canPost, canSee, stripForbiddenForms } from "./roles.ts";
+import { readSample } from "./samples.ts";
 import { listProvisional, setProvisional } from "../provisional.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
 import { renderAskPage } from "./views/ask.ts";
@@ -420,6 +421,14 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/market") {
       if (!session) return redirect("/login");
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path.startsWith("/samples/")) {
+      if (!session) return redirect("/login");
+      const name = path.slice("/samples/".length);
+      const body = readSample(name);
+      if (body === null) return text(404, "Không có file mẫu này.");
+      return respond(body, 200, { "content-type": name.endsWith(".csv") ? "text/csv; charset=utf-8" : "text/plain; charset=utf-8", "content-disposition": `attachment; filename="${name}"` });
     }
 
     if (req.method === "GET" && path === "/tasks") {

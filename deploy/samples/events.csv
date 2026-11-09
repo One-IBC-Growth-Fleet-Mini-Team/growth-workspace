@@ -1,0 +1,4 @@
+event_id,event_name,event_time,source,anonymous_id,session_id,conversation_id,contact_id,asset_id,utm_source,landing_url,platform_campaign_id,ad_id
+EV-0001,asset_view,2026-11-08T01:00:00Z,web,ANON-1,SES-1,,,AS-1,meta,https://sample.example.invalid/hk,CMP-1,AD-1
+EV-0002,ask_occ_started,2026-11-08T01:05:00Z,web,ANON-1,SES-1,CONV-1,,,,https://sample.example.invalid/hk,,
+EV-0003,contact_captured,2026-11-08T01:10:00Z,web,ANON-1,SES-1,CONV-1,CT-1,,,,,

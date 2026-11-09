@@ -32,6 +32,6 @@ ${b.pii ? html`<section><h2>PII trong tham số (A6.4)</h2>${b.pii.emailCells ||
 <section><h2>Chuỗi 12 ID (spec mục 5)</h2><p class="meta">Mỗi mắt nối đo trên sự kiện mang cả hai ID. Thiếu thì ghi thiếu, không suy đoán danh tính.</p>
 <table class="kv">${b.chain.map((l) => html`<tr><td>${l.from} → ${l.to}</td><td>${l.status === "no_event" ? html`<span class="warn">Chưa có sự kiện mang cả hai ID (bổ sung Data Contract)</span>` : l.status === "no_data" ? `Chưa có sự kiện ${l.event}` : html`${l.linked}/${l.total} ${l.event}: ${pct(l.rate)}`}</td></tr>`)}</table></section>
 <section><h2>Nạp file sự kiện</h2><form method="post" action="/data" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
-<label>CSV sự kiện, dòng tiêu đề là tên trường Phụ lục A (event_id, event_name, event_time, session_id, contact_id, ...) <input type="file" name="events" accept=".csv,text/csv"></label>
+<label>CSV sự kiện, dòng tiêu đề là tên trường Phụ lục A (event_id, event_name, event_time, session_id, contact_id, ...) <input type="file" name="events" accept=".csv,text/csv"> <span class="meta"><a href="/samples/events.csv" download>File mẫu</a></span></label>
 <button type="submit">Nạp</button></form></section>`);
 }

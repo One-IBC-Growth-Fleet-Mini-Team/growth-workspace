@@ -1,0 +1,4 @@
+competitor,jurisdiction,tier,price_usd,source_url,collected_on
+Competitor One,Hong Kong,starter,1100,https://competitor.example.invalid/hk,01/11/2026
+Competitor Two,Hong Kong,starter,950,https://competitor2.example.invalid/hk,01/11/2026
+Competitor One,Singapore,starter,1800,https://competitor.example.invalid/sg,01/11/2026

@@ -238,8 +238,9 @@ ${args.message ? html`<p class="warn">${args.message}</p>` : ""}
 
 export function renderImportPage(args: { csrf: string; message: string | null; crm?: boolean; wo?: boolean }): string {
   const crm = args.crm ?? true;
+  const SAMPLE: Record<string, string> = { opportunity: "opportunity.csv", client: "client.csv", lead: "lead.csv", orderitem: "orderitem.csv", workorder: "workorder.csv", wopic: "wopic.csv" };
   const file = (name: string, label: string, note: string) =>
-    html`<label>${label} <input type="file" name="${name}" accept=".csv,text/csv"> <span class="meta">${note}</span></label>`;
+    html`<label>${label} <input type="file" name="${name}" accept=".csv,text/csv"> <span class="meta">${note} · <a href="/samples/${SAMPLE[name] ?? ""}" download>File mẫu</a></span></label>`;
   return shell("Nạp dữ liệu CRM", html`<h1>Nạp dữ liệu CRM (CSV)</h1>
 <p>Xuất danh sách từ trang quản trị CRM. Nếu file là Excel, mở bằng Excel rồi chọn "Lưu thành", định dạng "CSV UTF-8". Chỉ những cột cần dùng được đọc; email và số điện thoại được mã hoá ngay khi nạp; file gốc không được lưu.</p>
 ${args.message ? html`<p class="warn">${args.message}</p>` : ""}

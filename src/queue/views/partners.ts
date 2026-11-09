@@ -19,7 +19,7 @@ ${b.commissionReview.length ? html`<table class="kv">${b.commissionReview.map((r
 <section><h2>Khách của reseller chưa gắn cờ trên CRM (${b.resellerFlagMissing.length})</h2><p class="meta">Nhờ RM xác nhận rồi gắn cờ is_reseller_end_client trên CRM (D-06); khách chưa gắn cờ vẫn có thể bị NBA đề xuất upsell.</p>
 ${b.resellerFlagMissing.length ? html`<table class="kv">${b.resellerFlagMissing.map((r) => html`<tr><td>${r.client_id}</td><td>qua ${r.partner_id}</td></tr>`)}</table>` : ""}</section>
 ${args.canImport ? html`<section><h2>Nạp file</h2><form method="post" action="/partners" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
-<label>Danh sách đối tác (mã, loại) <input type="file" name="partner" accept=".csv,text/csv"></label>
-<label>Deal do đối tác giới thiệu <input type="file" name="referral" accept=".csv,text/csv"></label>
+<label>Danh sách đối tác (mã, loại) <input type="file" name="partner" accept=".csv,text/csv"> <span class="meta"><a href="/samples/partner.csv" download>File mẫu</a></span></label>
+<label>Deal do đối tác giới thiệu <input type="file" name="referral" accept=".csv,text/csv"> <span class="meta"><a href="/samples/referral.csv" download>File mẫu</a></span></label>
 <button type="submit">Nạp</button></form></section>` : ""}`);
 }

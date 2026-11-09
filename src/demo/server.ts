@@ -12,7 +12,7 @@ import type { QueueUser } from "../queue/auth.ts";
 import { createGraphClient } from "../teams/graph-read.ts";
 import { ddmm, monthPeriod, previousWorkingDay, vnDate } from "../time.ts";
 import { fakeLlm } from "./fake-llm.ts";
-import { DEFAULT_COLUMN_MAP, importCrmCsv, importMessage } from "../crm/csv-import.ts";
+import { importCrmCsv, importMessage, loadColumnMap } from "../crm/csv-import.ts";
 import { createPiiHasher } from "../pii/hash.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
 import type { OpportunityRow } from "../db/types.ts";
@@ -120,7 +120,7 @@ export async function createDemo(now: Date = new Date()) {
       return { ok: r.status === "succeeded", message: woImportMessage(r) };
     },
     onImport: async (files) => {
-      const r = importCrmCsv(db, files, { hasher: createPiiHasher("demo-only-hash-key-not-for-production-0123"), columns: DEFAULT_COLUMN_MAP, now: new Date() });
+      const r = importCrmCsv(db, files, { hasher: createPiiHasher("demo-only-hash-key-not-for-production-0123"), columns: loadColumnMap(new URL("../../deploy/crm-columns.example.json", import.meta.url).pathname), now: new Date() });
       if (r.status !== "succeeded") return { ok: false, message: importMessage(r) };
       const run = await runSa01(queueDate, { db, crm: directCrmReadTools(db), graph: null, parts: { selfReports: false, nba: true }, llm: null,
         pricing: { model: "demo-fake-llm", inputUsdPerMTok: 0, outputUsdPerMTok: 0 },
