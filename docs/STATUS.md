@@ -102,7 +102,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
 
 ## Tiến độ toàn dự án (ước tính 09/11/2026, tính cả PR đang mở)
 
-Khoảng **45%** spec v0.3.2 (đã merge hết). GĐ0 khoảng 75%; GĐ1 khoảng 80%; GĐ2 khoảng 30% (cổng tuân thủ, mkt-01 tổng quan, mkt-04, verify Meta); GĐ3 chưa bắt đầu.
+Khoảng **55%** spec v0.3.2 (tính cả chuỗi PR #35 tới #41). GĐ0 khoảng 85% (thiếu Neo4j, execute_approved_cypher); GĐ1 khoảng 80%; GĐ2 khoảng 60% (đủ 4 thuyền viên mkt và ổ cắm MCP; còn Win gate, lịch kênh, phía repo creative-factory-v2); GĐ3 chưa bắt đầu. Phần còn lại phần lớn là nối nguồn thật vào các ổ cắm đã có.
 
 | Hạng mục | Trạng thái |
 |---|---|
