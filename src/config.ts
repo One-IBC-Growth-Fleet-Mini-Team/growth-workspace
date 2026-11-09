@@ -224,5 +224,18 @@ export type Data01Params = { degradedBelow: number; windowDays: number };
 export const CHANNEL_PARAMS = { expected: { bm: 3, wa: 3, fanpage: 6 }, staleHours: 24 } as const;
 export type ChannelParams = { expected: Record<"bm" | "wa" | "fanpage", number>; staleHours: number };
 
+// Cổng tuân thủ trước khi đăng (spec mục 7, tầng 1A; D-38). Bộ từ cấm spec ghi "chờ chốt": dùng cột "Đề xuất" làm giá trị TẠM
+// (K-07): giữ 10 từ, thêm "tax haven", "banking" và "finance" sang nhóm cần người duyệt. Tên thương hiệu loại ra trước khi so.
+// Độ dài: Hook + câu 1 dưới 125 ký tự (đo câu đầu của primary text), Headline tối đa 40, Description tối đa 30.
+export const AD_RULES = {
+  banned: ["offshore", "no tax", "zero tax", "tax free", "tax evasion", "incognito", "money laundering", "hide assets", "break the law", "cheat", "tax heaven", "tax haven"] as readonly string[],
+  review: ["banking", "finance"] as readonly string[],
+  brandAllow: ["offshore company corp", "offshorecompanycorp.com", "offshorecompanycorp"] as readonly string[],
+  maxOpening: 124,
+  maxHeadline: 40,
+  maxDescription: 30,
+} as const;
+export type AdRules = { banned: readonly string[]; review: readonly string[]; brandAllow: readonly string[]; maxOpening: number; maxHeadline: number; maxDescription: number };
+
 // Trần chi phí LLM của Fleet mỗi tháng (spec mục 10, C7).
 export const LLM_MONTHLY_CAP_USD = 100;
