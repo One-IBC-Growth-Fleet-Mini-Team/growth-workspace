@@ -3,8 +3,9 @@
 import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { buildDataBoard } from "../db/data01.ts";
+import { buildChannelBoard } from "../db/channels.ts";
 import type { Database } from "bun:sqlite";
-import { LLM_MONTHLY_CAP_USD } from "../config.ts";
+import { CHANNEL_PARAMS, LLM_MONTHLY_CAP_USD } from "../config.ts";
 import { insertAgentRun } from "../db/queue.ts";
 import { buildWoBoard } from "../db/wo.ts";
 import { monthToDateCostUsd } from "../metrics/cost.ts";
@@ -78,6 +79,7 @@ export type Brief = {
   monthCapUsd: number;
   forecastItems: number;
   mkt05: Mkt05Line;
+  channels: { checked: boolean; ok: number; issues: string[]; stale: number; notTracked: number; staleHours: number };
   data01: { imported: boolean; rate: number | null; linked: number; sessions: number; degraded: boolean };
 };
 
@@ -120,6 +122,10 @@ export function buildBrief(db: Database, now: Date): Brief {
     monthCapUsd: LLM_MONTHLY_CAP_USD,
     forecastItems: loadForecast(perDay),
     mkt05: mkt05Line(db),
+    channels: (() => {
+      const c = buildChannelBoard(db, now);
+      return { checked: c.accounts.length > 0, ok: c.summary.ok, issues: c.summary.issues.map((x) => x.label), stale: c.summary.stale.length, notTracked: Object.values(c.summary.notTracked).reduce((a, b) => a + b, 0), staleHours: CHANNEL_PARAMS.staleHours };
+    })(),
     data01: (() => {
       const d = buildDataBoard(db, now);
       return { imported: d.importedAt !== null, rate: d.window.rate, linked: d.window.linked, sessions: d.window.sessions, degraded: d.window.degraded };

@@ -77,6 +77,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Gợi ý ngân hàng (D-34): trang `/banks` đọc CSV của sheet "Product Matrix" và "Core Information" trong file BANKING INSTRUCTION; chọn nơi thành lập công ty, ra kế hoạch mở 2 EMI trước, ngân hàng truyền thống sau 6 tới 12 tháng nếu là công ty mới. Chưa xét quốc tịch, ngành nghề; chưa nối vào NBA (snapshot CRM chưa có tài phán của khách). Test T-BANK-01 tới T-BANK-04.
   - Issue log sandbox8 (D-35, phiên 11): nạp tab Bug và Test Cases ở `/jurisdictions`; Brief sáng có dòng Mi1-mkt-05. Với file thật 09/11/2026: 101 bug, 32 mở (3 High), test case Pass 97,9%, chưa sẵn sàng nghiệm thu. Test T-SBX-01 tới T-SBX-04.
   - Mi1-data-01 (D-36, phiên 11): trang `/data` nạp CSV sự kiện, tính `id_coverage` 7 ngày theo ngày giờ VN, cờ TRACKING_DEGRADED dưới 19%, sự kiện thiếu trường Phụ lục A, email lọt vào tham số; Brief sáng có dòng Mi1-data-01. Test T-DATA-01 tới T-DATA-04.
+  - CRON-02 (D-37, phiên 11): trang `/channels` ghi tay sức khoẻ 3 BM, 3 số WA, 6 Fanpage; Brief sáng có dòng CRON-02. Test T-CH-01 tới T-CH-04.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -104,7 +105,7 @@ Khoảng **35%** spec v0.3.2. GĐ0 nền móng khoảng 55%; GĐ1 khoảng 65%; 
 | Gợi ý ngân hàng `/banks` (D-34) | PR nhánh `claude/tender-gates-nn4rif-banks` |
 | Issue log sandbox8, dòng Mi1-mkt-05 trên Brief (D-35) | PR nhánh `claude/tender-gates-nn4rif-sandbox8` |
 | Mi1-data-01 độ phủ ID, gãy tracking `/data` (D-36) | PR nhánh `claude/tender-gates-nn4rif-data01` |
-| CRON-02 sức khoẻ BM, số WA, Fanpage | chưa làm |
+| CRON-02 sức khoẻ BM, số WA, Fanpage `/channels` (D-37) | PR nhánh `claude/tender-gates-nn4rif-channels` |
 | GĐ2: mkt-01 tới mkt-04, Creative Factory, cổng tuân thủ, ma trận 5 tầng | chưa làm |
 
 ## Việc tiếp theo
@@ -114,7 +115,7 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 1. Các team đã sửa sheet giá, ma trận ngân hàng và xác nhận bộ SKD (ghi nhận 09/11/2026 ở `decisions.md`). Nạp lại file mới ở `/jurisdictions` và `/banks`.
 1a. Mi1-mkt-05 phần còn lại: lịch kênh (chờ phạm vi); verify Meta TW/IN. Gợi ý ngân hàng: nối vào NBA khi snapshot CRM có tài phán của khách.
 2. Thêm `price_row_status`, `skd_kit_done`, `suggestBanks` vào `docs/spec/metric-definitions.md` bằng PR tài liệu riêng (Mark duyệt), cùng các hàm của PR #17, #20, #21 nếu chưa có.
-3. Mi1-data-01 (GĐ0): còn sức khoẻ BM, số WA, Fanpage (CRON-02) nhập tay. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được.
+3. Mi1-data-01 (GĐ0): đủ bản đầu. Nạp file sự kiện thật khi MobCEC hoặc GA4 xuất được; ghi lần kiểm tài khoản kênh đầu tiên.
 4. Mi1-sa-01 đối chiếu dữ liệu thật khi Harvey gửi dòng tên cột CSV, tự báo thật, danh sách RM.
 5. GĐ2 theo spec mục 7, 8: Creative Factory, cổng tuân thủ (bộ từ cấm chờ chốt), mkt-01 tới mkt-04.
 6. Song song, không chặn: Amy xác nhận khoảng 30 ca eval, chốt mã lý do; câu hỏi cho MobCEC, admin tenant; bật Secret scanning (E-02).
@@ -138,5 +139,6 @@ Mỗi việc một PR, nhánh `claude/<tên-việc>`, dưới khoảng 400 dòng
 - Nhánh `claude/tender-gates-nn4rif` (Mi1-mkt-05, D-32, D-33): PR #23 chờ duyệt.
 - Nhánh `claude/tender-gates-nn4rif-banks` (gợi ý ngân hàng, D-34): PR #24, chồng lên PR #23.
 - Nhánh `claude/tender-gates-nn4rif-sandbox8` (issue log sandbox8, D-35): PR #25, chồng lên #24.
-- Nhánh `claude/tender-gates-nn4rif-data01` (Mi1-data-01, D-36): chồng lên #25. Thứ tự merge: #23, #24, #25, rồi PR này.
+- Nhánh `claude/tender-gates-nn4rif-data01` (Mi1-data-01, D-36): PR #26, chồng lên #25.
+- Nhánh `claude/tender-gates-nn4rif-channels` (CRON-02, D-37): chồng lên #26. Thứ tự merge: #23, #24, #25, #26, rồi PR này.
 - PR #12 tới #22 đã merge.
