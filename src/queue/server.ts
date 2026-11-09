@@ -18,6 +18,9 @@ import {
   DATA01_PARAMS,
   CHANNEL_PARAMS,
   AD_RULES,
+  HOOK_PARAMS,
+  getRemoteSource,
+  type RemoteSource,
   isLocalBaseUrl,
   WO_PARAMS,
 } from "../config.ts";
@@ -77,6 +80,9 @@ import { renderAdsOverviewPage } from "./views/ads-overview.ts";
 import { importCompetitorPrices } from "../crm/competitor-import.ts";
 import { buildCompetitorBoard } from "../db/competitors.ts";
 import { renderCompetitorsPage } from "./views/competitors.ts";
+import { importHookCsv, importHooksFromMcp } from "../crm/hook-import.ts";
+import { buildHookBoard } from "../db/hooks.ts";
+import { renderHooksPage } from "./views/hooks.ts";
 import { importSandboxLog, sandboxImportMessage } from "../crm/sandbox-import.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { bankImportMessage, importBankFiles } from "../crm/bank-import.ts";
@@ -105,6 +111,8 @@ export type QueueAppDeps = {
   onWoImport?: (files: { WorkOrder?: string; WorkOrderPic?: string }, actor: string) => Promise<{ ok: boolean; message: string }>;
   // Bảng ghép cột cho các file tải lên trên trang riêng (đơn hàng D-30, đối tác D-31); thiếu thì dùng tên cột mặc định.
   columns?: ColumnMap;
+  // Nguồn điểm Hook (D-43): thiếu hoặc "file" thì chỉ tải file; "mcp" thì có nút kéo từ hệ thống SEO/AIO.
+  hookSource?: RemoteSource;
   now?: () => Date;
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
 };
@@ -183,6 +191,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     const w = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? monday(week) : monday(new Date(Date.parse(`${today}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10));
     const shift = (k: number) => new Date(Date.parse(`${w}T00:00:00Z`) + k * 7 * 86_400_000).toISOString().slice(0, 10);
     return renderAdsOverviewPage({ o: buildAdsOverview(deps.db, w, now()), prevWeek: shift(-1), nextWeek: shift(1), csrf: session.csrf, message });
+  }
+
+  function hooksPage(session: Session, message: string | null): string {
+    return renderHooksPage({ board: buildHookBoard(deps.db), weights: HOOK_PARAMS.weights, canPull: deps.hookSource?.mode === "mcp", csrf: session.csrf, message });
   }
 
   function partnersPage(session: Session, day: string, message: string | null): string {
@@ -332,6 +344,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(renderCompetitorsPage({ board: buildCompetitorBoard(deps.db), csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/hooks") {
+      if (!session) return redirect("/login");
+      return respond(hooksPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/billing") {
       if (!session) return redirect("/login");
       return respond(billingPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
@@ -368,7 +385,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" || path === "/hooks" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -482,6 +499,18 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const why: Record<string, string> = { COMPETITOR_FILE_REQUIRED: "Cần chọn file.", COMPETITOR_HEADER_NOT_FOUND: "File cần cột competitor, jurisdiction, price_usd.", CSV_INVALID: "File không đúng dạng CSV." };
         const msg = r.status === "succeeded" ? `Đã nạp ${r.prices} giá đối thủ.` : `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được file."} Dữ liệu cũ vẫn giữ nguyên.`;
         return respond(renderCompetitorsPage({ board: buildCompetitorBoard(deps.db), csrf: session.csrf, message: msg }), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      // Mark giám sát Mi1-mkt-02 nên cả hai người dùng nạp được (D-43). Kéo MCP chỉ khi HOOK_SOURCE=mcp.
+      if (path === "/hooks") {
+        const by = { now: now(), actor: userOf(session).id };
+        const f = form.get("file");
+        const src = deps.hookSource;
+        const r = form.get("pull") && src?.mode === "mcp" ? await importHooksFromMcp(deps.db, { url: src.url, token: src.token }, by)
+          : f instanceof File && f.size > 0 ? importHookCsv(deps.db, await f.text(), by) : { status: "failed" as const, hooks: 0, errorCode: "HOOK_FILE_REQUIRED" };
+        const why: Record<string, string> = { HOOK_FILE_REQUIRED: "Cần chọn file.", HOOK_HEADER_NOT_FOUND: "File cần cột hook_id, text, score_1 tới score_5.", HOOK_MCP_CONTRACT: "Hệ thống SEO/AIO trả dữ liệu sai hợp đồng get_hook_scores.", REMOTE_UNREACHABLE: "Không kết nối được hệ thống SEO/AIO.", CSV_INVALID: "File không đúng dạng CSV." };
+        const msg = r.status === "succeeded" ? `Đã nạp ${r.hooks} Hook.` : `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được."} Dữ liệu cũ vẫn giữ nguyên.`;
+        return respond(hooksPage(session, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/billing") {
@@ -624,6 +653,7 @@ if (import.meta.main) {
     onImport: getCrmSource() === "csv" ? onImport : undefined,
     onWoImport,
     columns,
+    hookSource: getRemoteSource("HOOK"),
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
   Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });
