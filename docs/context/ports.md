@@ -25,6 +25,7 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | Meta Ads, Google Ads (Mi1-mkt-01, D-39) | không có biến | tải CSV báo cáo tuần ở `/ads-overview` | | ads-mcp (`sync_meta_gg_report`), Marketing API (cần quyền tài khoản quảng cáo) | `src/crm/ad-report-import.ts` |
 | Giá đối thủ (Mi1-mkt-04, D-40) | không có biến | tải CSV giá gói đối thủ ở `/competitors` | | market-scan-mcp (`scan_competitor_packages`, chỉ đọc) | `src/crm/competitor-import.ts` |
 | Điểm Hook (Mi1-mkt-02, D-43) | `HOOK_SOURCE`, `HOOK_MCP_URL`, `HOOK_MCP_TOKEN` | `file`: tải CSV ở `/hooks` | `mcp`: tool `get_hook_scores` của hệ thống SEO/AIO (`docs/context/hop-dong-mcp.md`) | | `src/crm/hook-import.ts`, `src/mcp/remote.ts` |
+| Creative Factory (D-44) | `CREATIVE_SOURCE`, `CREATIVE_MCP_URL`, `CREATIVE_MCP_TOKEN` | không nối: chỉ xem, duyệt Storyboard ở `/creative` | `mcp`: `compile_creative_ir`, `run_creative_pipeline` của creative-factory-v2 (`docs/context/hop-dong-mcp.md`) | `validate_brand_qa`, `export_channel_bundle` | `src/creative/factory.ts` |
 | Work Order Bank Team (BK-08, tạm dừng) | không có biến | tải file ở `/import` | | | `src/crm/wo-import.ts` |
 
 ## Nguồn spec cần, chưa có cổng

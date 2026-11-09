@@ -33,3 +33,21 @@ Hệ thống SEO/AIO (Astro, React, PostgreSQL) chấm Hook theo 5 tiêu chí; G
 - Không gửi dữ liệu khách (tên, email, số điện thoại).
 
 Adapter file tương đương: CSV cột `hook_id, text, jurisdiction, score_1 … score_5`.
+
+## creative-factory-mcp (cổng "Creative Factory", `CREATIVE_*`, D-44)
+
+Repo `creative-factory-v2` bọc pipeline thành tool MCP (spec mục 7). Growth Workspace gọi hai tool sau; hai tool còn lại (`validate_brand_qa`, `export_channel_bundle`) để lát sau.
+
+`compile_creative_ir` đầu vào `{ hook_id, hook_text, jurisdiction, validation_mode: "STRICT" }`, đầu ra:
+
+```json
+{ "creative_ir_id": "IR-1", "storyboard": { "title": "Tên", "scenes": ["Cảnh 1", "Cảnh 2"] } }
+```
+
+`run_creative_pipeline` đầu vào `{ creative_ir_id, steps: ["translate", "generate", "qa"], validation_mode: "STRICT" }`, đầu ra:
+
+```json
+{ "run_id": "R-1", "qa_status": "PASS", "assets": [{ "asset_id": "A-1", "kind": "image" }] }
+```
+
+Cổng Storyboard: Growth Workspace chỉ gọi `run_creative_pipeline` khi quyết định mới nhất về Storyboard là duyệt. Phía `creative-factory-v2` nên tự chặn thêm bước `generate` khi chưa có Storyboard được duyệt (việc thứ tư trong spec mục 7).
