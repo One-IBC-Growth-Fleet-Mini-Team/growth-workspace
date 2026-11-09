@@ -9,6 +9,11 @@ import { log } from "../log.ts";
 import { callRemoteTool, RemoteToolError, type RemoteTarget } from "../mcp/remote.ts";
 import { redactR1 } from "../pii/redact-regex.ts";
 import { repeatedRejections } from "../db/rejections.ts";
+import { holdIssue } from "../ads/check.ts";
+import { draftSchedule } from "../metrics/channel-schedule.ts";
+import { mondayOf } from "../mi1/core.ts";
+import { getProvisional } from "../provisional.ts";
+import { addDays, vnDate } from "../time.ts";
 
 const Compiled = z.object({ creative_ir_id: z.string().min(1), storyboard: z.object({ title: z.string().min(1), scenes: z.array(z.string()).min(1) }) });
 const Ran = z.object({ run_id: z.string(), qa_status: z.string(), assets: z.array(z.object({ asset_id: z.string(), kind: z.string() })) });
@@ -107,4 +112,17 @@ export function listStoryboards(db: Database) {
     return { creativeIrId: r.creative_ir_id, lastExport, hookId: r.hook_id, jurisdiction: r.jurisdiction, title: r.title, scenes: JSON.parse(r.scenes) as string[], createdAt: r.created_at,
       status: d ? (d.decision === "approve" ? "approved" : "rejected") : "pending", note: d?.note ?? null, lastRun: run };
   });
+}
+
+// Creative đủ điều kiện vào nháp lịch kênh (D-70): Storyboard đang được duyệt, lần chạy gần nhất QA PASS, đã đóng gói,
+// tài phán (nếu có) đã chốt giá. Lịch chỉ là nháp; đăng công khai luôn cần người duyệt (CLAUDE.md quy tắc 4).
+export function scheduleCandidates(db: Database) {
+  return listStoryboards(db).filter((s) => s.status === "approved" && s.lastRun?.qaStatus === "PASS" && s.lastExport && !holdIssue(db, s.jurisdiction))
+    .map((s) => ({ creativeIrId: s.creativeIrId, hookId: s.hookId, jurisdiction: s.jurisdiction }));
+}
+
+export function buildScheduleDraft(db: Database, now: Date) {
+  const cfg = getProvisional("channel_schedule").value;
+  const weekStart = addDays(mondayOf(vnDate(now)), 7);
+  return { weekStart, slots: draftSchedule(scheduleCandidates(db), cfg.posts_per_week, weekStart) };
 }

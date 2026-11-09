@@ -10,7 +10,7 @@ const Rate = z.number().min(0).max(1);
 export const PROVISIONAL_SCHEMAS = {
   tier3b: z.object({ min_asset_view_per_week: Num, ask_per_view_below: Rate, contact_per_ask_below: Rate, skip_when_tracking_degraded: z.boolean() }),
   win_gate: z.object({ min_impressions: Num, min_contact_captured: Num, require_cycle_complete: z.boolean(), require_reseller_filtered: z.boolean(), cpl_at_most: z.literal("median"), win_rate_at_least: z.literal("median"), min_confidence: Rate }),
-  channel_schedule: z.object({ posts_per_week: z.record(z.string(), Num), only_approved_qa_pass: z.boolean() }),
+  channel_schedule: z.object({ posts_per_week: z.record(z.string(), Num) }),
   commission: z.object({ rates: z.record(z.string(), Rate), base: z.string(), label: z.string() }),
   bundle_name: z.object({ pattern: z.string().min(1) }),
   cron07: z.object({ enabled: z.boolean(), description: z.string() }),

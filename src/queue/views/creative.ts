@@ -7,12 +7,14 @@ import { shell } from "./page.ts";
 
 const STATUS = { pending: "Chờ duyệt", approved: "Đã duyệt", rejected: "Đã từ chối" } as const;
 
-export function renderCreativePage(args: { storyboards: ReturnType<typeof listStoryboards>; connected: boolean; hooks: { hookId: string; text: string }[]; rejections: { code: string; count: number }[]; csrf: string; message: string | null }): string {
+export function renderCreativePage(args: { storyboards: ReturnType<typeof listStoryboards>; connected: boolean; hooks: { hookId: string; text: string }[]; schedule?: { weekStart: string; slots: { date: string; channel: string; creativeIrId: string; hookId: string | null; jurisdiction: string | null }[] }; rejections: { code: string; count: number }[]; csrf: string; message: string | null }): string {
   return shell("Creative Factory", html`<h1>Creative Factory và cổng Storyboard</h1>
 <p><a href="/queue">Quay lại Hàng chờ</a> · <a href="/hooks">Hook</a></p>
 ${args.connected ? "" : html`<div class="status yellow">Chưa nối Creative Factory (đặt CREATIVE_SOURCE=mcp và CREATIVE_MCP_URL). Trang chỉ xem Storyboard đã có.</div>`}
 ${args.message ? html`<p class="warn">${args.message}</p>` : ""}
 <section><h2>Lý do từ chối lặp lại ${String(tier4Params().windowDays)} ngày (tầng 4)${tag("tier4_repeat")}</h2>${args.rejections.length ? html`<p>${args.rejections.map((r) => `${r.code} (${r.count})`).join(", ")}. Gửi kèm khi tạo Storyboard để thêm câu lọc vào câu 2 tới 3.</p>` : html`<p class="meta">Chưa có mã nào lặp từ ${String(tier4Params().minCount)} lần trong số mã Amy đã xác nhận.</p>`}</section>
+${args.schedule ? html`<section><h2>Nháp lịch đăng tuần từ ${args.schedule.weekStart}${tag("channel_schedule")}</h2><p class="meta">Chỉ nháp, Growth không đăng. Chỉ Creative đã duyệt, QA PASS, đã đóng gói, tài phán đã chốt giá; nhịp đăng theo kênh lấy từ giá trị tạm.</p>
+${args.schedule.slots.length ? html`<table class="kv">${args.schedule.slots.map((x) => html`<tr><td>${x.date}</td><td>${x.channel}</td><td>${x.creativeIrId}${x.hookId ? ` (${x.hookId})` : ""}${x.jurisdiction ? `, ${x.jurisdiction}` : ""}</td></tr>`)}</table>` : html`<p class="meta">Chưa có Creative đủ điều kiện.</p>`}</section>` : ""}
 <p class="meta">Chỉ gọi model tạo ảnh, video sau khi Storyboard được duyệt (spec mục 7). Việc này tốn tiền nên luôn cần người duyệt.</p>
 ${args.connected && args.hooks.length ? html`<section><h2>Tạo Storyboard từ Hook</h2><form method="post" action="/creative/compile"><input type="hidden" name="csrf" value="${args.csrf}">
 <label>Hook <select name="hook">${args.hooks.map((h) => html`<option value="${h.hookId}">${h.hookId}: ${h.text.slice(0, 60)}</option>`)}</select></label><button type="submit">Tạo Storyboard</button></form></section>` : ""}

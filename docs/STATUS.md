@@ -110,6 +110,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Giá trị tạm một chỗ (D-67, phiên 12, PR 1 trong 5 PR Mark giao): `config/provisional.json`, `getProvisional()`, nhãn "Tạm", `/tuning` sửa và chuyển FINAL. Test T-PROV-01 tới T-PROV-03.
   - Tầng 3B (D-68, PR 2 trong 5): khối trên `/data`, nháp việc MKT ở `/tasks`, ngưỡng tạm. Test T-3B-01, T-3B-02.
   - Win gate (D-69, PR 3 trong 5): khối trên `/budget`, ngưỡng tạm. Test T-WIN-01, T-WIN-02.
+  - Nháp lịch kênh (D-70, PR 4 trong 5): khối trên `/creative`, nhịp đăng tạm. Test T-SCH-01, T-SCH-02.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
@@ -172,7 +173,7 @@ Mọi giá trị chưa chốt nằm trong một file: [`config/provisional.json`
 |---|---|---|---|
 | `tier3b` | xét khi không TRACKING_DEGRADED và asset_view từ 300/tuần; cờ khi ask_occ_started/asset_view < 0,02 hoặc contact_captured/ask_occ_started < 0,20 | Mark 09/11/2026 | `/data`, `/tasks` (D-68) |
 | `win_gate` | impressions từ 3000, contact_captured từ 30, đủ chu kỳ bán, đã lọc reseller, CPL <= trung vị, win_rate >= trung vị, confidence từ 0,8; thiếu mẫu trả insufficient_data | Mark 09/11/2026 | `/budget` (D-69) |
-| `channel_schedule` | chỉ nháp; số bài mỗi tuần theo kênh; chỉ asset đã duyệt và QA PASS | Mark 09/11/2026 | PR 4 |
+| `channel_schedule` | chỉ nháp; Meta Feed 3, Meta Stories 3, TikTok 3, YouTube 1 bài mỗi tuần (asset đã duyệt và QA PASS là luật cứng) | Mark 09/11/2026 | `/creative` (D-70) |
 | `commission` | Referrer 10%, Partner 15%, Premier 20% trên net_profit_ic đơn đã thanh toán trừ refund; nhãn "chưa chi" | Mark 09/11/2026 | PR 5 |
 | `bundle_name` | `oneibc_{channel}_{jurisdiction}_{hook_id}_{yyyymmdd}_v{n}` | Mark 09/11/2026 | PR 5 |
 | `cron07` | tắt, chưa định nghĩa | spec mục 10 | |

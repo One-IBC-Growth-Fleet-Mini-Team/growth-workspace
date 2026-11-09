@@ -82,7 +82,7 @@ import { renderCompetitorsPage } from "./views/competitors.ts";
 import { importHookCsv, importHooksFromMcp } from "../crm/hook-import.ts";
 import { buildHookBoard } from "../db/hooks.ts";
 import { renderHooksPage } from "./views/hooks.ts";
-import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, exportBundles, analyzeCampaign } from "../creative/factory.ts";
+import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, exportBundles, analyzeCampaign, buildScheduleDraft } from "../creative/factory.ts";
 import { renderCreativePage } from "./views/creative.ts";
 import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
 import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
@@ -238,7 +238,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
   function creativePage(session: Session, message: string | null): string {
     const hooks = buildHookBoard(deps.db).hooks.filter((h) => h.verdict === "pass" || h.verdict === "review").map((h) => ({ hookId: h.hookId, text: h.text }));
-    return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, rejections: repeatedRejections(deps.db, now()), csrf: session.csrf, message });
+    return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, schedule: buildScheduleDraft(deps.db, now()), rejections: repeatedRejections(deps.db, now()), csrf: session.csrf, message });
   }
 
   function budgetPage(session: Session, message: string | null): string {

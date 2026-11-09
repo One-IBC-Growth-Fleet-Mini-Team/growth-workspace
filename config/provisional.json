@@ -11,9 +11,9 @@
     "note": "Win gate Mi1-mkt-01. Thiếu mẫu thì trả insufficient_data, không xếp hạng."
   },
   "channel_schedule": {
-    "value": { "posts_per_week": { "meta_feed": 3, "meta_stories": 3, "tiktok": 3, "youtube": 1 }, "only_approved_qa_pass": true },
+    "value": { "posts_per_week": { "meta_feed": 3, "meta_stories": 3, "tiktok": 3, "youtube": 1 } },
     "status": "PROVISIONAL", "source": "Mark (chỉ nháp, nhịp theo kênh từ config), 09/11/2026; số bài mỗi kênh Claude đề xuất", "decided_by": null,
-    "note": "Lịch kênh: chỉ nháp, không gọi API đăng."
+    "note": "Lịch kênh: chỉ nháp, không gọi API đăng. Chỉ Creative đã duyệt, QA PASS, đã đóng gói, tài phán đã chốt giá: luật cứng trong code (CLAUDE.md quy tắc 4), không chỉnh bằng config."
   },
   "commission": {
     "value": { "rates": { "referrer": 0.1, "partner": 0.15, "premier": 0.2 }, "base": "net_profit_ic của đơn đã thanh toán trừ refund", "label": "chưa chi" },
