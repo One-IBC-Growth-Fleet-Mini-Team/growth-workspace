@@ -46,7 +46,7 @@ Cấu hình, mật khẩu và dữ liệu giữ nguyên.
 
 Mỗi ngày 08:15 (hoặc lần đăng nhập kế tiếp nếu máy tắt lúc đó), Mi1 đánh dấu "quá hạn, giữ nháp" cho mục chưa ai quyết của ngày trước, rồi máy chép Growth DB vào thư mục `~/Growth-backup`, giữ 14 bản gần nhất. Bản sao lưu nằm trên cùng ổ đĩa: nên chép thư mục này sang Google Drive hoặc ổ USB mỗi tuần. File trong đó không có email hay số điện thoại khách (chỉ mã băm) nhưng vẫn là dữ liệu nội bộ, không chia sẻ công khai.
 
-Lịch khác (spec mục 10): 08:00 và 13:00 thứ Hai tới thứ Bảy, Mi1-sa-01 làm NBA cho Hàng chờ (CRON-05; chế độ dán chỉ làm NBA, NBA chỉ sinh khi bộ eval đã pass). 08:30 thứ Hai, báo Mark Digest tuần qua Teams nếu đã đặt `TEAMS_WEBHOOK_URL_MARK` (CRON-08). 07:00 ngày 1, báo Mark báo cáo tháng trước ở trang `/monthly` (CRON-09). Xem lần chạy gần nhất: `systemctl --user list-timers`; xem token và chi phí từng phiên ở trang `/runs`.
+Lịch khác (spec mục 10): 08:00 và 13:00 thứ Hai tới thứ Bảy, Mi1-sa-01 làm NBA cho Hàng chờ (CRON-05; chế độ dán chỉ làm NBA, NBA chỉ sinh khi bộ eval đã pass). 08:30 thứ Hai, báo Mark Digest tuần qua Teams nếu đã đặt `TEAMS_WEBHOOK_URL_MARK` (CRON-08). 07:00 ngày 1, báo Mark báo cáo tháng trước ở trang `/monthly` (CRON-09). 06:30 hằng ngày, kéo các nguồn đã đặt chế độ MCP: điểm Hook, kết quả chiến dịch, quét thị trường (CRON-03; nguồn chế độ file bỏ qua). Xem lần chạy gần nhất: `systemctl --user list-timers`; xem token và chi phí từng phiên ở trang `/runs`.
 
 ## Việc thỉnh thoảng
 
@@ -57,7 +57,7 @@ Lịch khác (spec mục 10): 08:00 và 13:00 thứ Hai tới thứ Bảy, Mi1-s
 | Đổi mật khẩu | `echo -n 'mật khẩu mới' \| bash ~/growth-workspace/deploy/local/run.sh scripts/hash-password.ts`, chép kết quả vào `~/.config/growth/growth.env` (giữ nháy đơn hai bên), rồi `systemctl --user restart growth-queue` |
 | Xem Hàng chờ có chạy không | `systemctl --user status growth-queue` |
 | Xem lỗi | `journalctl --user -u growth-queue -n 50` |
-| Tắt hẳn | `systemctl --user disable --now growth-queue growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer` |
+| Tắt hẳn | `systemctl --user disable --now growth-queue growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer` |
 
 ## Giới hạn
 

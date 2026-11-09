@@ -34,7 +34,10 @@ export async function callRemoteTools(target: RemoteTarget, calls: { tool: strin
     return out;
   } catch (e) {
     if (e instanceof RemoteToolError) throw e;
-    throw new RemoteToolError(e instanceof SyntaxError ? "REMOTE_BAD_JSON" : "REMOTE_UNREACHABLE");
+    if (e instanceof SyntaxError) throw new RemoteToolError("REMOTE_BAD_JSON");
+    // Server từ chối token (401, 403): báo riêng để người cài biết sửa <PREFIX>_MCP_TOKEN, không nhầm với mất kết nối.
+    const status = (e as { code?: unknown } | null)?.code;
+    throw new RemoteToolError(status === 401 || status === 403 ? "REMOTE_UNAUTHORIZED" : "REMOTE_UNREACHABLE");
   } finally {
     await client.close().catch(() => {});
   }

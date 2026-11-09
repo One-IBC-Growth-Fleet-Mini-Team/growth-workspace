@@ -8,9 +8,18 @@ Chạy `bun run mcp:content-dist` (stdio, Growth DB chỉ đọc). Tool: `sync_4
 
 Chạy `bun run mcp:growth` (stdio). Tool: `search_knowledge`, `propose_hook_card`, `log_lesson`, `log_decision`, `execute_approved_cypher` (`template`, `params`). `execute_approved_cypher` chỉ chạy mẫu trong `src/mi1/approved-queries.ts`: `output_readiness`, `hook_board`, `lessons` (`query`), `fleet_operations` (`week` dạng yyyy-mm-dd), `channel_health`. Mẫu lạ trả `TEMPLATE_NOT_APPROVED`, tham số lạ trả `PARAMS_INVALID`. Kết quả có `question` (số câu hỏi đầu ra, spec mục 1) và `verified: true`.
 
+## Growth cung cấp: partner-mcp (D-56)
+
+Chạy `bun run mcp:partner` (stdio, Growth DB chỉ đọc, cần `PII_HASH_KEY` như bản cài). Không ghi gì.
+- `track_referral` (`period_start`, `period_end` dạng yyyy-mm-dd, `partner_id` tuỳ chọn): số giới thiệu, số chốt, lợi nhuận ghi nhận theo đối tác; số khách reseller chưa gắn cờ; `commission: "pending_policy"`.
+- `match_to_contact` (`email` hoặc `phone`): Growth băm ngay khi nhận rồi so với Lead trong snapshot CRM mới nhất; trả `{ lead_ids, matched }`. Không lưu, không ghi log email, SĐT.
+- `calc_commission` chưa có, chờ chính sách hoa hồng.
+
 ## Growth gọi ra ngoài
 
 Growth Workspace gọi các hệ thống khác qua MCP (Streamable HTTP), chỉ gọi tool đọc. Mỗi cổng chọn bằng biến môi trường `<PREFIX>_SOURCE=mcp`, `<PREFIX>_MCP_URL`, `<PREFIX>_MCP_TOKEN` (tuỳ chọn, gửi dạng `Authorization: Bearer`). Khi chưa có hệ thống, cổng chạy bằng adapter tải file với cùng dữ liệu.
+
+Lỗi kết nối: server trả 401 hoặc 403 thì Growth báo `REMOTE_UNAUTHORIZED` (sai `<PREFIX>_MCP_TOKEN`); lỗi mạng hay lỗi khác báo `REMOTE_UNREACHABLE` (D-57).
 
 Kết quả tool trả trong `structuredContent`, hoặc JSON trong nội dung text đầu tiên. Sai hợp đồng thì Growth Workspace không nạp gì và báo lỗi trên trang.
 
@@ -46,9 +55,11 @@ Adapter file tương đương: CSV cột `hook_id, text, jurisdiction, score_1 �
 
 ## creative-factory-mcp (cổng "Creative Factory", `CREATIVE_*`, D-44)
 
-Repo `creative-factory-v2` bọc pipeline thành tool MCP (spec mục 7). Growth Workspace gọi hai tool sau; hai tool còn lại (`validate_brand_qa`, `export_channel_bundle`) để lát sau.
+Repo `creative-factory-v2` bọc pipeline thành tool MCP (spec mục 7). Growth Workspace gọi ba tool sau; `validate_brand_qa` để lát sau (pipeline đã chạy QA).
 
 `compile_creative_ir` đầu vào `{ hook_id, hook_text, jurisdiction, validation_mode: "STRICT", rejection_reasons }` (`rejection_reasons`: mảng mã lý do từ chối lặp lại, có thể rỗng; tầng 4, D-54; server chưa dùng thì bỏ qua), đầu ra:
+
+`export_channel_bundle` (D-59) đầu vào `{ creative_ir_id }`, đầu ra `{ package_id, published: false, bundles: [{ bundle_id, channel, aspect_ratio, entries }] }`. Growth chỉ gọi khi Storyboard đang được duyệt và lần chạy gần nhất QA PASS; `published` khác `false` là sai hợp đồng, Growth không ghi gì. Chạy thử thật 09/11/2026: bản hiện tại trả `channel` bằng tỷ lệ khung (ví dụ `16:9`), chưa phải tên kênh.
 
 ```json
 { "creative_ir_id": "IR-1", "storyboard": { "title": "Tên", "scenes": ["Cảnh 1", "Cảnh 2"] } }

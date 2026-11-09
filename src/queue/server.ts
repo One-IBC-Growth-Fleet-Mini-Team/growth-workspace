@@ -18,7 +18,6 @@ import {
   DATA01_PARAMS,
   CHANNEL_PARAMS,
   AD_RULES,
-  HOOK_PARAMS,
   getRemoteSource,
   type RemoteSource,
   isLocalBaseUrl,
@@ -83,7 +82,7 @@ import { renderCompetitorsPage } from "./views/competitors.ts";
 import { importHookCsv, importHooksFromMcp } from "../crm/hook-import.ts";
 import { buildHookBoard } from "../db/hooks.ts";
 import { renderHooksPage } from "./views/hooks.ts";
-import { compileFromHook, decideStoryboard, listStoryboards, runPipeline } from "../creative/factory.ts";
+import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, exportBundles } from "../creative/factory.ts";
 import { renderCreativePage } from "./views/creative.ts";
 import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
 import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
@@ -96,6 +95,12 @@ import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
+import { renderAskPage } from "./views/ask.ts";
+import { renderTasksPage } from "./views/tasks.ts";
+import { buildTaskDrafts } from "../mi1/task-drafts.ts";
+import { askMi1 } from "../mi1/ask.ts";
+import type { LlmClient } from "../agents/sa-01/llm.ts";
+import type { TokenPrice } from "../metrics/cost.ts";
 import { buildMonthly, previousMonth } from "../mi1/monthly.ts";
 import { repeatedRejections } from "../db/rejections.ts";
 import { activateTuning, currentTuning, type EvalRun, listTuning, proposeTuning } from "../db/tuning.ts";
@@ -140,6 +145,8 @@ export type QueueAppDeps = {
   notifyEscalation?: (itemLink: string) => Promise<unknown>;
   // Lượt eval gần nhất (D-53): trang /tuning chỉ kích hoạt giá trị mới khi eval đã chạy lại sau lúc đề xuất và pass.
   evalRun?: () => EvalRun;
+  // Hỏi Mi1 (D-58): LLM chỉ chọn truy vấn mẫu; thiếu thì trang /ask báo chưa cấu hình.
+  askLlm?: { llm: LlmClient; price: TokenPrice };
 };
 
 const MAX_BODY = 16 * 1024;
@@ -223,7 +230,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   }
 
   function hooksPage(session: Session, message: string | null): string {
-    return renderHooksPage({ board: buildHookBoard(deps.db), weights: HOOK_PARAMS.weights, canPull: deps.hookSource?.mode === "mcp", csrf: session.csrf, message });
+    return renderHooksPage({ board: buildHookBoard(deps.db), weights: currentTuning(deps.db).hookWeights, canPull: deps.hookSource?.mode === "mcp", csrf: session.csrf, message });
   }
 
   function creativePage(session: Session, message: string | null): string {
@@ -404,6 +411,16 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/market") {
       if (!session) return redirect("/login");
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/tasks") {
+      if (!session) return redirect("/login");
+      return respond(renderTasksPage(buildTaskDrafts(deps.db, now())), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/ask") {
+      if (!session) return redirect("/login");
+      return respond(renderAskPage({ configured: Boolean(deps.askLlm), q: "", result: null, csrf: session.csrf }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/monthly") {
@@ -588,13 +605,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const src = deps.hookSource;
         const r = form.get("pull") && src?.mode === "mcp" ? await importHooksFromMcp(deps.db, { url: src.url, token: src.token }, by)
           : f instanceof File && f.size > 0 ? importHookCsv(deps.db, await f.text(), by) : { status: "failed" as const, hooks: 0, errorCode: "HOOK_FILE_REQUIRED" };
-        const why: Record<string, string> = { HOOK_FILE_REQUIRED: "Cần chọn file.", HOOK_HEADER_NOT_FOUND: "File cần cột hook_id, text, score_1 tới score_5.", HOOK_MCP_CONTRACT: "Hệ thống SEO/AIO trả dữ liệu sai hợp đồng get_hook_scores.", REMOTE_UNREACHABLE: "Không kết nối được hệ thống SEO/AIO.", CSV_INVALID: "File không đúng dạng CSV." };
+        const why: Record<string, string> = { HOOK_FILE_REQUIRED: "Cần chọn file.", HOOK_HEADER_NOT_FOUND: "File cần cột hook_id, text, score_1 tới score_5.", HOOK_MCP_CONTRACT: "Hệ thống SEO/AIO trả dữ liệu sai hợp đồng get_hook_scores.", REMOTE_UNREACHABLE: "Không kết nối được hệ thống SEO/AIO.", REMOTE_UNAUTHORIZED: "Hệ thống SEO/AIO từ chối token (kiểm HOOK_MCP_TOKEN).", CSV_INVALID: "File không đúng dạng CSV." };
         const msg = r.status === "succeeded" ? `Đã nạp ${r.hooks} Hook.` : `Chưa nạp. ${why[r.errorCode ?? ""] ?? "Không nạp được."} Dữ liệu cũ vẫn giữ nguyên.`;
         return respond(hooksPage(session, msg), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       // Creative Factory (D-44): duyệt Storyboard là quyết định có tiền, ghi người duyệt; gọi ra ngoài chỉ khi CREATIVE_SOURCE=mcp.
-      if (path === "/creative/decide" || path === "/creative/compile" || path === "/creative/run") {
+      if (path === "/creative/decide" || path === "/creative/compile" || path === "/creative/run" || path === "/creative/export") {
         const by = { now: now(), actor: userOf(session).id };
         const src = deps.creativeSource;
         const target = src?.mode === "mcp" ? { url: src.url, token: src.token } : null;
@@ -614,6 +631,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const r = h ? await compileFromHook(deps.db, target, { hookId: h.hookId, text: h.text, jurisdiction: h.jurisdiction }, by) : { status: "failed" as const, errorCode: "HOOK_NOT_FOUND" };
           ok = r.status === "succeeded";
           msg = r.status === "succeeded" ? `Đã tạo Storyboard ${r.creativeIrId}, chờ duyệt.` : `Chưa tạo được Storyboard (${r.errorCode}).`;
+        } else if (path === "/creative/export") {
+          const r = await exportBundles(deps.db, target, String(form.get("id") ?? ""), by);
+          ok = r.status === "succeeded";
+          msg = r.status === "succeeded" ? `Đã đóng gói chạy thử ${r.bundles} bundle (${r.packageId}); chưa đăng gì.` : r.errorCode === "QA_NOT_PASSED" ? "Lần chạy gần nhất chưa QA PASS nên chưa đóng gói." : `Chưa đóng gói (${r.errorCode}).`;
         } else {
           const r = await runPipeline(deps.db, target, String(form.get("id") ?? ""), by);
           ok = r.status === "succeeded";
@@ -656,6 +677,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           msg = r.status === "succeeded" ? `Đã nạp ${r.items} mục.` : `Chưa nạp (${r.errorCode}). Dữ liệu cũ vẫn giữ nguyên.`;
         }
         return respond(marketPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      if (path === "/ask") {
+        if (!deps.askLlm) return respond(renderAskPage({ configured: false, q: "", result: null, csrf: session.csrf }), 422, { "content-type": "text/html; charset=utf-8" });
+        const q = String(form.get("q") ?? "").slice(0, 500);
+        const r = await askMi1(deps.db, deps.askLlm.llm, q, { now: now(), actor: userOf(session).id, price: deps.askLlm.price });
+        return respond(renderAskPage({ configured: true, q, result: r, csrf: session.csrf }), r.status === "failed" ? 422 : 200, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/tuning") {
@@ -802,6 +830,7 @@ if (import.meta.main) {
     return { ok: r.status === "succeeded", message: woImportMessage(r) };
   };
   const app = createQueueApp({
+    askLlm: (() => { try { const p = getLlmPricing(); return { llm: createAnthropicLlm({ model: p.model }), price: p }; } catch { return undefined; } })(),
     evalRun: () => latestEvalRun(getEvalResultsDir(root)),
     db,
     sessionSecret: cfg.sessionSecret,

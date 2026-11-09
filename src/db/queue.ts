@@ -44,8 +44,9 @@ export function insertAgentRun(db: Database, r: AgentRunInsert): void {
   ).run(r.id, r.agent, r.trigger, r.prompt_version, r.eval_version, r.model, r.input_tokens, r.output_tokens, r.cost_usd, r.status, r.started_at, r.finished_at);
 }
 
-export function agentRunCosts(db: Database, agent: string): { cost_usd: number; started_at: string }[] {
-  return db.query("SELECT cost_usd, started_at FROM agent_runs WHERE agent = ?").all(agent) as {
+// Chi phí mọi phiên của cả fleet: trần 100 USD/tháng là của cả fleet (spec mục 10), không riêng một agent (D-58).
+export function agentRunCosts(db: Database): { cost_usd: number; started_at: string }[] {
+  return db.query("SELECT cost_usd, started_at FROM agent_runs").all() as {
     cost_usd: number;
     started_at: string;
   }[];

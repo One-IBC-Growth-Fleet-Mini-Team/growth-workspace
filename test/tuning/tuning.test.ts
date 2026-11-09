@@ -53,5 +53,9 @@ describe("T-TUNE ngưỡng và trọng số", () => {
     expect((await post(app, "/tuning", { csrf: a.csrf, op: "propose", param: "confidence_escalate_below", value: "0.6" }, a.cookie)).status).toBe(403);
     expect((await post(app, "/tuning", { csrf: m.csrf, op: "propose", param: "confidence_escalate_below", value: "0.6" }, m.cookie)).status).toBe(200);
     expect(await (await get(app, "/queue", a.cookie)).text()).toContain('href="/tuning"');
+    const w = proposeTuning(db, "hook_weights", "30,30,20,10,10", by("mark"));
+    if (w.status !== "ok") throw new Error("propose");
+    activateTuning(db, w.id, { ranAt: "2026-11-10T00:00:00Z", passed: true }, by("mark"));
+    expect(await (await get(app, "/hooks", m.cookie)).text()).toContain("Tiêu chí 1 30%"); // trang Hook hiện trọng số đang hiệu lực
   });
 });
