@@ -8,6 +8,13 @@ Chạy `bun run mcp:content-dist` (stdio, Growth DB chỉ đọc). Tool: `sync_4
 
 Chạy `bun run mcp:growth` (stdio). Tool: `search_knowledge`, `propose_hook_card`, `log_lesson`, `log_decision`, `execute_approved_cypher` (`template`, `params`). `execute_approved_cypher` chỉ chạy mẫu trong `src/mi1/approved-queries.ts`: `output_readiness`, `hook_board`, `lessons` (`query`), `fleet_operations` (`week` dạng yyyy-mm-dd), `channel_health`. Mẫu lạ trả `TEMPLATE_NOT_APPROVED`, tham số lạ trả `PARAMS_INVALID`. Kết quả có `question` (số câu hỏi đầu ra, spec mục 1) và `verified: true`.
 
+## Growth cung cấp: partner-mcp (D-56)
+
+Chạy `bun run mcp:partner` (stdio, Growth DB chỉ đọc, cần `PII_HASH_KEY` như bản cài). Không ghi gì.
+- `track_referral` (`period_start`, `period_end` dạng yyyy-mm-dd, `partner_id` tuỳ chọn): số giới thiệu, số chốt, lợi nhuận ghi nhận theo đối tác; số khách reseller chưa gắn cờ; `commission: "pending_policy"`.
+- `match_to_contact` (`email` hoặc `phone`): Growth băm ngay khi nhận rồi so với Lead trong snapshot CRM mới nhất; trả `{ lead_ids, matched }`. Không lưu, không ghi log email, SĐT.
+- `calc_commission` chưa có, chờ chính sách hoa hồng.
+
 ## Growth gọi ra ngoài
 
 Growth Workspace gọi các hệ thống khác qua MCP (Streamable HTTP), chỉ gọi tool đọc. Mỗi cổng chọn bằng biến môi trường `<PREFIX>_SOURCE=mcp`, `<PREFIX>_MCP_URL`, `<PREFIX>_MCP_TOKEN` (tuỳ chọn, gửi dạng `Authorization: Bearer`). Khi chưa có hệ thống, cổng chạy bằng adapter tải file với cùng dữ liệu.
