@@ -31,6 +31,14 @@ export function digestReadyMessage(weekStart: string, baseUrl: string): TeamsMes
   return { text: `Digest tuần từ ${ddmm(weekStart)} đã sẵn sàng: ${link}` };
 }
 
+// Báo cáo tháng (CRON-09, 07:00 ngày 1).
+export function monthlyReadyMessage(month: string, baseUrl: string): TeamsMessage {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(month);
+  if (!m) throw new RangeError("notify: bad month");
+  const link = httpsUrl(`${baseUrl.replace(/\/+$/, "")}/monthly?m=${month}`);
+  return { text: `Báo cáo tháng ${m[2]}/${m[1]} đã sẵn sàng: ${link}` };
+}
+
 export function escalationMessage(itemLink: string): TeamsMessage {
   return { text: `Amy cần anh xem một mục: ${httpsUrl(itemLink)}` };
 }

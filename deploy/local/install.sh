@@ -185,10 +185,32 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
+# CRON-09: báo Mark báo cáo tháng qua Teams lúc 07:00 ngày 1 (bỏ qua khi chưa đặt TEAMS_WEBHOOK_URL_MARK).
+cat > "$UNIT_DIR/growth-monthly.service" <<EOF
+[Unit]
+Description=Growth Workspace: báo cáo tháng
+
+[Service]
+Type=oneshot
+WorkingDirectory=$APP_DIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$BUN run src/jobs/monthly-report.ts
+EOF
+cat > "$UNIT_DIR/growth-monthly.timer" <<EOF
+[Unit]
+Description=Growth Workspace: báo cáo tháng 07:00 ngày 1
+
+[Timer]
+OnCalendar=*-*-01 07:00:00 Asia/Ho_Chi_Minh
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
 systemctl --user daemon-reload
-systemctl --user enable growth-queue.service growth-daily.timer growth-sa01.timer growth-digest.timer
+systemctl --user enable growth-queue.service growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer
 systemctl --user restart growth-queue.service
-systemctl --user start growth-daily.timer growth-sa01.timer growth-digest.timer
+systemctl --user start growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer
 
 # Biểu tượng "Hàng chờ Growth" trong danh sách ứng dụng và trên màn hình.
 apps="$HOME/.local/share/applications"

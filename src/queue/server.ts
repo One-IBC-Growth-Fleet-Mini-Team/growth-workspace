@@ -95,6 +95,8 @@ import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
 import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
+import { renderMonthlyPage } from "./views/monthly.ts";
+import { buildMonthly, previousMonth } from "../mi1/monthly.ts";
 import { repeatedRejections } from "../db/rejections.ts";
 import { activateTuning, currentTuning, type EvalRun, listTuning, proposeTuning } from "../db/tuning.ts";
 import { buildRunLog, markRunSeen } from "../db/runs.ts";
@@ -402,6 +404,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/market") {
       if (!session) return redirect("/login");
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/monthly") {
+      if (!session) return redirect("/login");
+      const q = url.searchParams.get("m");
+      const month = q && /^\d{4}-(0[1-9]|1[0-2])$/.test(q) ? q : previousMonth(now());
+      return respond(renderMonthlyPage(buildMonthly(deps.db, month, now())), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/tuning") {
