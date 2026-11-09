@@ -51,3 +51,18 @@ Repo `creative-factory-v2` bọc pipeline thành tool MCP (spec mục 7). Growth
 ```
 
 Cổng Storyboard: Growth Workspace chỉ gọi `run_creative_pipeline` khi quyết định mới nhất về Storyboard là duyệt. Phía `creative-factory-v2` nên tự chặn thêm bước `generate` khi chưa có Storyboard được duyệt (việc thứ tư trong spec mục 7).
+
+## get_campaign_stats của ads-mcp (cổng "Kết quả theo chiến dịch", `ADS_*`, tầng 5, D-45)
+
+Đầu vào `{}`. Đầu ra:
+
+```json
+{ "campaigns": [ { "campaign": "C-HK", "platform": "meta", "period_start": "2026-09-01", "period_end": "2026-10-31",
+  "spend_usd": 1000, "leads": 40, "closed_won": 4, "gross_margin_usd": 3000, "sales_cycle_complete": true } ] }
+```
+
+- `gross_margin_usd`: biên gộp theo Internal Control của các đơn nối được tới chiến dịch qua chuỗi ID, đã loại khách cuối của reseller.
+- `sales_cycle_complete`: đã qua đủ một chu kỳ bán kể từ cuối kỳ. Chưa đủ thì Growth không đánh giá.
+- `draft_budget_change` không gọi ra ngoài: nháp nằm trong Growth, Mark tự đổi ngân sách trên nền tảng sau khi duyệt.
+
+Adapter file tương đương: CSV cùng tên cột, `sales_cycle_complete` là yes hoặc no.
