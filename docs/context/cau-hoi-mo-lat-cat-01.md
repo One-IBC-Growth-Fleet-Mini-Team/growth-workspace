@@ -55,6 +55,7 @@ Sau khi có token: chạy `bun run preflight -- --network`, lệnh tự báo tê
 | K-04 (D-33) | Bộ SKD eKYC 10 file gồm những gì? Thư mục Userguide hiện có 6 file (PDF, HTML, 4 video của một clip). Có phải còn thiếu 1 clip nữa (4 video) không? | Đếm đủ 10 file | **Đã xong 09/11/2026** |
 | K-05 (D-33) | Sửa sheet FINAL: Premium giảm 5% thay 7%; Singapore Branch và LLP đảo cột gia hạn và gói 2 năm; Hoa Kỳ LLC và Corporation lệch cột gia hạn | Trang `/jurisdictions` đang báo 2 tài phán lệch công thức | **Đã xong 09/11/2026** |
 | B-01 (D-34) | Bank Team sửa ma trận: Mercury chỉ nhận công ty Mỹ; Currenxie không nhận công ty Mỹ; Airwallex với Belize, Marshall Islands; cột "UAE" là vùng nào; sheet Product Matrix đang ẩn có phải bản đang dùng? | Gợi ý ở `/banks` | **Đã xong 09/11/2026** |
+| K-06 (D-35) | "Sẵn sàng nghiệm thu sandbox8" nghĩa là gì: không còn bug Critical, High mở là đủ, hay cần 0 bug mở, hay cần tiêu chí A6 của data contract (sự kiện, session_id)? Và nhờ MobCEC ghi mức độ thống nhất một thứ tiếng (7 bug đang ghi Cao, Trung bình, Thấp nên tab Tổng hợp đếm thiếu: 94 thay vì 101) | Ngưỡng ở `/jurisdictions` và Brief sáng | Không còn bug Critical, High mở |
 
 ## 5. Người chịu trách nhiệm kỹ thuật
 

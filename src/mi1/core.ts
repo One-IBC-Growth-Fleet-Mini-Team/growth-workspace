@@ -1,5 +1,7 @@
 // Mi1 phần lõi (spec mục 6, CRON-06, CRON-08; D-27): áp phương án mặc định cho mục quá hạn,
 // brief sáng và Digest tuần. Toàn bộ là truy vấn và hàm tính, không gọi LLM ($0 token).
+import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
+import { buildSandboxBoard } from "../db/sandbox.ts";
 import type { Database } from "bun:sqlite";
 import { LLM_MONTHLY_CAP_USD } from "../config.ts";
 import { insertAgentRun } from "../db/queue.ts";
@@ -60,6 +62,9 @@ function costSince(db: Database, fromIso: string, toIso: string): number {
   return (db.query("SELECT COALESCE(SUM(cost_usd), 0) AS v FROM agent_runs WHERE started_at >= ? AND started_at < ?").get(fromIso, toIso) as { v: number }).v;
 }
 
+// Dòng Mi1-mkt-05 trên Brief sáng (CRON-04 gộp vào Brief, D-35): số lấy từ cùng hàm của trang /jurisdictions.
+export type Mkt05Line = { priceLocked: number; total: number; priceImported: boolean; skdDone: number; skdTotal: number; sandboxOpen: number | null; sandboxOpenSevere: number; sandboxReady: boolean | null };
+
 export type Brief = {
   date: string;
   today: { type: string; total: number; pending: number }[];
@@ -71,7 +76,20 @@ export type Brief = {
   monthCostUsd: number;
   monthCapUsd: number;
   forecastItems: number;
+  mkt05: Mkt05Line;
 };
+
+function mkt05Line(db: Database): Mkt05Line {
+  const j = buildJurisdictionBoard(db);
+  const sb = buildSandboxBoard(db);
+  return {
+    priceLocked: j.summary.priceLocked, total: j.summary.total, priceImported: j.importedAt !== null,
+    skdDone: j.skd.done, skdTotal: j.skd.total,
+    sandboxOpen: sb.ready === null ? null : sb.open.length,
+    sandboxOpenSevere: sb.open.filter((b) => b.severity === "Critical" || b.severity === "High").length,
+    sandboxReady: sb.ready,
+  };
+}
 
 export function buildBrief(db: Database, now: Date): Brief {
   const date = vnDate(now);
@@ -99,6 +117,7 @@ export function buildBrief(db: Database, now: Date): Brief {
     monthCostUsd: monthToDateCostUsd(db.query("SELECT cost_usd, started_at FROM agent_runs").all() as { cost_usd: number; started_at: string }[], now),
     monthCapUsd: LLM_MONTHLY_CAP_USD,
     forecastItems: loadForecast(perDay),
+    mkt05: mkt05Line(db),
   };
 }
 
