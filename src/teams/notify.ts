@@ -12,7 +12,9 @@ export const NOTIFY_MAX_RETRIES = 3;
 
 function httpsUrl(link: string): string {
   const u = new URL(link);
-  if (u.protocol !== "https:") throw new RangeError("notify: link must be https");
+  // Ngoại lệ của bản cài máy Ubuntu (D-26): http chỉ cho localhost, 127.0.0.1.
+  const local = u.protocol === "http:" && (u.hostname === "localhost" || u.hostname === "127.0.0.1");
+  if (u.protocol !== "https:" && !local) throw new RangeError("notify: link must be https");
   return u.href;
 }
 
@@ -20,6 +22,13 @@ export function queueReadyMessage(queueDate: string, baseUrl: string): TeamsMess
   if (!/^\d{4}-\d{2}-\d{2}$/.test(queueDate)) throw new RangeError("notify: bad date");
   const link = httpsUrl(`${baseUrl.replace(/\/+$/, "")}/queue?date=${queueDate}`);
   return { text: `Hàng chờ ngày ${ddmm(queueDate)} đã sẵn sàng: ${link}` };
+}
+
+// Digest tuần (CRON-08, 08:30 thứ Hai): tuần bắt đầu từ thứ Hai weekStart.
+export function digestReadyMessage(weekStart: string, baseUrl: string): TeamsMessage {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) throw new RangeError("notify: bad date");
+  const link = httpsUrl(`${baseUrl.replace(/\/+$/, "")}/digest?week=${weekStart}`);
+  return { text: `Digest tuần từ ${ddmm(weekStart)} đã sẵn sàng: ${link}` };
 }
 
 export function escalationMessage(itemLink: string): TeamsMessage {

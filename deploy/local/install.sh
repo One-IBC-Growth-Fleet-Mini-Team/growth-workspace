@@ -100,7 +100,7 @@ fi
 say "4/6 Nâng schema Growth DB"
 (set -a; . "$ENV_FILE"; set +a; cd "$APP_DIR" && "$BUN" run src/db/migrate.ts)
 
-say "5/6 Dịch vụ chạy nền khi bạn đăng nhập; việc hằng ngày lúc 08:15"
+say "5/6 Dịch vụ chạy nền khi bạn đăng nhập; lịch 08:00, 08:15, 13:00, Digest 08:30 thứ Hai"
 install -d "$UNIT_DIR"
 cat > "$UNIT_DIR/growth-queue.service" <<EOF
 [Unit]
@@ -140,10 +140,55 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
+# CRON-05 (spec mục 10): Mi1-sa-01 lúc 08:00 và 13:00 thứ Hai tới thứ Bảy. Chế độ dán (REPORT_SOURCE=paste) chỉ làm NBA.
+cat > "$UNIT_DIR/growth-sa01.service" <<EOF
+[Unit]
+Description=Growth Workspace: Mi1-sa-01 (NBA vào Hàng chờ của Amy)
+
+[Service]
+Type=oneshot
+WorkingDirectory=$APP_DIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$BUN run src/jobs/sa01-morning.ts
+EOF
+cat > "$UNIT_DIR/growth-sa01.timer" <<EOF
+[Unit]
+Description=Growth Workspace: Mi1-sa-01 08:00 và 13:00 thứ Hai tới thứ Bảy
+
+[Timer]
+OnCalendar=Mon..Sat *-*-* 08:00:00 Asia/Ho_Chi_Minh
+OnCalendar=Mon..Sat *-*-* 13:00:00 Asia/Ho_Chi_Minh
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+# CRON-08: báo Mark Digest tuần qua Teams lúc 08:30 thứ Hai (bỏ qua khi chưa đặt TEAMS_WEBHOOK_URL_MARK).
+cat > "$UNIT_DIR/growth-digest.service" <<EOF
+[Unit]
+Description=Growth Workspace: báo Digest tuần
+
+[Service]
+Type=oneshot
+WorkingDirectory=$APP_DIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$BUN run src/jobs/digest-weekly.ts
+EOF
+cat > "$UNIT_DIR/growth-digest.timer" <<EOF
+[Unit]
+Description=Growth Workspace: Digest tuần 08:30 thứ Hai
+
+[Timer]
+OnCalendar=Mon *-*-* 08:30:00 Asia/Ho_Chi_Minh
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
 systemctl --user daemon-reload
-systemctl --user enable growth-queue.service growth-daily.timer
+systemctl --user enable growth-queue.service growth-daily.timer growth-sa01.timer growth-digest.timer
 systemctl --user restart growth-queue.service
-systemctl --user start growth-daily.timer
+systemctl --user start growth-daily.timer growth-sa01.timer growth-digest.timer
 
 # Biểu tượng "Hàng chờ Growth" trong danh sách ứng dụng và trên màn hình.
 apps="$HOME/.local/share/applications"
