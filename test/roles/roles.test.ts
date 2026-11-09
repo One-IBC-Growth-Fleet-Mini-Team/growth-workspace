@@ -35,6 +35,11 @@ describe("T-ROLE phân quyền", () => {
     const decide = await app.fetch(new Request(`${BASE}/creative/decide`, { method: "POST", headers: { cookie: cookie(MKT), origin: BASE, "content-type": "application/x-www-form-urlencoded" }, body: "csrf=k&id=IR-1&decision=approve" }));
     expect(decide.status).toBe(403);
     expect((await get(BOD, "/queue")).status).toBe(200);
+    // D-66: trang của MKT không hiện form nạp; form kiểm quảng cáo vẫn hiện.
+    const jur = await (await get(MKT, "/jurisdictions")).text();
+    expect(jur).not.toContain('action="/jurisdictions"');
+    expect(await (await get(MKT, "/ads-check")).text()).toContain('action="/ads-check"');
+    expect(await (await get(BOD, "/jurisdictions")).text()).toContain('action="/jurisdictions"');
   });
 
   test("T-ROLE-03 mật khẩu MKT, BOD tuỳ chọn: đặt thì đăng nhập được, không đặt thì chỉ Amy, Mark", () => {

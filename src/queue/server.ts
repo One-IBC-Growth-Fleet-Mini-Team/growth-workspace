@@ -94,7 +94,7 @@ import { logKnowledge, searchKnowledge } from "../db/knowledge.ts";
 import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
-import { canPost, canSee } from "./roles.ts";
+import { canPost, canSee, stripForbiddenForms } from "./roles.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
 import { renderAskPage } from "./views/ask.ts";
 import { renderTasksPage } from "./views/tasks.ts";
@@ -783,7 +783,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   return {
     async fetch(req) {
       try {
-        return await handle(req);
+        const res = await handle(req);
+        // Phiên MKT: ẩn form không được dùng (D-66).
+        const s = readSession(req, deps.sessionSecret, now());
+        if (s && userOf(s).role === "mkt" && res.headers.get("content-type")?.startsWith("text/html")) {
+          return new Response(stripForbiddenForms(userOf(s), await res.text()), { status: res.status, headers: res.headers as unknown as HeadersInit });
+        }
+        return res;
       } catch {
         log({ event: "queue.error", error_code: "UNHANDLED" });
         return text(500, "Lỗi hệ thống.");

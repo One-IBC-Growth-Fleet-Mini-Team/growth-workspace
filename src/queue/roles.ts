@@ -18,3 +18,10 @@ export function canSee(user: QueueUser, path: string): boolean {
 export function canPost(user: QueueUser, path: string): boolean {
   return user.role !== "mkt" || path === "/logout" || MKT_POSTS.has(path);
 }
+
+// Bỏ khỏi trang các form POST mà vai trò này không được dùng (D-66), để MKT không bấm rồi nhận 403.
+// Form trong trang không lồng nhau nên khớp từ <form tới </form> gần nhất là đủ.
+export function stripForbiddenForms(user: QueueUser, html: string): string {
+  if (user.role !== "mkt") return html;
+  return html.replace(/<form method="post" action="([^"]+)"[\s\S]*?<\/form>/g, (m, action: string) => (canPost(user, action) ? m : ""));
+}
