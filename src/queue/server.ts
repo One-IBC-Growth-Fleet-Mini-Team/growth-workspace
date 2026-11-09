@@ -97,6 +97,8 @@ import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
 import { renderAskPage } from "./views/ask.ts";
+import { renderTasksPage } from "./views/tasks.ts";
+import { buildTaskDrafts } from "../mi1/task-drafts.ts";
 import { askMi1 } from "../mi1/ask.ts";
 import type { LlmClient } from "../agents/sa-01/llm.ts";
 import type { TokenPrice } from "../metrics/cost.ts";
@@ -410,6 +412,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/market") {
       if (!session) return redirect("/login");
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/tasks") {
+      if (!session) return redirect("/login");
+      return respond(renderTasksPage(buildTaskDrafts(deps.db, now())), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/ask") {
