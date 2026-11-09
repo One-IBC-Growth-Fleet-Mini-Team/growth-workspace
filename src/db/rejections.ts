@@ -1,11 +1,16 @@
 // Mã lý do từ chối Amy đã xác nhận (hoặc đã sửa) trong kỳ, để đẩy về bước 1 của creative-factory-v2 (tầng 4; D-54).
 import type { Database } from "bun:sqlite";
 import { repeatedReasons } from "../metrics/repeated-reasons.ts";
+import { getProvisional } from "../provisional.ts";
 import { addDays, vnDate } from "../time.ts";
 
-export const TIER4_PARAMS = { minCount: 3, windowDays: 28 } as const; // giá trị tạm, chờ Amy và Mark chốt
+// Ngưỡng tầng 4 là giá trị tạm (D-67): getProvisional("tier4_repeat").
+export function tier4Params(): { minCount: number; windowDays: number } {
+  const v = getProvisional("tier4_repeat").value;
+  return { minCount: v.min_count, windowDays: v.window_days };
+}
 
-export function repeatedRejections(db: Database, now: Date, p: { minCount: number; windowDays: number } = TIER4_PARAMS) {
+export function repeatedRejections(db: Database, now: Date, p: { minCount: number; windowDays: number } = tier4Params()) {
   const from = addDays(vnDate(now), -(p.windowDays - 1));
   // Quyết định mới nhất của người trên mỗi mục; chỉ confirm hoặc edit mới tính.
   const rows = db.query(`SELECT i.payload, e.action, e.payload AS edited FROM queue_items i

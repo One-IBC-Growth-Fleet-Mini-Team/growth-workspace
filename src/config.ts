@@ -1,6 +1,8 @@
 // Đọc biến môi trường. Secret chỉ đến từ biến môi trường (CLAUDE.md quy tắc 6).
 // Mỗi job chỉ đòi đúng nhóm biến nó cần; thiếu biến bắt buộc thì ném ConfigError chỉ kèm tên biến, không kèm giá trị.
 
+import { getProvisional } from "./provisional.ts";
+
 export type Env = Record<string, string | undefined>;
 
 export class ConfigError extends Error {
@@ -177,9 +179,7 @@ export const METRIC_PARAMS = {
 export const NBA_PARAMS = {
   // Stage coi là đã đóng (không thuộc "Opportunity mở"). [ĐỐI CHIẾU SCHEMA] tên Stage thật của CRM.
   closedStages: ["Closed Won", "Closed Lost"] as readonly string[],
-  // Trọng số ưu tiên theo Stage, gần chốt cao hơn. Tên Stage thật của CRM (D-42, đọc từ màn hình Data Opportunity
-  // ngày 06/10/2026); thứ tự theo phễu là TẠM, chờ Amy xác nhận (Q-09). Stage lạ lấy unknownStageWeight.
-  stageWeights: { "Payment Waiting": 4, Negotiation: 3, Quotation: 2, "Needs Analysis": 1, Nurturing: 0.5 } as Readonly<Record<string, number>>,
+  // Trọng số ưu tiên theo Stage (Q-09) là giá trị tạm: đọc getProvisional("q09_stage_weights") (D-67). Stage lạ lấy unknownStageWeight.
   unknownStageWeight: 0.5,
   // Giới hạn số mục NBA mỗi sáng. Đề xuất 20, chờ Amy (Q-10).
   maxItemsPerMorning: 20,
@@ -235,16 +235,19 @@ export type ChannelParams = { expected: Record<"bm" | "wa" | "fanpage", number>;
 // Cổng tuân thủ trước khi đăng (spec mục 7, tầng 1A; D-38). Bộ từ cấm spec ghi "chờ chốt": dùng cột "Đề xuất" làm giá trị TẠM
 // (K-07): giữ 10 từ, thêm "tax haven", "banking" và "finance" sang nhóm cần người duyệt. Tên thương hiệu loại ra trước khi so.
 // Độ dài: Hook + câu 1 dưới 125 ký tự (đo câu đầu của primary text), Headline tối đa 40, Description tối đa 30.
-export const AD_RULES = {
-  banned: ["offshore", "no tax", "zero tax", "tax free", "tax evasion", "incognito", "money laundering", "hide assets", "break the law", "cheat", "tax heaven", "tax haven"] as readonly string[],
-  review: ["banking", "finance"] as readonly string[],
+// Từ cấm, từ cần duyệt (K-07) là giá trị tạm: đọc qua adRules() từ getProvisional("k07_ad_words") (D-67).
+const AD_RULES_BASE = {
   brandAllow: ["offshore company corp", "offshorecompanycorp.com", "offshorecompanycorp"] as readonly string[],
   maxOpening: 124,
   maxHeadline: 40,
   maxDescription: 30,
   // Quốc gia Meta yêu cầu verify trước khi chạy quảng cáo dịch vụ tài chính (spec "verify Meta TW/IN"; D-41).
-  metaVerifyRequired: ["Taiwan", "India"],
-} as const;
+  metaVerifyRequired: ["Taiwan", "India"] as readonly string[],
+};
+export function adRules(): AdRules {
+  const w = getProvisional("k07_ad_words").value;
+  return { ...AD_RULES_BASE, banned: w.banned, review: w.review };
+}
 export type AdRules = { banned: readonly string[]; review: readonly string[]; brandAllow: readonly string[]; maxOpening: number; maxHeadline: number; maxDescription: number; metaVerifyRequired?: readonly string[] };
 
 // Mi1-mkt-01 tầng 2 (spec mục 8; D-39): xét quảng cáo từ 3.000 impressions mỗi tuần; Frequency trên 2,5.

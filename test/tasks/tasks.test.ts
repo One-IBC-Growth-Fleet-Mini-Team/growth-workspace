@@ -37,7 +37,7 @@ describe("T-TASK nháp việc", () => {
     ]);
     expect(d[0]!.title).toBe("TRACKING_DEGRADED: độ phủ ID 7 ngày 0.0% (0/3 phiên), dưới 19%");
     expect(d[0]!.body).toContain("Không tắt quảng cáo");
-    expect(d[2]!.title).toBe("Sửa câu 2 tới 3 của copy: lý do từ chối EXPECTATION_MISMATCH lặp 3 lần trong 28 ngày");
+    expect(d[2]!.title).toBe("Sửa câu 2 tới 3 của copy: lý do từ chối EXPECTATION_MISMATCH lặp 3 lần trong 28 ngày (Tạm)");
   });
 
   test("T-TASK-02 trang /tasks hiện nháp để chép, không có form gửi; Hàng chờ có link", async () => {

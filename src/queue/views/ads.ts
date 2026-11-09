@@ -1,6 +1,7 @@
 // Trang cổng tuân thủ quảng cáo (D-38): dán một mẫu hoặc tải CSV nhiều mẫu, xem kết quả. Không lưu nội dung.
 import type { AdRow } from "../../ads/check.ts";
 import type { AdIssue, Verdict } from "../../metrics/ad-compliance.ts";
+import { tag } from "../../provisional.ts";
 import { html } from "./html.ts";
 import { shell } from "./page.ts";
 
@@ -27,5 +28,5 @@ ${args.rows ? html`<section><h2>Kết quả (${args.rows.length})</h2><table cla
 <section><h2>Kiểm nhiều mẫu</h2><form method="post" action="/ads-check" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
 <label>CSV có cột id, jurisdiction, target_country, primary_text, headline, description <input type="file" name="batch" accept=".csv,text/csv"></label>
 <button type="submit">Kiểm</button></form></section>
-<p class="meta">Từ cấm đang dùng (tạm, chờ Mark chốt): ${args.rules.banned.join(", ")}. Cần người duyệt: ${args.rules.review.join(", ")}.</p>`);
+<p class="meta">Từ cấm đang dùng${tag("k07_ad_words")}: ${args.rules.banned.join(", ")}. Cần người duyệt: ${args.rules.review.join(", ")}.</p>`);
 }

@@ -3,7 +3,8 @@
 import type { Database } from "bun:sqlite";
 import { DATA01_PARAMS } from "../config.ts";
 import { idCoverageWindow } from "../db/data01.ts";
-import { repeatedRejections, TIER4_PARAMS } from "../db/rejections.ts";
+import { repeatedRejections, tier4Params } from "../db/rejections.ts";
+import { tag } from "../provisional.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 
 export type TaskDraft = { key: string; project: "MKT" | "MobCEC"; title: string; body: string; evidence: string };
@@ -26,7 +27,7 @@ export function buildTaskDrafts(db: Database, now: Date): TaskDraft[] {
   }
   for (const r of repeatedRejections(db, now)) {
     out.push({ key: `tier4_${r.code}`, project: "MKT", evidence: "/creative",
-      title: `Sửa câu 2 tới 3 của copy: lý do từ chối ${r.code} lặp ${r.count} lần trong ${TIER4_PARAMS.windowDays} ngày`,
+      title: `Sửa câu 2 tới 3 của copy: lý do từ chối ${r.code} lặp ${r.count} lần trong ${tier4Params().windowDays} ngày${tag("tier4_repeat")}`,
       body: "Tầng 4 (spec mục 8): thêm câu lọc vào câu 2 tới 3; mã này đã được gửi kèm khi tạo Storyboard mới. Amy đã xác nhận các mã lý do." });
   }
   return out;

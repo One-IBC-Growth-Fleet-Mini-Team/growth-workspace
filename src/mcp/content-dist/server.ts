@@ -6,7 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { checkOne } from "../../ads/check.ts";
-import { AD_RULES, getDbPath } from "../../config.ts";
+import { adRules, getDbPath } from "../../config.ts";
 import { buildChannelBoard } from "../../db/channels.ts";
 import { buildJurisdictionBoard } from "../../db/jurisdictions.ts";
 import { openReadOnly } from "../../db/open.ts";
@@ -37,7 +37,7 @@ export function createContentDistServer(db: Database, now: () => Date = () => ne
     description: "Cổng tuân thủ trước khi đăng (tầng 1A, 1B): pass, review, hold hoặc fail kèm lý do. Đạt cổng chưa phải được đăng.",
     inputSchema: z.strictObject({ primary_text: z.string().max(5000), headline: z.string().max(500).default(""), description: z.string().max(500).default(""), jurisdiction: z.string().max(64).optional(), target_country: z.string().max(60).optional() }),
     annotations: READ_ONLY,
-  }, async (a) => guard(() => checkOne(db, { primaryText: a.primary_text, headline: a.headline, description: a.description, jurisdiction: a.jurisdiction ?? null, targetCountry: a.target_country ?? null }, AD_RULES)));
+  }, async (a) => guard(() => checkOne(db, { primaryText: a.primary_text, headline: a.headline, description: a.description, jurisdiction: a.jurisdiction ?? null, targetCountry: a.target_country ?? null }, adRules())));
   server.registerTool("check_channel_account_health", { description: "Sức khoẻ BM, số WhatsApp, Fanpage theo lần kiểm mới nhất.", annotations: READ_ONLY }, async () => guard(() => {
     const c = buildChannelBoard(db, now());
     return { last_checked_at: c.lastCheckedAt, ok: c.summary.ok, issues: c.summary.issues.map((x) => ({ kind: x.kind, label: x.label, status: x.status })), stale: c.summary.stale.map((x) => x.label), not_tracked: c.summary.notTracked };
