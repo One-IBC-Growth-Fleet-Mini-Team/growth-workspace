@@ -86,6 +86,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Creative Factory (D-44, phiên 11): trang `/creative`, cổng MCP tới creative-factory-v2; cổng Storyboard chặn bước tạo ảnh, video khi chưa duyệt. Test T-CF-01 tới T-CF-04.
   - Tầng 5 (D-45, phiên 11): trang `/budget` nạp kết quả theo chiến dịch (file hoặc ads-mcp), tạo nháp đổi ngân sách chờ duyệt, khoá chéo TRACKING_DEGRADED. Test T-T5-01 tới T-T5-04.
   - market-scan (D-46, phiên 11): trang `/market` quy định và tiếng khách (lọc R1), giá đối thủ vào `/competitors`; file hoặc MCP. Test T-MS-01 tới T-MS-04.
+  - content-dist-mcp (D-47, phiên 11): server MCP chỉ đọc 5 tool (giá 45 tài phán, SKD, sandbox8, kiểm nội dung, sức khoẻ kênh) cho hệ thống khác lấy dữ liệu. Test T-CD-01 tới T-CD-03.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
