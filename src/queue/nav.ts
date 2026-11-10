@@ -4,7 +4,7 @@ import type { Database } from "bun:sqlite";
 import type { QueueUser } from "./auth.ts";
 import { canSee } from "./roles.ts";
 
-type Page = { path: string; label: string; group: "Hằng ngày" | "Nạp dữ liệu" | "Theo dõi" | "Cài đặt"; purpose: string; source?: string; samples?: string[]; last?: string; approverOnly?: boolean };
+type Page = { path: string; label: string; group: "Hằng ngày" | "Nạp dữ liệu" | "Theo dõi" | "Cài đặt"; purpose: string; source?: string; samples?: string[]; last?: string; approverOnly?: boolean; viewerOnly?: boolean };
 
 export const PAGES: Page[] = [
   { path: "/overview", label: "Tổng quan", group: "Hằng ngày", purpose: "Tổng hợp số từ các trang khác; bấm vào ô để xem chi tiết." },
@@ -12,6 +12,7 @@ export const PAGES: Page[] = [
   { path: "/brief", label: "Brief sáng", group: "Hằng ngày", purpose: "Việc cần chú ý sáng nay." },
   { path: "/tasks", label: "Nháp việc", group: "Hằng ngày", purpose: "Nháp ticket MobCEC và việc MKT soạn từ số liệu; chép sang Jira." },
   { path: "/ask", label: "Hỏi Mi1", group: "Hằng ngày", purpose: "Hỏi Mi1; câu trả lời là kết quả của truy vấn mẫu đã duyệt." },
+  { path: "/command", label: "Điều phối Mi1", group: "Theo dõi", purpose: "Mi1 đang làm gì từng bước, thuyền viên, việc chờ Mark, tải tuần tới, chi phí tháng. Tự tải lại mỗi 5 giây.", viewerOnly: true, last: "SELECT MAX(started_at) AS t FROM fleet_sessions" },
   { path: "/paste", label: "Dán tự báo RM", group: "Nạp dữ liệu", purpose: "Dán thread tự báo trong Teams để tạo mục trên Hàng chờ.", approverOnly: true },
   { path: "/import", label: "File CRM", group: "Nạp dữ liệu", purpose: "Nạp file CSV xuất từ CRM (Opportunity, Account, Lead, Order, Work Order).", approverOnly: true, samples: ["opportunity.csv"], last: "SELECT MAX(finished_at) AS t FROM etl_run_status WHERE status = 'succeeded'" },
   { path: "/billing", label: "Đơn hàng, invoice", group: "Nạp dữ liệu", purpose: "Đối soát SO, PO và invoice quá hạn.", source: "file Sales Order, Purchase Order, Invoice", samples: ["salesorder.csv", "invoice.csv"], last: "SELECT MAX(imported_at) AS t FROM billing_imports" },
@@ -47,7 +48,7 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 export function navHtml(u: QueueUser, current: string): string {
   const groups = ["Hằng ngày", "Nạp dữ liệu", "Theo dõi", "Cài đặt"] as const;
-  const visible = PAGES.filter((p) => canSee(u, p.path) && (!p.approverOnly || u.role === "approver"));
+  const visible = PAGES.filter((p) => canSee(u, p.path) && (!p.approverOnly || u.role === "approver") && (!p.viewerOnly || u.role === "viewer"));
   return `<nav class="meta">${groups.map((g) => { const ps = visible.filter((p) => p.group === g); return ps.length ? `<div><strong>${g}:</strong> ${ps.map((p) => p.path === current ? `<b>${esc(p.label)}</b>` : `<a href="${p.path}">${esc(p.label)}</a>`).join(" · ")}</div>` : ""; }).join("")}</nav>`;
 }
 

@@ -16,6 +16,14 @@ import { importCrmCsv, importMessage, loadColumnMap } from "../crm/csv-import.ts
 import { createPiiHasher } from "../pii/hash.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
 import { seedDemoSamples, withSampleBanner } from "./samples.ts";
+import { runCron06 } from "../fleet/cron06.ts";
+import type { LlmClient } from "../agents/sa-01/llm.ts";
+
+// LLM giả cho /ask của demo: chọn truy vấn mẫu theo từ khoá trong câu hỏi.
+function demoAskLlm(): LlmClient {
+  const rules: [RegExp, string][] = [[/hook/i, "hook_board"], [/kênh|whatsapp|fanpage/i, "channel_health"], [/bài học|quyết định/i, "lessons"], [/sẵn sàng|tài phán|skd/i, "output_readiness"], [/fleet|chi phí|hàng chờ/i, "fleet_operations"]];
+  return { complete: async ({ user }) => ({ text: JSON.stringify({ template: rules.find(([r]) => r.test(user))?.[1] ?? null, params: {} }), inputTokens: 0, outputTokens: 0, model: "demo-fake-llm", refused: false }) };
+}
 import type { OpportunityRow } from "../db/types.ts";
 
 export const DEMO_HOST = "127.0.0.1";
@@ -105,9 +113,13 @@ export async function createDemo(now: Date = new Date()) {
   });
 
   seedDemoSamples(db, now);
+  // Một lượt CRON-06 qua bộ điều phối để /command có vết ngay (D-82).
+  await runCron06(db, now, new Set());
   // Tài khoản demo cho 4 vai trò (D-75): /login?as=amy|mark|mkt|bod.
   const users: [string, QueueUser][] = [["amy", { id: "amy", role: "approver" }], ["mark", { id: "mark", role: "viewer" }], ["mkt", { id: "mkt", role: "mkt" }], ["bod", { id: "bod", role: "viewer" }]];
   const inner = createQueueApp({
+    // Hỏi Mi1 với LLM giả (D-82): chọn mẫu theo từ khoá, chi phí 0. Bản thật dùng ANTHROPIC_API_KEY.
+    askLlm: { llm: demoAskLlm(), price: { inputUsdPerMTok: 0, outputUsdPerMTok: 0 }, evalGate: () => ({ passed: true, version: "demo" }) },
     db,
     sessionSecret: SECRET,
     baseUrl: BASE,

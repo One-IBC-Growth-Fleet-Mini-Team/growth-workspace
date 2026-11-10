@@ -108,6 +108,10 @@ import { renderAskPage } from "./views/ask.ts";
 import { renderTasksPage } from "./views/tasks.ts";
 import { buildTaskDrafts } from "../mi1/task-drafts.ts";
 import { askMi1 } from "../mi1/ask.ts";
+import { buildCommandData } from "../fleet/command-data.ts";
+import { readEvalScores } from "../fleet/eval-scores.ts";
+import { parseDisabled } from "../fleet/registry.ts";
+import { renderCommandPage } from "./views/command.ts";
 import { readAskEvalGate } from "../mi1/eval.ts";
 import type { LlmClient } from "../agents/sa-01/llm.ts";
 import type { TokenPrice } from "../metrics/cost.ts";
@@ -157,6 +161,9 @@ export type QueueAppDeps = {
   evalRun?: () => EvalRun;
   // Hỏi Mi1 (D-58): LLM chỉ chọn truy vấn mẫu; thiếu thì trang /ask báo chưa cấu hình.
   askLlm?: { llm: LlmClient; price: TokenPrice; evalGate: () => { passed: boolean; version: string } };
+  // Điều phối Mi1 (D-82): thuyền viên đang tắt (FLEET_DISABLED) và điểm eval gần nhất cho /command.
+  fleetDisabled?: ReadonlySet<string>;
+  evalScores?: () => Record<string, number | null>;
 };
 
 const MAX_BODY = 16 * 1024;
@@ -481,6 +488,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(renderTasksPage(buildTaskDrafts(deps.db, now())), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/command") {
+      if (!session) return redirect("/login");
+      if (userOf(session).role !== "viewer") return text(403, "Trang điều phối dành cho Mark và BOD.");
+      const data = buildCommandData(deps.db, now(), deps.fleetDisabled ?? new Set(), deps.evalScores?.() ?? {});
+      return respond(renderCommandPage(data), 200, { "content-type": "text/html; charset=utf-8", refresh: "5" });
+    }
+
     if (req.method === "GET" && path === "/ask") {
       if (!session) return redirect("/login");
       return respond(renderAskPage({ configured: Boolean(deps.askLlm), q: "", result: null, csrf: session.csrf }), 200, { "content-type": "text/html; charset=utf-8" });
@@ -751,7 +765,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       if (path === "/ask") {
         if (!deps.askLlm) return respond(renderAskPage({ configured: false, q: "", result: null, csrf: session.csrf }), 422, { "content-type": "text/html; charset=utf-8" });
         const q = String(form.get("q") ?? "").slice(0, 500);
-        const r = await askMi1(deps.db, deps.askLlm.llm, q, { now: now(), actor: userOf(session).id, price: deps.askLlm.price, evalGate: deps.askLlm.evalGate() });
+        const r = await askMi1(deps.db, deps.askLlm.llm, q, { now: now(), actor: userOf(session).id, price: deps.askLlm.price, evalGate: deps.askLlm.evalGate(), disabled: deps.fleetDisabled });
         return respond(renderAskPage({ configured: true, q, result: r, csrf: session.csrf }), r.status === "failed" ? 422 : 200, { "content-type": "text/html; charset=utf-8" });
       }
 
@@ -917,6 +931,8 @@ if (import.meta.main) {
   const app = createQueueApp({
     askLlm: (() => { try { const p = getLlmPricing(); return { llm: createAnthropicLlm({ model: p.model }), price: p, evalGate: () => readAskEvalGate(getEvalResultsDir(root)) }; } catch { return undefined; } })(),
     evalRun: () => latestEvalRun(getEvalResultsDir(root)),
+    fleetDisabled: parseDisabled(process.env.FLEET_DISABLED),
+    evalScores: () => readEvalScores(getEvalResultsDir(root)),
     db,
     sessionSecret: cfg.sessionSecret,
     baseUrl: cfg.baseUrl,

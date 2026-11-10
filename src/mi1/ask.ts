@@ -6,10 +6,12 @@ import type { Database } from "bun:sqlite";
 import { z } from "zod";
 import type { LlmClient, LlmResponse } from "../agents/sa-01/llm.ts";
 import { LLM_MONTHLY_CAP_USD } from "../config.ts";
-import { agentRunCosts, insertAgentRun } from "../db/queue.ts";
-import { computeCostUsd, monthToDateCostUsd, type TokenPrice } from "../metrics/cost.ts";
+import { insertAgentRun } from "../db/queue.ts";
+import { computeCostUsd, type TokenPrice } from "../metrics/cost.ts";
 import { redactR1 } from "../pii/redact-regex.ts";
 import { APPROVED_QUERIES, runApprovedQuery } from "./approved-queries.ts";
+import { FleetSession } from "../fleet/orchestrate.ts";
+import { crewForTool } from "../fleet/registry.ts";
 
 export const ASK_PROMPT_VERSION = "mi1-ask-v1";
 const Choice = z.object({ template: z.string().max(64).nullable(), params: z.record(z.string(), z.unknown()).optional() });
@@ -51,29 +53,52 @@ export async function chooseTemplate(llm: LlmClient, question: string): Promise<
 }
 
 // evalGate: lượt eval gần nhất của đúng prompt (EVAL_mi1-ask.json). Chưa pass thì không gọi LLM (spec mục 6, Eval Gate).
-export async function askMi1(db: Database, llm: LlmClient, question: string, opts: { now: Date; actor: string; price: TokenPrice; evalGate: { passed: boolean; version: string } }): Promise<AskResult> {
+// Mỗi câu hỏi là một lượt chạy cha của Mi1 (D-82): bước 1 Mi1 chọn mẫu bằng LLM; bước 2 thuyền viên giữ mẫu đó chạy truy
+// vấn. Thuyền viên đang tắt hoặc tool ngoài danh sách thì bị chặn; chạm trần chi phí tháng thì dừng cả phiên.
+export async function askMi1(db: Database, llm: LlmClient, question: string, opts: { now: Date; actor: string; price: TokenPrice; evalGate: { passed: boolean; version: string }; disabled?: ReadonlySet<string> }): Promise<AskResult> {
   const q = redactR1(question.trim().slice(0, 500)).text;
   if (!q) return { status: "failed", errorCode: "QUESTION_REQUIRED" };
-  if (!opts.evalGate.passed) return { status: "failed", errorCode: "EVAL_NOT_PASSED" };
+  const s = new FleetSession(db, { trigger: "ask", actor: opts.actor, inputSummary: q, now: () => opts.now, disabled: opts.disabled ?? new Set(), capUsd: LLM_MONTHLY_CAP_USD });
   // Trần 100 USD/tháng là của cả fleet (spec mục 10), nên cộng mọi agent.
-  if (monthToDateCostUsd(agentRunCosts(db), opts.now) >= LLM_MONTHLY_CAP_USD) return { status: "failed", errorCode: "COST_CAP" };
+  if (s.ended) return { status: "failed", errorCode: "COST_CAP" };
+  if (!opts.evalGate.passed) {
+    s.end("blocked", "EVAL_NOT_PASSED");
+    return { status: "failed", errorCode: "EVAL_NOT_PASSED" };
+  }
   const agentRunId = Bun.randomUUIDv7();
   const started = opts.now.toISOString();
-  const record = (status: string, r?: { inputTokens: number; outputTokens: number; model: string }) => insertAgentRun(db, {
-    id: agentRunId, agent: "mi1", trigger: "ask", prompt_version: ASK_PROMPT_VERSION, eval_version: opts.evalGate.version, model: r?.model ?? "none",
-    input_tokens: r?.inputTokens ?? 0, output_tokens: r?.outputTokens ?? 0, cost_usd: r ? computeCostUsd(r, opts.price) : 0, status, started_at: started, finished_at: started,
+  const step1 = await s.call("mi1", "choose_template", "câu hỏi đã lọc R1", async () => {
+    const c = await chooseTemplate(llm, q);
+    const cost = c.res ? computeCostUsd(c.res, opts.price) : 0;
+    insertAgentRun(db, {
+      id: agentRunId, agent: "mi1", trigger: "ask", prompt_version: ASK_PROMPT_VERSION, eval_version: opts.evalGate.version, model: c.res?.model ?? "none",
+      input_tokens: c.res?.inputTokens ?? 0, output_tokens: c.res?.outputTokens ?? 0, cost_usd: cost, status: c.kind === "error" ? "failed" : "succeeded", started_at: started, finished_at: started,
+    });
+    const summary = c.kind === "error" ? c.errorCode : c.template ? `chọn mẫu ${c.template}` : "không có mẫu phù hợp";
+    return { value: c, ok: c.kind === "chosen", resultSummary: summary, costUsd: cost, agentRunId, gates: ["r1_pii", "eval_gate"] };
   });
-  const c = await chooseTemplate(llm, q);
-  if (c.kind === "error") {
-    record("failed", c.res);
-    return { status: "failed", errorCode: c.errorCode, agentRunId };
+  if (!step1.ok) {
+    s.end(step1.errorCode === "COST_CAP" ? "blocked" : "failed", step1.errorCode);
+    return { status: "failed", errorCode: step1.errorCode, agentRunId: step1.value ? agentRunId : undefined };
   }
-  if (!c.template) {
-    record("succeeded", c.res);
+  const c = step1.value;
+  if (c.kind !== "chosen" || !c.template) {
+    s.end("succeeded", "NO_TEMPLATE");
     return { status: "no_template", agentRunId };
   }
-  const r = runApprovedQuery(db, c.template, c.params, opts.now);
-  record("result" in r ? "succeeded" : "failed", c.res);
-  if (!("result" in r)) return { status: "failed", errorCode: r.errorCode, agentRunId };
+  const template = c.template;
+  const tool = `query:${template}`;
+  const crew = crewForTool(tool)?.id ?? "mi1";
+  const step2 = await s.call(crew, tool, `tham số ${Object.keys(c.params).join(", ") || "không"}`, () => {
+    const r = runApprovedQuery(db, template, c.params, opts.now);
+    return { value: r, ok: "result" in r, resultSummary: "result" in r ? `trả lời câu ${r.question}` : r.errorCode };
+  });
+  if (!step2.ok || !("result" in step2.value)) {
+    const code = step2.ok ? "QUERY_FAILED" : step2.errorCode;
+    s.end(["CREW_DISABLED", "TOOL_NOT_ALLOWED", "COST_CAP", "CREW_UNKNOWN"].includes(code) ? "blocked" : "failed", code);
+    return { status: "failed", errorCode: code, agentRunId };
+  }
+  s.end("succeeded");
+  const r = step2.value;
   return { status: "answered", template: r.template, question: r.question, result: r.result, agentRunId };
 }
