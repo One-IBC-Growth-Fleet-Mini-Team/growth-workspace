@@ -23,8 +23,8 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Khung quyết định Awareness/Conversion bản Tạm: kế hoạch ngân sách tuần theo tổ hợp Kênh × Tài phán ở `/budget`, CRON-07 tạo mỗi thứ Hai, Mark duyệt, cờ anh Jimmy khi vượt ngưỡng (D-90).
 - Đề xuất chiến lược tuần ở `/strategy`: gói số 7 câu hỏi đầu ra, lời dẫn của Mi1 chỉ dùng số trong gói, Eval Gate riêng 0,8, Mark duyệt thì vào Digest (D-91).
 - `/command/data.json`: một payload cho `/command` bản phẳng và bản 3D sắp làm; module theo vai trò, việc chờ Mark gồm kế hoạch ngân sách và đề xuất chiến lược (D-92).
-- Command Center 3D ở `/command/3d` (đang làm theo 4 PR): phòng lab, Mi1 trên bệ xoay 360°, ảnh dự phòng, tự về bản phẳng (D-93).
-- `bun test`: 425 pass, `tsc --strict` sạch.
+- Command Center 3D ở `/command/3d` (đang làm theo 4 PR): phòng lab, Mi1 trên bệ xoay 360°, ảnh dự phòng, tự về bản phẳng; vệ tinh module, bảng kính mờ (D-93).
+- `bun test`: 426 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 

@@ -51,4 +51,15 @@ describe("T-3D Command Center 3D", () => {
     const app = readFileSync(STATIC + "command3d/app.js", "utf8");
     for (const s of ["prefers-reduced-motion", "getContext('webgl", "location.replace('/command')", "gw3d"]) expect(app).toContain(s);
   });
+  test("T-3D-04 vệ tinh (spec mục 2): nhãn ẩn mặc định, là nút bấm Tab tới được, dock trên điện thoại, không vẽ quỹ đạo, link trang thật", () => {
+    const js = readFileSync(STATIC + "command3d/sats.js", "utf8");
+    expect(readFileSync(STATIC + "command3d/app.js", "utf8")).toContain("'./sats.js'");
+    expect(js).toContain(".mod{position:fixed;left:0;top:0;font:500 12px");
+    expect(js).toContain("opacity:0");
+    expect(js).toContain("b.type = 'button'");
+    expect(js).toContain("addEventListener('focus'");
+    expect(js).toContain("#dock{position:fixed");
+    expect(js).toContain("Mở trang đầy đủ");
+    expect(js).not.toMatch(/new THREE\.Line\(|LineDashedMaterial/);
+  });
 });
