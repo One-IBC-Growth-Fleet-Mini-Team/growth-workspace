@@ -15,6 +15,7 @@ import { fakeLlm } from "./fake-llm.ts";
 import { importCrmCsv, importMessage, loadColumnMap } from "../crm/csv-import.ts";
 import { createPiiHasher } from "../pii/hash.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
+import { seedDemoSamples, withSampleBanner } from "./samples.ts";
 import type { OpportunityRow } from "../db/types.ts";
 
 export const DEMO_HOST = "127.0.0.1";
@@ -103,7 +104,9 @@ export async function createDemo(now: Date = new Date()) {
     trigger: "demo",
   });
 
-  const users: [string, QueueUser][] = [["amy", { id: "amy", role: "approver" }], ["mark", { id: "mark", role: "viewer" }]];
+  seedDemoSamples(db, now);
+  // Tài khoản demo cho 4 vai trò (D-75): /login?as=amy|mark|mkt|bod.
+  const users: [string, QueueUser][] = [["amy", { id: "amy", role: "approver" }], ["mark", { id: "mark", role: "viewer" }], ["mkt", { id: "mkt", role: "mkt" }], ["bod", { id: "bod", role: "viewer" }]];
   const inner = createQueueApp({
     db,
     sessionSecret: SECRET,
@@ -148,7 +151,13 @@ export async function createDemo(now: Date = new Date()) {
   const app = {
     async fetch(req: Request): Promise<Response> {
       const url = new URL(req.url);
-      if (url.pathname !== "/login") return inner.fetch(req);
+      if (url.pathname !== "/login") {
+        const res = await inner.fetch(req);
+        if (!res.headers.get("content-type")?.startsWith("text/html")) return res;
+        const headers = new Headers();
+        res.headers.forEach((v, k) => headers.append(k, v));
+        return new Response(withSampleBanner(await res.text()), { status: res.status, headers });
+      }
       const who = url.searchParams.get("as") ?? "amy";
       const start = await inner.fetch(new Request(`${BASE}/login`));
       const oidcCookie = start.headers.get("set-cookie")!.split(";")[0]!;
@@ -168,6 +177,8 @@ if (import.meta.main) {
       "Bản demo Hàng chờ đang chạy (dữ liệu tổng hợp, không gọi CRM, Teams hay Claude API).",
       `  Vào bằng Amy (người duyệt):  ${BASE}/login`,
       `  Vào bằng Mark (chỉ xem):     ${BASE}/login?as=mark`,
+      `  Vào bằng Team MKT:           ${BASE}/login?as=mkt`,
+      `  Vào bằng BOD:                ${BASE}/login?as=bod`,
       "Mở bằng Chrome hoặc Edge. Nhấn Ctrl+C ở cửa sổ này để tắt; tắt là mất dữ liệu demo.",
       "",
     ].join("\n"),
