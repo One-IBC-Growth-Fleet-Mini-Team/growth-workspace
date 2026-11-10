@@ -115,6 +115,7 @@ Làm ra thứ **chạy được thực tế sớm nhất có thể** (`@harveyng
   - Dashboard `/overview` (D-76): 4 hàng theo vai trò. Test T-OV-01, T-OV-02.
   - Điểm vào theo vai trò, thanh điều hướng nhóm theo việc, dòng mô tả, trang trống (D-77). Test T-NAV-01, T-NAV-02.
   - Làm cứng bộ nạp (D-78): file kiểu Excel, ngày d/m/yy, bỏ dòng sai thay vì dừng cả lần nạp, sửa trùng mã tin khi dán hai ngày. Test T-HARD-01 tới T-HARD-05.
+  - Tài khoản theo vai trò, mật khẩu tạm phải đổi, khôi phục DB (D-79). Diễn tập sao lưu rồi khôi phục trên DB demo: đạt. Test T-ACC-01, T-ACC-02.
   - Phân tích hai file và các chỗ cần sửa trong sheet: `docs/context/bang-gia-va-ngan-hang.md`. Câu hỏi K-04, K-05, B-01.
   - Test T-JUR-01 tới T-JUR-05, T-BANK-01 tới T-BANK-04. QA trên Chromium bề rộng 375px với dữ liệu thật: không tràn ngang.
   - `bun test`: 276 pass, 0 fail; `tsc --strict` sạch.
