@@ -42,5 +42,9 @@
   "q09_stage_weights": {
     "value": { "Payment Waiting": 4, "Negotiation": 3, "Quotation": 2, "Needs Analysis": 1, "Nurturing": 0.5 },
     "status": "PROVISIONAL", "source": "design doc lát cắt 01, tên Stage thật D-42; thứ tự chờ Amy (Q-09)", "decided_by": null
+  },
+  "persona": {
+    "value": { "min_deals": 5 },
+    "status": "PROVISIONAL", "source": "Đề xuất 10/11/2026 (D-88): nhóm dưới 5 deal Closed Won không dựng persona", "decided_by": null
   }
 }

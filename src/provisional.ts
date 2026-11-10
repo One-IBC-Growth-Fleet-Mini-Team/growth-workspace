@@ -17,6 +17,7 @@ export const PROVISIONAL_SCHEMAS = {
   k07_ad_words: z.object({ banned: z.array(z.string()), review: z.array(z.string()) }),
   tier4_repeat: z.object({ min_count: z.number().int().positive(), window_days: z.number().int().positive() }),
   q09_stage_weights: z.record(z.string(), Num),
+  persona: z.object({ min_deals: z.number().int().positive() }),
 } as const;
 export type ProvisionalKey = keyof typeof PROVISIONAL_SCHEMAS;
 export type ProvisionalStatus = "PROVISIONAL" | "FINAL";

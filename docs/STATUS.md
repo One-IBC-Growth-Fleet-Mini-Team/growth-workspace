@@ -18,16 +18,19 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Đổi mật khẩu cần mật khẩu cũ (trừ lần đầu với mật khẩu tạm); đổi xong huỷ mọi phiên khác của tài khoản (D-85).
 - Persona MKT: bộ nạp CSV Closed Won (Opportunity, Account; không lưu tên hay mã khách) ở `/persona`, file mẫu trong `deploy/samples`. Chưa nạp thì trang hiện "Chờ dữ liệu thật" (D-86).
 - CRON-07 bản Tạm: 02:00 thứ Hai tạo sẵn Storyboard cho Hook đề xuất của tuần qua creative-factory-v2, chờ Mark duyệt; vết trên `/command` (D-87).
-- `bun test`: 404 pass, `tsc --strict` sạch.
+- Persona MKT dựng từ deal Closed Won thật đã nạp (bỏ reseller, theo tài phán và dịch vụ, kèm cỡ mẫu và tín hiệu thị trường; D-88).
+- `bun test`: 406 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
-Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisional.json), đọc qua `getProvisional()`, có nhãn "Tạm" trên giao diện. Mark sửa hoặc chuyển FINAL ở trang Ngưỡng. Gồm: tầng 3B, Win gate, lịch kênh, hoa hồng, tên bundle, CRON-07 (đang bật, nội dung đề xuất ở D-87), từ cấm K-07, ngưỡng tầng 4, trọng số Stage Q-09.
+Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisional.json), đọc qua `getProvisional()`, có nhãn "Tạm" trên giao diện. Mark sửa hoặc chuyển FINAL ở trang Ngưỡng. Gồm: tầng 3B, Win gate, lịch kênh, hoa hồng, tên bundle, CRON-07 (đang bật, nội dung đề xuất ở D-87), từ cấm K-07, ngưỡng tầng 4, trọng số Stage Q-09, ngưỡng mẫu persona.
 
 ## Việc tiếp theo
 
 1. Chạy creative-factory-v2 với `CF_PROFILE=one-ibc` (brand đúng spec mục 7, brief Tạm, CTA "Nhắn One IBC qua WhatsApp"; markng-byte/creative-factory-v2#22). Brief, campaign thật nhập sau qua Google Sheet. Trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
-2. Dựng persona trên `/persona` khi Amy đã nạp file Closed Won thật (bộ nạp đã có, D-86).
+2. Việt hoá câu nối Storyboard trong creative-factory-v2.
+3. Chạy thử `install.sh` trong môi trường Ubuntu sạch.
+4. GĐ3 (spec mục 14): đề xuất chiến lược và ngân sách, Command Center đầy đủ.
 
 ## Đang bị chặn
 
@@ -45,5 +48,5 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## PR đang mở
 
-- growth-workspace: PR CRON-07 bản Tạm (D-87).
+- growth-workspace: PR CRON-07 bản Tạm (D-87), rồi PR dựng persona (D-88), merge theo thứ tự.
 - creative-factory-v2: không có PR mở.
