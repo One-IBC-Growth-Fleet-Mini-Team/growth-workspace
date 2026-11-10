@@ -16,7 +16,7 @@ export type Crew = {
 };
 
 export const CREW: readonly Crew[] = [
-  { id: "mi1", role: "Điều phối: nhận câu hỏi, chọn thuyền viên, áp mặc định mục quá hạn", supervisor: "Mark", kind: "llm", tools: ["choose_template", "apply_defaults", "query:fleet_operations", "query:lessons", "search_knowledge"], agentRun: "mi1" },
+  { id: "mi1", role: "Điều phối: nhận câu hỏi, chọn thuyền viên, áp mặc định mục quá hạn", supervisor: "Mark", kind: "llm", tools: ["choose_template", "apply_defaults", "draft_strategy", "query:fleet_operations", "query:lessons", "search_knowledge"], agentRun: "mi1" },
   { id: "mi1-data-01", role: "Độ phủ ID, gãy tracking GA4/CRM, sức khoẻ 3 số WA, kiểm trùng Lead", supervisor: "Mark", kind: "script", tools: ["find_duplicate_leads"], agentRun: null },
   { id: "mi1-sa-01", role: "Tự báo RM, lý do từ chối, khớp PO và SO, nhắc invoice, NBA", supervisor: "Amy", kind: "llm", tools: ["get_pipeline_by_close_date"], agentRun: "mi1-sa-01" },
   { id: "mi1-ptn-01", role: "Hiệu suất đối tác, cờ reseller, bảng đề xuất hoa hồng", supervisor: "Amy", kind: "script", tools: ["track_referral", "calc_commission", "match_to_contact", "check_reseller_flag"], agentRun: null },

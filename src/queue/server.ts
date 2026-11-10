@@ -114,6 +114,9 @@ import { buildCommandData } from "../fleet/command-data.ts";
 import { readEvalScores } from "../fleet/eval-scores.ts";
 import { parseDisabled } from "../fleet/registry.ts";
 import { renderCommandPage } from "./views/command.ts";
+import { renderStrategyPage } from "./views/strategy.ts";
+import { approvedStrategy, decideStrategy, generateStrategy, latestStrategy } from "../mi1/strategy-run.ts";
+import { readStrategyEvalGate } from "../mi1/strategy-eval.ts";
 import { renderPersonaPage } from "./views/persona.ts";
 import { closedWonMessage, importClosedWon } from "../crm/closed-won-import.ts";
 import { buildPersonaBoard } from "../db/persona.ts";
@@ -168,6 +171,8 @@ export type QueueAppDeps = {
   askLlm?: { llm: LlmClient; price: TokenPrice; evalGate: () => { passed: boolean; version: string } };
   // Điều phối Mi1 (D-82): thuyền viên đang tắt (FLEET_DISABLED) và điểm eval gần nhất cho /command.
   fleetDisabled?: ReadonlySet<string>;
+  // Đề xuất chiến lược tuần (D-91): cổng eval riêng; LLM dùng chung với askLlm.
+  strategyGate?: () => { passed: boolean; version: string };
   evalScores?: () => Record<string, number | null>;
 };
 
@@ -267,6 +272,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   function creativePage(session: Session, message: string | null): string {
     const hooks = buildHookBoard(deps.db).hooks.filter((h) => h.verdict === "pass" || h.verdict === "review").map((h) => ({ hookId: h.hookId, text: h.text }));
     return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, schedule: buildScheduleDraft(deps.db, now()), rejections: repeatedRejections(deps.db, now()), csrf: session.csrf, message });
+  }
+
+  function strategyPage(session: Session, message: string | null): string {
+    const gate = deps.strategyGate?.() ?? { passed: false, version: "none" };
+    const locked = !deps.askLlm ? "Chưa cấu hình LLM (API key) nên chưa soạn được lời dẫn." : !gate.passed ? "Bộ eval đề xuất chiến lược chưa pass (bun run eval:strategy, ngưỡng 0,8) nên chưa soạn được." : null;
+    return renderStrategyPage({ draft: latestStrategy(deps.db), locked, canWrite: userOf(session).id === "mark", csrf: session.csrf, message });
   }
 
   function budgetPage(session: Session, message: string | null): string {
@@ -416,7 +427,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       // Mặc định là tuần vừa xong (Digest đọc sáng thứ Hai, CRON-08).
       const w = url.searchParams.get("week");
       const week = w && /^\d{4}-\d{2}-\d{2}$/.test(w) ? mondayOf(w) : mondayOf(vnDate(new Date(now().getTime() - 7 * 86_400_000)));
-      return respond(renderDigestPage(buildDigest(deps.db, week, now())), 200, { "content-type": "text/html; charset=utf-8" });
+      return respond(renderDigestPage(buildDigest(deps.db, week, now()), approvedStrategy(deps.db, week)), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/jurisdictions") {
@@ -500,6 +511,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/tasks") {
       if (!session) return redirect("/login");
       return respond(renderTasksPage(buildTaskDrafts(deps.db, now())), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/strategy") {
+      if (!session) return redirect("/login");
+      return respond(strategyPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/command") {
@@ -791,6 +807,19 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(marketPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
+      if (path === "/strategy") {
+        const actor = userOf(session).id;
+        if (actor !== "mark") return text(403, "Chỉ Mark soạn và duyệt đề xuất chiến lược.");
+        if (form.get("op") === "write") {
+          const gate = deps.strategyGate?.() ?? { passed: false, version: "none" };
+          if (!deps.askLlm || !gate.passed) return respond(strategyPage(session, null), 422, { "content-type": "text/html; charset=utf-8" });
+          const r = await generateStrategy(deps.db, deps.askLlm.llm, { now: now(), actor, price: deps.askLlm.price, evalGate: gate, disabled: deps.fleetDisabled });
+          return respond(strategyPage(session, r.status === "created" ? `Đã soạn: ${r.kept} câu giữ, ${r.dropped} câu loại.` : `Chưa soạn được (${r.errorCode}).`), r.status === "created" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+        }
+        const r = decideStrategy(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), { now: now(), actor });
+        return respond(strategyPage(session, r === "ok" ? "Đã ghi quyết định." : "Chưa ghi."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
       if (path === "/ask") {
         if (!deps.askLlm) return respond(renderAskPage({ configured: false, q: "", result: null, csrf: session.csrf }), 422, { "content-type": "text/html; charset=utf-8" });
         const q = String(form.get("q") ?? "").slice(0, 500);
@@ -975,6 +1004,7 @@ if (import.meta.main) {
     evalRun: () => latestEvalRun(getEvalResultsDir(root)),
     fleetDisabled: parseDisabled(process.env.FLEET_DISABLED),
     evalScores: () => readEvalScores(getEvalResultsDir(root)),
+    strategyGate: () => readStrategyEvalGate(getEvalResultsDir(root)),
     db,
     sessionSecret: cfg.sessionSecret,
     baseUrl: cfg.baseUrl,

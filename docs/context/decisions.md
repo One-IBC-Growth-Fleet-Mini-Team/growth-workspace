@@ -167,3 +167,9 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - Mỗi tuần một kế hoạch (`budget_plans`, chỉ thêm), CRON-07 tạo ở bước đầu (Mi1-mkt-01, tool `draft_budget_change`), Mark cũng bấm tạo được. Chỉ Mark duyệt; tổng thay đổi vượt 10% thì cờ "cần anh Jimmy" (anh Jimmy không đăng nhập, duyệt ngoài hệ thống). Không có code nào áp ngân sách lên nền tảng.
   - Tham số là giá trị tạm `budget_framework`; đổi ở `/tuning` chỉ ghi được khi lượt eval gần nhất pass và chạy sau lần đổi trước.
   - Demo: Storyboard mẫu DEMO-IR-1 ghi tài phán Hong Kong (trước để trống), nên tên bundle mẫu đổi thành `oneibc_meta_hong-kong_hk-01_...`.
+- **D-91** (10/11/2026, GĐ3 việc 2): đề xuất chiến lược tuần ở `/strategy`.
+  - `buildStrategyPack` gom số từ các hàm đã có thành gói theo 7 câu hỏi đầu ra; mỗi số có mã (ví dụ `q3.price_locked`). Gói gồm thêm nháp ngân sách tuần (D-90), số tổ hợp đề xuất tăng (R6) hay giảm, dừng (R5), Hook đề xuất, NBA còn chờ, đối tác lợi nhuận cao nhất tháng, bài học mới có bằng chứng. Câu hỏi thiếu dữ liệu ghi "chưa đủ dữ liệu" kèm lý do do code viết.
+  - LLM chỉ viết lời dẫn dạng `{text, refs}`. Bộ kiểm loại câu không có mã, có mã lạ hoặc mã của câu hỏi thiếu dữ liệu, hoặc có số không nằm trong giá trị của các mã được trỏ (cho phép số câu hỏi 1 tới 7).
+  - Eval Gate riêng `evals/mi1-strategy/` (10 ca gói số tổng hợp, ngưỡng 0,8), chạy bằng `bun run eval:strategy`. Chưa pass hoặc chưa có API key thì trang khoá như `/ask`.
+  - Qua bộ điều phối: lượt cha `strategy`, bước Mi1 với tool `draft_strategy` (tên tool không chứa "write" theo T-FLEET-05). Nháp lưu chỉ thêm (migration 029). Chỉ Mark soạn và duyệt; bản Mark duyệt hiện trên `/digest` của tuần đó. Không tự áp thay đổi nào.
+  - Demo: LLM giả viết mỗi câu hỏi có dữ liệu một câu từ đúng số trong gói.

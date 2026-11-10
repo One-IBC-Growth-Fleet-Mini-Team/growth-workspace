@@ -27,7 +27,15 @@ import type { LlmClient } from "../agents/sa-01/llm.ts";
 // LLM giả cho /ask của demo: chọn truy vấn mẫu theo từ khoá trong câu hỏi.
 function demoAskLlm(): LlmClient {
   const rules: [RegExp, string][] = [[/hook/i, "hook_board"], [/kênh|whatsapp|fanpage/i, "channel_health"], [/bài học|quyết định/i, "lessons"], [/sẵn sàng|tài phán|skd/i, "output_readiness"], [/fleet|chi phí|hàng chờ/i, "fleet_operations"]];
-  return { complete: async ({ user }) => ({ text: JSON.stringify({ template: rules.find(([r]) => r.test(user))?.[1] ?? null, params: {} }), inputTokens: 0, outputTokens: 0, model: "demo-fake-llm", refused: false }) };
+  const out = (text: string) => ({ text, inputTokens: 0, outputTokens: 0, model: "demo-fake-llm", refused: false });
+  return { complete: async ({ user }) => {
+    // Đề xuất chiến lược (D-91): mỗi câu hỏi có dữ liệu một câu, lấy đúng số đầu tiên trong gói.
+    if (user.startsWith("<goi_so>")) {
+      const pack = JSON.parse(user.slice(9, user.lastIndexOf("</goi_so>"))) as { answers: { status: string; facts: { id: string; label: string; value: unknown }[] }[] };
+      return out(JSON.stringify({ statements: pack.answers.filter((a) => a.status === "ok" && a.facts.length).map((a) => ({ text: `${a.facts[0]!.label}: ${String(a.facts[0]!.value)}.`, refs: [a.facts[0]!.id] })) }));
+    }
+    return out(JSON.stringify({ template: rules.find(([r]) => r.test(user))?.[1] ?? null, params: {} }));
+  } };
 }
 import type { OpportunityRow } from "../db/types.ts";
 
@@ -130,6 +138,7 @@ export async function createDemo(now: Date = new Date()) {
     creativeSource: getRemoteSource("CREATIVE"),
     // Hỏi Mi1 với LLM giả (D-82): chọn mẫu theo từ khoá, chi phí 0. Bản thật dùng ANTHROPIC_API_KEY.
     askLlm: { llm: demoAskLlm(), price: { inputUsdPerMTok: 0, outputUsdPerMTok: 0 }, evalGate: () => ({ passed: true, version: "demo" }) },
+    strategyGate: () => ({ passed: true, version: "demo" }),
     db,
     sessionSecret: SECRET,
     baseUrl: BASE,
