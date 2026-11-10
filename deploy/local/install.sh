@@ -63,8 +63,13 @@ if [ ! -f "$ENV_FILE" ]; then
       return
     done
   }
-  read -rsp "Dán API key Claude (bắt đầu bằng sk-ant-), rồi Enter: " api_key; echo
-  [[ "$api_key" =~ ^sk-ant-[A-Za-z0-9_-]+$ ]] || { echo "API key không đúng dạng; chạy lại script."; exit 2; }
+  # Chưa có key thì Enter để bỏ qua (D-89): cài vẫn chạy, LLM tắt tới khi điền ANTHROPIC_API_KEY vào file cấu hình.
+  while true; do
+    read -rsp "Dán API key Claude (bắt đầu bằng sk-ant-), hoặc Enter để điền sau: " api_key; echo
+    [ -z "$api_key" ] && { echo "Bỏ qua API key: hỏi Mi1 và đọc tự báo tắt tới khi điền ANTHROPIC_API_KEY vào $ENV_FILE."; break; }
+    [[ "$api_key" =~ ^sk-ant-[A-Za-z0-9_-]+$ ]] && break
+    echo "API key không đúng dạng, dán lại hoặc Enter để bỏ qua."
+  done
   amy_hash="$(hash_pw Amy)"
   mark_hash="$(hash_pw Mark)"
   umask 077

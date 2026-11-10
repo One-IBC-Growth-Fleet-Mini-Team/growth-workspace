@@ -15,6 +15,7 @@ describe("T-SUM câu báo kết quả", () => {
     expect(describeSa01({ itemsCreated: 0, summary: base }, "nba")).toBe("Không tạo mục mới nào. NBA 0 mục: không Opportunity nào còn mở có Close Date trong tháng này qua luật NBA.");
     expect(describeSa01({ itemsCreated: 0, summary: { ...base, nbaCandidates: 3, duplicates: 3 } }, "nba")).toContain("đã có trên Hàng chờ");
     expect(describeSa01({ itemsCreated: 1, summary: { ...base, created: { system_notice: 0 }, notices: ["NBA tạm tắt: bộ eval NBA chưa pass 100%"], nbaCandidates: null } }, "nba")).toContain("NBA tạm tắt");
+    expect(describeSa01({ itemsCreated: 1, summary: { ...base, created: {}, notices: ["NBA tạm tắt"], nbaCandidates: null } }, "nba")).toBe("Đã tạo 1 mục mới trên Hàng chờ (thông báo hệ thống). NBA tạm tắt");
     expect(describeSa01({ itemsCreated: 2, summary: { ...base, created: { self_report: 1, reason_code: 1 }, reports: 1, piiMasked: 2, nbaCandidates: null } }, "paste"))
       .toBe("Đã tạo 2 mục mới trên Hàng chờ (1 tự báo, 1 mã lý do). Đọc được 1 bản tự báo. Đã che 2 email, số điện thoại, giấy tờ hoặc đường dẫn.");
   });

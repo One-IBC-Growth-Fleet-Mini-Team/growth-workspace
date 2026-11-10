@@ -11,6 +11,7 @@ import {
   getEntraConfig,
   getEvalResultsDir,
   getLlmPricing,
+  hasLlmKey,
   getQueueConfig,
   getReportSource,
   getTeamsWebhooks,
@@ -915,6 +916,7 @@ if (import.meta.main) {
   const root = new URL("../../", import.meta.url).pathname;
   // Lượt dán (D-24): chỉ làm phần tự báo và mã lý do; NBA do cron 08:00 làm.
   const onPaste = async (text: string, reportDate: string) => {
+    if (!hasLlmKey()) return { created: 0, message: "Chưa có API key Claude nên chưa đọc được tự báo. Điền ANTHROPIC_API_KEY trong file cấu hình rồi khởi động lại dịch vụ." };
     const pricing = getLlmPricing();
     const { stats, evalVersion } = readEvalStats(getEvalResultsDir(root));
     const r = await runSa01(vnDate(new Date()), {
@@ -958,7 +960,7 @@ if (import.meta.main) {
     return { ok: r.status === "succeeded", message: woImportMessage(r) };
   };
   const app = createQueueApp({
-    askLlm: (() => { try { const p = getLlmPricing(); return { llm: createAnthropicLlm({ model: p.model }), price: p, evalGate: () => readAskEvalGate(getEvalResultsDir(root)) }; } catch { return undefined; } })(),
+    askLlm: (() => { try { if (!hasLlmKey()) return undefined; const p = getLlmPricing(); return { llm: createAnthropicLlm({ model: p.model }), price: p, evalGate: () => readAskEvalGate(getEvalResultsDir(root)) }; } catch { return undefined; } })(),
     evalRun: () => latestEvalRun(getEvalResultsDir(root)),
     fleetDisabled: parseDisabled(process.env.FLEET_DISABLED),
     evalScores: () => readEvalScores(getEvalResultsDir(root)),

@@ -19,7 +19,8 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Persona MKT: bộ nạp CSV Closed Won (Opportunity, Account; không lưu tên hay mã khách) ở `/persona`, file mẫu trong `deploy/samples`. Chưa nạp thì trang hiện "Chờ dữ liệu thật" (D-86).
 - CRON-07 bản Tạm: 02:00 thứ Hai tạo sẵn Storyboard cho Hook đề xuất của tuần qua creative-factory-v2, chờ Mark duyệt; vết trên `/command` (D-87).
 - Persona MKT dựng từ deal Closed Won thật đã nạp (bỏ reseller, theo tài phán và dịch vụ, kèm cỡ mẫu và tín hiệu thị trường; D-88).
-- `bun test`: 406 pass, `tsc --strict` sạch.
+- `install.sh` đã chạy thử từ đầu tới cuối trên Ubuntu 24.04 với tài khoản mới (10/11/2026): cài, chạy lại để cập nhật, đăng nhập, nạp file, `add-user`, đủ 6 job hẹn giờ; API key để trống được (D-89). Riêng systemd được thay bằng bản giả chạy đúng `ExecStart`; file unit qua `systemd-analyze verify`.
+- `bun test`: 407 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
@@ -29,8 +30,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 1. Chạy creative-factory-v2 với `CF_PROFILE=one-ibc` (brand đúng spec mục 7, brief Tạm, CTA "Nhắn One IBC qua WhatsApp"; markng-byte/creative-factory-v2#22). Brief, campaign thật nhập sau qua Google Sheet. Trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
 2. Việt hoá câu nối Storyboard trong creative-factory-v2.
-3. Chạy thử `install.sh` trong môi trường Ubuntu sạch.
-4. GĐ3 (spec mục 14): đề xuất chiến lược và ngân sách, Command Center đầy đủ.
+3. GĐ3 (spec mục 14): đề xuất chiến lược và ngân sách, Command Center đầy đủ.
 
 ## Đang bị chặn
 
@@ -40,7 +40,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 | b | Đọc channel Teams "Đồng bộ dữ liệu" | Đăng ký app Microsoft Graph | Admin tenant |
 | c | Bộ eval Mi1-sa-01 | Khoảng 30 ca Amy xác nhận | Amy |
 | d | Danh mục mã lý do từ chối | Amy và RM xác nhận | Amy, RM |
-| e | Eval Mi1 và Mi1-sa-01 với Claude thật; `/ask` thật | Điền `ANTHROPIC_API_KEY` trong `~/.config/growth/growth.env`, chạy `bun run eval:mi1` và `bun run eval:sa01` | Mark |
+| e | Eval Mi1 và Mi1-sa-01 với Claude thật; `/ask` và đọc tự báo thật | Điền `ANTHROPIC_API_KEY` trong `~/.config/growth/growth.env` (cài được khi để trống), chạy `bun run eval:mi1` và `bun run eval:sa01` | Mark |
 
 ## Người giữ việc
 
@@ -48,5 +48,5 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## PR đang mở
 
-- growth-workspace: PR CRON-07 bản Tạm (D-87), rồi PR dựng persona (D-88), merge theo thứ tự.
-- creative-factory-v2: không có PR mở.
+- growth-workspace: PR CRON-07 bản Tạm (D-87), rồi PR dựng persona (D-88), rồi PR cài đặt không cần API key (D-89), merge theo thứ tự.
+- creative-factory-v2: markng-byte/creative-factory-v2#23 (Storyboard tiếng Việt).

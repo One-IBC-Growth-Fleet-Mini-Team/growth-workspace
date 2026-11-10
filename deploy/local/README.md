@@ -7,7 +7,7 @@ Chi phí: 0 đồng cho máy; chỉ trả tiền gọi Claude API theo lượng 
 ## Cần chuẩn bị
 
 - Máy Ubuntu (đã thử với 24.04), tài khoản đăng nhập thường của bạn. Không dùng sudo.
-- API key Claude (bắt đầu bằng `sk-ant-`), lấy ở console.anthropic.com. Đây là khoá trả tiền theo lượng dùng, khác với gói Claude Pro hay Max.
+- API key Claude (bắt đầu bằng `sk-ant-`), lấy ở console.anthropic.com. Đây là khoá trả tiền theo lượng dùng, khác với gói Claude Pro hay Max. Chưa có thì nhấn Enter để bỏ qua: mọi thứ khác vẫn chạy, chỉ hỏi Mi1 và đọc tự báo tắt. Có key thì điền vào dòng `ANTHROPIC_API_KEY=` trong `~/.config/growth/growth.env` rồi chạy `systemctl --user restart growth-queue`.
 - Hai mật khẩu, mỗi cái ít nhất 12 ký tự: một cho Amy (người duyệt), một cho Mark (chỉ xem).
 
 ## Cài lần đầu (khoảng 5 phút)
@@ -26,7 +26,7 @@ git clone https://github.com/One-IBC-Growth-Fleet-Mini-Team/growth-workspace.git
 bash ~/growth-workspace/deploy/local/install.sh
 ```
 
-Script hỏi API key và hai mật khẩu (gõ không hiện chữ, đó là bình thường). Xong khi thấy dòng "Hàng chờ đang chạy".
+Script hỏi API key (Enter để bỏ qua) và hai mật khẩu (gõ không hiện chữ, đó là bình thường). Xong khi thấy dòng "Growth Workspace đang chạy" kèm các bước tiếp theo.
 
 Mở `http://localhost:3000` trên Firefox hoặc Chrome (hoặc bấm biểu tượng "Hàng chờ Growth"), đăng nhập bằng Amy.
 
