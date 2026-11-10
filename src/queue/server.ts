@@ -113,7 +113,8 @@ import { readEvalScores } from "../fleet/eval-scores.ts";
 import { parseDisabled } from "../fleet/registry.ts";
 import { renderCommandPage } from "./views/command.ts";
 import { renderPersonaPage } from "./views/persona.ts";
-import { closedWonMessage, importClosedWon, latestClosedWon } from "../crm/closed-won-import.ts";
+import { closedWonMessage, importClosedWon } from "../crm/closed-won-import.ts";
+import { buildPersonaBoard } from "../db/persona.ts";
 import { readAskEvalGate } from "../mi1/eval.ts";
 import type { LlmClient } from "../agents/sa-01/llm.ts";
 import type { TokenPrice } from "../metrics/cost.ts";
@@ -548,7 +549,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
     if (req.method === "GET" && path === "/persona") {
       if (!session) return redirect("/login");
-      return respond(renderPersonaPage({ latest: latestClosedWon(deps.db), canImport: userOf(session).role === "approver", csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
+      return respond(renderPersonaPage({ board: buildPersonaBoard(deps.db), canImport: userOf(session).role === "approver", csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/partners") {
@@ -832,7 +833,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           if (f instanceof File && f.size > 0) files[field] = await f.text();
         }
         const r = importClosedWon(deps.db, files, { now: now(), actor: userOf(session).id });
-        return respond(renderPersonaPage({ latest: latestClosedWon(deps.db), canImport: true, csrf: session.csrf, message: closedWonMessage(r) }), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+        return respond(renderPersonaPage({ board: buildPersonaBoard(deps.db), canImport: true, csrf: session.csrf, message: closedWonMessage(r) }), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/partners") {
