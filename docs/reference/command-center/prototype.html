@@ -1,0 +1,1472 @@
+<title>Mi1 Command Center</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Chakra+Petch:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 3D R&D lab in three bands. Left third: Mi1 with modules on short dashed orbits. Middle: a wall-mounted screen that shows Mi1's live process. Right: a second wall screen with the workstream board, covered by the frosted-glass work panel when a module opens. Phones: Mi1 and the process screen share the top band; modules sit in a dock below; panels open as a bottom sheet. */
+:root{
+  --lab:#E4DBCD; --ceramic:#F4EFE7; --sand:#CFC2AE; --carbon:#1D1E20; --ink:#24211C; --muted:#665E53;
+  --led:#3FA9F5; --led-ink:#13629A; --good:#3A8457; --warn:#9C6C12; --crit:#B0453A;
+  --glass:rgba(248,244,237,.56); --glass-strong:rgba(251,248,243,.84); --glass-line:rgba(255,255,255,.70); --hair:rgba(36,33,28,.12); --hair-2:rgba(36,33,28,.07);
+  --shadow:0 24px 64px rgba(62,49,30,.20), 0 2px 6px rgba(62,49,30,.08);
+  --f-body:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-disp:"Chakra Petch", "Be Vietnam Pro", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --gutter-l:max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r:max(16px, env(safe-area-inset-right, 0px));
+  --top:calc(env(safe-area-inset-top, 0px) + 14px);
+  color-scheme: light;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--lab);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--led-ink);outline-offset:2px}
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);border:1px solid var(--glass-line);box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.75)}
+
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#fallback{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none}
+#fallback img{height:min(58vh,520px);width:auto}
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+
+#top{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:var(--top);padding-left:var(--gutter-l);padding-right:var(--gutter-r);pointer-events:none}
+#top > *{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 14px 8px 10px;border-radius:14px;min-width:0}
+.brand-mark{width:30px;height:30px;border-radius:9px;background:var(--carbon);display:grid;place-items:center;color:#CFEAFF;font-family:var(--f-disp);font-weight:600;font-size:13px;flex:none}
+.brand b{font-family:var(--f-disp);font-weight:600;font-size:15px;letter-spacing:.02em;white-space:nowrap}
+.brand span{display:block;font-size:11.5px;color:var(--muted);line-height:1.2}
+.roles{display:flex;padding:4px;border-radius:12px;gap:2px}
+.roles button{white-space:nowrap;border:0;background:transparent;padding:7px 12px;border-radius:9px;font-size:13px;font-weight:500;color:var(--muted);min-height:34px}
+.roles button[aria-pressed="true"]{background:var(--carbon);color:#F4EFE7}
+.data-note{font-size:11.5px;color:var(--muted);padding:8px 12px;border-radius:12px;max-width:250px;line-height:1.35}
+
+.mod{position:absolute;left:0;top:0;pointer-events:auto;border-radius:10px;padding:4px 8px 5px;min-width:0;max-width:150px;text-align:left;transition:box-shadow .2s, background .2s, opacity .25s;will-change:transform}
+.mod:hover,.mod:focus-visible{background:var(--glass-strong)}
+.mod[aria-current="true"]{box-shadow:0 0 0 2px var(--led), var(--shadow)}
+.mod .n{display:block;font-weight:600;font-size:11.5px;line-height:1.25;white-space:nowrap}
+.mod .s{display:block;font-size:10px;color:var(--muted);margin-top:1px;line-height:1.3;white-space:nowrap}
+.mod .s.alert{color:var(--crit)}
+
+.tag{position:absolute;left:0;top:0;pointer-events:auto;border-radius:10px;padding:5px 9px;max-width:200px;text-align:left;will-change:transform}
+.tag .code{font-family:var(--f-mono);font-size:11px;font-weight:500;color:var(--carbon);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tag .task{display:block;font-size:11px;color:var(--muted);line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--sand);flex:none;display:inline-block}
+.st-thinking .dot,.st-working .dot{background:var(--led);box-shadow:0 0 0 3px rgba(63,169,245,.22);animation:pulse 1s ease-in-out infinite}
+.st-done .dot{background:var(--good)}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(63,169,245,0)}}
+.bubble{position:absolute;left:0;top:0;z-index:300;pointer-events:none;border-radius:14px;padding:8px 12px;max-width:240px;font-size:12.5px;line-height:1.35;will-change:transform}
+.bubble b{font-family:var(--f-mono);font-weight:500;font-size:11px;color:var(--led-ink);display:block}
+
+#dock{display:none}
+#panel{position:fixed;z-index:30;top:calc(var(--top) + 62px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);right:var(--gutter-r);width:max(380px, calc(33.4vw - 24px));border-radius:22px;display:flex;flex-direction:column;overflow:hidden;transform:translateX(24px);opacity:0;transition:transform .35s cubic-bezier(.2,.8,.2,1), opacity .3s}
+#panel.open{transform:none;opacity:1}
+.p-head{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 14px;border-bottom:1px solid var(--hair)}
+.p-head h2{font-family:var(--f-disp);font-weight:600;font-size:19px;line-height:1.2;margin:0;text-wrap:balance}
+.p-head .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.p-head .agent{font-family:var(--f-mono);font-size:11.5px;color:var(--led-ink)}
+.p-close{margin-left:auto;border:1px solid var(--hair);background:rgba(255,255,255,.45);border-radius:10px;width:36px;height:36px;display:grid;place-items:center;flex:none}
+.p-body{overflow:auto;padding:16px 18px 20px;display:flex;flex-direction:column;gap:16px;min-height:0;-webkit-overflow-scrolling:touch}
+.p-foot{border-top:1px solid var(--hair);padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px))}
+.grab{display:none}
+
+.sec{background:rgba(255,255,255,.42);border:1px solid var(--hair-2);border-radius:16px;padding:14px}
+.sec h3{font-family:var(--f-disp);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.kpi{background:rgba(255,255,255,.5);border:1px solid var(--hair-2);border-radius:14px;padding:10px 12px;min-width:0}
+.kpi .l{font-size:11.5px;color:var(--muted);line-height:1.3}
+.kpi .v{font-family:var(--f-disp);font-weight:600;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:4px}
+.kpi .h{font-size:11px;color:var(--muted);margin-top:2px}
+.src{font-size:11px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;border-radius:999px;padding:2px 9px;border:1px solid var(--hair);background:rgba(255,255,255,.55);white-space:nowrap}
+.chip.good{color:var(--good);border-color:rgba(58,132,87,.35)}
+.chip.warn{color:var(--warn);border-color:rgba(156,108,18,.35)}
+.chip.crit{color:var(--crit);border-color:rgba(176,69,58,.35)}
+.chip.led{color:var(--led-ink);border-color:rgba(19,98,154,.3)}
+table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:11.5px;padding:6px 8px;border-bottom:1px solid var(--hair)}
+td{padding:7px 8px;border-bottom:1px solid var(--hair-2);vertical-align:top}
+td.num,th.num{text-align:right}
+.tw{overflow-x:auto}
+.bar{height:8px;border-radius:4px;background:rgba(29,30,32,.08);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--carbon);border-radius:4px}
+.bar.led i{background:var(--led)}
+.row{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+.row .grow{flex:1;min-width:0}
+.btn{border:1px solid var(--hair);background:rgba(255,255,255,.6);border-radius:10px;padding:7px 12px;font-size:12.5px;font-weight:500;min-height:34px}
+.btn.primary{background:var(--carbon);color:#F4EFE7;border-color:var(--carbon)}
+.btn.esc{color:var(--crit);border-color:rgba(176,69,58,.35)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{background:rgba(255,255,255,.52);border:1px solid var(--hair-2);border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:6px}
+.item .t{font-weight:600;font-size:13.5px;line-height:1.35}
+.item .m{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.item .a{display:flex;flex-wrap:wrap;gap:6px}
+.mono{font-family:var(--f-mono);font-size:12px}
+.note{font-size:12px;color:var(--muted);line-height:1.45}
+.funnel .row{margin:6px 0;flex-wrap:nowrap}
+.funnel .lbl{width:112px;font-size:12px;flex:none}
+.funnel .val{width:48px;text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px;flex:none}
+.funnel .drop{width:38px;font-size:11px;color:var(--muted);text-align:right;flex:none}
+pre.cy{margin:0;background:var(--carbon);color:#E8E2D8;border-radius:12px;padding:12px 14px;font-family:var(--f-mono);font-size:12px;line-height:1.55;overflow-x:auto;white-space:pre}
+pre.cy .kw{color:#8FD3FF}
+pre.cy .cm{color:#9C9488}
+
+.chat{display:flex;flex-direction:column;gap:12px}
+.msg{max-width:92%;border-radius:16px;padding:10px 13px;font-size:13.5px;line-height:1.5}
+.msg.me{align-self:flex-end;background:var(--carbon);color:#F4EFE7;border-bottom-right-radius:6px}
+.msg.mi{align-self:flex-start;background:rgba(255,255,255,.62);border:1px solid var(--hair-2);border-bottom-left-radius:6px;width:100%;max-width:100%}
+.msg.mi h4{font-family:var(--f-disp);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+.msg.mi ol,.msg.mi ul{margin:0;padding-left:20px}
+.msg.mi li{margin:3px 0}
+.ans-head{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+details.plog{border:1px dashed rgba(36,33,28,.2);border-radius:14px;padding:8px 12px;background:rgba(255,255,255,.3);font-size:12.5px}
+details.plog summary{cursor:pointer;color:var(--muted);font-size:12px}
+details.plog ol{list-style:none;margin:6px 0 0;padding:0}
+details.plog li{padding:2px 0}
+details.plog .d{font-family:var(--f-mono);font-size:11px;color:var(--muted);display:block}
+.prompts{display:flex;flex-wrap:wrap;gap:6px}
+.prompts button{border:1px solid var(--hair);background:rgba(255,255,255,.55);border-radius:999px;padding:7px 12px;font-size:12.5px;min-height:34px}
+.composer{display:flex;gap:8px;margin-top:10px}
+.composer input{flex:1;min-width:0;border:1px solid var(--hair);background:rgba(255,255,255,.7);border-radius:12px;padding:9px 12px;font:inherit;font-size:16px;color:var(--ink)}
+.typing{display:inline-flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);opacity:.5;animation:blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes blink{50%{opacity:1}}
+#loading{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:12;border-radius:14px;padding:12px 16px;font-size:13px;text-align:center}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translate(-50%,20px);opacity:0;z-index:60;border-radius:12px;padding:10px 14px;font-size:13px;transition:.3s;max-width:calc(100vw - 32px)}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#acts{position:fixed;left:var(--gutter-l);bottom:calc(env(safe-area-inset-bottom,0px) + 60px);z-index:15;display:flex;gap:2px;padding:4px;border-radius:12px}
+#acts button{border:0;background:transparent;border-radius:9px;padding:6px 12px;font-size:12.5px;font-weight:500;min-height:32px}
+#acts button:hover,#acts button.on{background:var(--carbon);color:#F4EFE7}
+#hint{position:fixed;left:var(--gutter-l);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);z-index:14;font-size:12px;color:var(--muted);border-radius:999px;padding:7px 14px;white-space:nowrap}
+
+@media (max-width: 760px){
+  .data-note,#hint{display:none}
+  #acts{bottom:auto;top:calc(var(--top) + 54px)}
+  .brand{padding:6px}
+  .brand > div:last-child{display:none}
+  .mod{display:none}
+  .tag{padding:4px 7px}
+  .tag .task{display:none}
+  .bubble{display:none}
+  #dock{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:16;padding:12px var(--gutter-r) calc(env(safe-area-inset-bottom,0px) + 14px) var(--gutter-l)}
+  #dock button{border-radius:14px;padding:10px 12px;text-align:left;min-height:56px}
+  #dock .n{display:block;font-weight:600;font-size:13px;line-height:1.25}
+  #dock .s{display:block;font-size:11px;color:var(--muted);margin-top:2px;line-height:1.3}
+  #dock .s.alert{color:var(--crit)}
+  #panel{left:0;right:0;width:auto;top:auto;bottom:0;height:58%;border-radius:22px 22px 0 0;transform:translateY(30px)}
+  #panel.open{transform:none}
+  .grab{display:block;width:40px;height:4px;border-radius:2px;background:rgba(36,33,28,.22);margin:8px auto 0}
+  .p-head{padding:10px 16px 12px}
+  .p-body{padding:14px 16px 18px}
+}
+@media (prefers-reduced-motion: reduce){
+  #panel,#toast{transition:none}
+  .st-thinking .dot,.st-working .dot,.typing i{animation:none}
+}
+</style>
+
+<div id="stage" aria-hidden="true"></div>
+<div id="fallback" hidden><img src="mi1-fallback.png" alt="Mi1, robot màu gốm beige có chữ Mi1 trên ngực"></div>
+<div id="labels"></div>
+
+<header id="top">
+  <div class="brand glass">
+    <div class="brand-mark">Mi1</div>
+    <div><b>Mi1 Command Center</b><span>Growth Workspace · One IBC</span></div>
+  </div>
+  <div class="roles glass" role="group" aria-label="Xem với vai trò">
+    <button type="button" data-role="mark" aria-pressed="true">Mark</button>
+    <button type="button" data-role="amy" aria-pressed="false">Amy</button>
+    <button type="button" data-role="mkt" aria-pressed="false">Team MKT</button>
+  </div>
+  <div class="data-note glass">Prototype. Số có nhãn 28/10 lấy từ báo cáo ngày 28/10; mọi số khác là dữ liệu mẫu.</div>
+</header>
+
+<p id="sr-proc" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
+<div id="loading" class="glass">Đang tải Mi1 · <span id="lp">0%</span></div>
+<div id="hint" class="glass">Kéo để xoay Mi1 360°. Rê vào vệ tinh để dừng, bấm để mở</div>
+<div id="acts" class="glass" role="group" aria-label="Động tác của Mi1"><button type="button" data-act="join">Join</button><button type="button" data-act="work">Working</button><button type="button" data-act="done">Done task</button><span aria-hidden="true" style="width:1px;margin:6px 4px;background:var(--hair)"></span><button type="button" id="snd" aria-pressed="true">Âm thanh: Bật</button></div>
+<nav id="dock" aria-label="Module"></nav>
+
+<aside id="panel" class="glass" aria-hidden="true" aria-labelledby="p-title" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <div class="p-head">
+    <div style="min-width:0">
+      <div class="agent" id="p-agent">Mi1</div>
+      <h2 id="p-title">Module</h2>
+      <div class="sub" id="p-sub"></div>
+    </div>
+    <button class="p-close" type="button" id="p-close" aria-label="Đóng">
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="p-body" id="p-body"></div>
+  <div class="p-foot" id="p-foot" hidden></div>
+</aside>
+<div id="toast" class="glass" role="status"></div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const $ = s => document.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isNarrow = () => innerWidth <= 760;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const confNum = s => parseFloat(String(s).replace(',', '.'));
+const sleep = ms => new Promise(r => setTimeout(r, reduce ? Math.min(ms, 120) : ms));
+const vn = n => n.toLocaleString('vi-VN', { maximumFractionDigits:1 });
+
+/* ================= data (prototype) ================= */
+const CREW = {
+  'Mi1-data-01': { role:'Kiểm dữ liệu', sup:'Mark', evalp:'12/12', tok:'0,4' },
+  'Mi1-mkt-01':  { role:'Đánh giá hiệu quả kịch bản, đo và đề xuất', sup:'Mark', evalp:'11/12', tok:'2,1' },
+  'Mi1-mkt-02':  { role:'Viết hook card', sup:'Mark', evalp:'10/10', tok:'1,2' },
+  'Mi1-mkt-03':  { role:'Nghe thị trường, quy định, tiếng khách', sup:'Mark', evalp:'10/11', tok:'1,6' },
+  'Mi1-mkt-04':  { role:'Theo dõi gói và giá đối thủ', sup:'Mark', evalp:'10/10', tok:'0,9' },
+  'Mi1-sa-01':   { role:'Sales Admin: nhập tự báo, NBA, nhắc invoice', sup:'Amy', evalp:'12/13', tok:'0,8' },
+  'Mi1-ptn-01':  { role:'Theo dõi đối tác, đề xuất hoa hồng', sup:'Amy', evalp:'10/10', tok:'0,3' }
+};
+const ROLES = {
+  mark:{ label:'Mark', agent:'Mi1', agentSub:'Mark i0.1 · thuyền trưởng', head:false,
+         greet:'Chào anh. 2 quyết định đến hạn hôm nay, hàng chờ lâu nhất 4 ngày.',
+         mods:['chat','decide','dash','graph','fleet','playbook','partner'] },
+  amy: { label:'Amy', agent:'Mi1-sa-01', agentSub:'Sales Admin · hỗ trợ Amy', head:true,
+         greet:'Chào chị Amy. 5 bản nháp tự báo của RM chờ xác nhận, 2 bản dưới 0,8.',
+         mods:['chat','queue','dash','partner','fleet'] },
+  mkt: { label:'Team MKT', agent:'Mi1-mkt-01', agentSub:'Hỗ trợ team MKT', head:true,
+         greet:'Chào team MKT. Đánh giá kịch bản tuần 44 có tự tin 0,71, cần escalate.',
+         mods:['chat','dash','playbook','compete','graph'] }
+};
+const state = {
+  role:'mark',
+  decisions:[
+    { id:'d1', t:'Tạm dừng hook US-DE-PAYMENT-01 trên LinkedIn', from:'Mi1-mkt-01', def:'Dừng', due:'17:00 hôm nay', age:'2 ngày', conf:'0,74', money:false },
+    { id:'d2', t:'Dồn 3 slot video MobCEC tuần 45 sang landing Singapore', from:'Mi1-mkt-02', def:'Giữ lịch cũ', due:'17:00 hôm nay', age:'1 ngày', conf:'0,81', money:false },
+    { id:'d3', t:'Duyệt hoa hồng tháng 10 cho Network 01', from:'Mi1-ptn-01', def:'Không áp mặc định: có tiền', due:'31/10', age:'4 ngày', conf:'0,92', money:true },
+    { id:'d4', t:'Gửi bảng gói đối thủ cập nhật cho RM', from:'Mi1-mkt-04', def:'Gửi nội bộ', due:'30/10', age:'1 ngày', conf:'0,88', money:false }
+  ],
+  drafts:[
+    { id:'r1', t:'RM 03: 6 tiếp cận, 2 hội thoại, 1 báo giá', conf:'0,93' },
+    { id:'r2', t:'RM 05: khách hẹn thanh toán tại văn phòng HK ngày 30/10', conf:'0,90' },
+    { id:'r3', t:'RM 01: 115 lead mới từ LinkedIn, Trang Vàng, Clutch', conf:'0,86' },
+    { id:'r4', t:'RM 07: "khách so giá", không rõ khách nào, không rõ nhà cung cấp', conf:'0,58' },
+    { id:'r5', t:'RM 02: lý do mất deal ghi "khác"', conf:'0,62' }
+  ],
+  nba:[
+    { id:'n1', t:'Công ty mẫu A · khách cũ, BVI', a:'Chào mở Bank, giao RM 03', conf:'0,88' },
+    { id:'n2', t:'Công ty mẫu B · Opp HK, báo giá 12 ngày chưa phản hồi', a:'Nhắc báo giá', conf:'0,83' },
+    { id:'n3', t:'Công ty mẫu C · khách cũ, sắp gia hạn', a:'Chuyển team Renewal, RM không bán', conf:'0,91' },
+    { id:'n4', t:'Công ty mẫu D · ngành Forex, cần bank', a:'Hạ ưu tiên', conf:'0,64' },
+    { id:'n5', t:'Công ty mẫu E · khách của reseller', a:'Không upsell, chỉ chăm sóc', conf:'0,77' }
+  ],
+  chats:{ mark:[], amy:[], mkt:[] },
+  busy:false
+};
+const WORKSTREAMS = [
+  ['Doanh số RM','crit','Rủi ro','Internal Control RM 9,45% target'],
+  ['Affiliate và Partner Network OCC','good','Đúng hướng','42 network đợt 1, 2'],
+  ['Marketing delivery','warn','Theo dõi','41 việc mở trên Jira MKT'],
+  ['Harness loop marketing','warn','Theo dõi','Đang dựng kiến trúc'],
+  ['KB Bedrock','crit','Rủi ro','4/64 việc xong, 22 quá hạn']
+];
+
+const S = {};
+S.today = { q:'Hôm nay anh cần làm gì?', intent:'Brief đầu ngày', ic:'0,94', conf:'0,86',
+  tools:[['crm.read','pipeline theo Close Date · 63 deal'],['jira.read','MKT · 41 việc mở'],['calendar.read','hôm nay · 3 sự kiện']],
+  crews:[['Mi1-data-01','Kiểm độ phủ nối và tracking'],['Mi1-mkt-01','Đo kênh tuần 44 tới Payment'],['Mi1-sa-01','Gom tự báo RM và hàng chờ của Amy']],
+  html:()=>`
+  <div class="ans-head"><span class="chip warn">Cần anh quyết 2 việc</span><span class="chip">Tự tin 0,86</span></div>
+  <h4>Việc cần làm hôm nay</h4>
+  <ol>
+    <li>Quyết 2 việc đến hạn 17:00 hôm nay. <button class="btn" data-open="decide">Mở hàng chờ</button></li>
+    <li>Chốt người làm kỹ sư giai đoạn 0. Chưa chốt trước 05/11 thì lộ trình trễ 1 tuần.</li>
+    <li>Đọc 3 thay đổi giá của đối thủ trước khi RM gửi báo giá chiều nay.</li>
+  </ol>
+  <h4>Cần anh quyết định</h4>
+  <div class="tw"><table><thead><tr><th>Quyết định</th><th>Mặc định</th><th>Hạn</th></tr></thead><tbody>
+    <tr><td>Tạm dừng hook US-DE-PAYMENT-01 trên LinkedIn</td><td>Dừng</td><td>17:00</td></tr>
+    <tr><td>Dồn 3 slot video MobCEC sang landing Singapore</td><td>Giữ lịch cũ</td><td>17:00</td></tr>
+  </tbody></table></div>
+  <h4>Dự báo 7 ngày tới</h4>
+  <ul>
+    <li>MobCEC cần brief 3 video tuần 45 trước 31/10.</li>
+    <li>Amy có khoảng 40 bản nháp tự báo cần xác nhận, cao hơn tuần này vì cuối tháng.</li>
+    <li>Fleet dự kiến dùng 7,8 USD token, trong trần 25 USD/tuần.</li>
+  </ul>
+  <h4>Cảnh báo</h4>
+  <p style="margin:0">Form Ask OCC mất UTM từ 27/10, 38% lead mới không có nguồn. Mi1-data-01 đã soạn việc cho Jira MKT, chờ anh bấm tạo. <button class="btn" data-toast="Đã tạo việc trên Jira MKT (prototype, chưa nối Jira).">Tạo việc</button></p>`,
+  src:'crm.oneibc.com, Jira MKT, Google Calendar' };
+S.play = { q:'Kịch bản nào đang hiệu quả?', intent:'Đánh giá hiệu quả kịch bản', ic:'0,97', conf:'0,71',
+  tools:[['neo4j.cypher','hook_to_payment · 4 dòng'],['neo4j.cypher','coverage · 41% phiên có Contact']],
+  crews:[['Mi1-mkt-01','Đánh giá hiệu quả kịch bản'],['Mi1-data-01','Kiểm cỡ mẫu và nguồn lead'],['Mi1-mkt-02','Đối chiếu hook card']],
+  html:(role)=>`
+  <div class="ans-head"><span class="chip warn">Chưa đủ mẫu</span><span class="chip crit">Tự tin 0,71 · dưới 0,8</span></div>
+  <h4>Kết quả theo hook, tháng 10</h4>
+  <div class="tw"><table><thead><tr><th>Hook</th><th>Kênh</th><th class="num">Lead xác minh</th><th class="num">Opp</th><th class="num">Đã trả</th><th>Win gate</th></tr></thead><tbody>
+    <tr><td class="mono">HK-BANK-02</td><td>Google Search</td><td class="num">34</td><td class="num">9</td><td class="num">3</td><td><span class="chip led">Demand fit</span></td></tr>
+    <tr><td class="mono">SG-SUBST-01</td><td>Đối tác</td><td class="num">12</td><td class="num">5</td><td class="num">2</td><td><span class="chip led">Demand fit</span></td></tr>
+    <tr><td class="mono">VN-FDI-01</td><td>Facebook</td><td class="num">40</td><td class="num">3</td><td class="num">0</td><td><span class="chip">Content fit</span></td></tr>
+    <tr><td class="mono">US-DE-PAYMENT-01</td><td>LinkedIn</td><td class="num">21</td><td class="num">2</td><td class="num">0</td><td><span class="chip">Content fit</span></td></tr>
+  </tbody></table></div>
+  <h4>Đề xuất</h4>
+  <ul>
+    <li>Giữ HK-BANK-02 thêm 2 tuần cho đủ mẫu tới Payment.</li>
+    <li>Dừng US-DE-PAYMENT-01 trên LinkedIn: 21 lead, 0 thanh toán.</li>
+    <li>SG-SUBST-01 qua đối tác: theo dõi, chi phí hoa hồng chưa đối soát.</li>
+  </ul>
+  <h4>Vì sao tự tin thấp</h4>
+  <p style="margin:0">Mỗi hook có dưới 5 thanh toán; 38% lead từ 27/10 thiếu nguồn. Kết quả dưới 0,8 nên ${role==='mkt'?'team MKT':'MKT'} thấy kèm nút escalate.</p>
+  ${role==='mkt'?'<p style="margin:10px 0 0"><button class="btn esc" data-escalate="Đánh giá kịch bản tuần 44 (tự tin 0,71)">Escalate lên Mark</button></p>':''}`,
+  src:'Neo4j: Hook → Asset → Phiên → Contact → Opportunity → Order → Payment' };
+S.forecast = { q:'Tuần sau cần chuẩn bị nguồn lực gì?', intent:'Dự báo nguồn lực', ic:'0,92', conf:'0,82',
+  tools:[['jira.read','tuần 45 · 9 việc có hạn'],['calendar.read','02/11 tới 06/11']],
+  crews:[['Mi1-mkt-01','Dự báo tải pipeline tuần 45'],['Mi1-mkt-02','Lịch hook và asset tuần 45'],['Mi1-sa-01','Dự báo tải của Amy']],
+  html:()=>`
+  <div class="ans-head"><span class="chip">Tuần 45 · 02/11 tới 06/11</span><span class="chip good">Tự tin 0,82</span></div>
+  <h4>Nguồn lực cần chuẩn bị</h4>
+  <div class="tw"><table><thead><tr><th>Nguồn lực</th><th>Cần</th><th>Có</th><th>Việc của anh</th></tr></thead><tbody>
+    <tr><td>Kỹ sư giai đoạn 0</td><td>1 người toàn thời gian</td><td><span class="chip crit">Chưa có</span></td><td>Chốt trước 05/11</td></tr>
+    <tr><td>Video MobCEC</td><td>3 video</td><td>3 slot</td><td>Duyệt brief trước 31/10</td></tr>
+    <tr><td>Thời gian Amy</td><td>khoảng 3,5 giờ</td><td>2,5 giờ</td><td>Cho Mi1-sa-01 gộp bản nháp trùng</td></tr>
+    <tr><td>Token fleet</td><td>7,8 USD</td><td>trần 25 USD</td><td>Không</td></tr>
+    <tr><td>Quyết định của anh</td><td>6 dự kiến</td><td></td><td>Dành 30 phút sáng thứ Hai</td></tr>
+  </tbody></table></div>`,
+  src:'Jira MKT, Google Calendar, pipeline theo Close Date' };
+S.amyToday = { q:'Hôm nay em cần xác nhận gì?', intent:'Hàng chờ xác nhận', ic:'0,95', conf:'0,88',
+  tools:[['teams.read','channel Đồng bộ dữ liệu · 5 tin tự báo'],['crm.read','Lead mới · kiểm trùng email']],
+  crews:[['Mi1-data-01','Kiểm trùng Lead'],['Mi1-ptn-01','Ghép lượt giới thiệu vào Contact']],
+  html:()=>`
+  <div class="ans-head"><span class="chip">5 bản nháp</span><span class="chip crit">2 dưới 0,8</span><span class="chip good">Tự tin 0,88</span></div>
+  <ol>
+    <li>3 bản nháp tự báo có tự tin từ 0,8: xác nhận nhanh trong một lần.</li>
+    <li>2 bản dưới 0,8: thiếu tên khách hoặc lý do mất deal ghi "khác". Hỏi lại RM hoặc escalate. <button class="btn" data-open="queue">Mở hàng chờ</button></li>
+    <li>2 Lead trùng email chờ chị quyết gộp.</li>
+    <li>1 invoice quá hạn 24 ngày: Mi1-sa-01 đã soạn tin nhắc, chờ chị duyệt gửi.</li>
+  </ol>`,
+  src:'channel Đồng bộ dữ liệu trên Teams, crm.oneibc.com' };
+S.amyNba = { q:'Deal nào nên ưu tiên?', intent:'Ưu tiên deal (NBA)', ic:'0,91', conf:'0,84',
+  tools:[['crm.read','Opportunity mở · 31 deal'],['neo4j.cypher','reseller_flag · 2 khách']],
+  crews:[['Mi1-data-01','Kiểm luật bán hàng'],['Mi1-ptn-01','Gắn cờ khách reseller']],
+  html:()=>`
+  <div class="ans-head"><span class="chip good">Tự tin 0,84</span></div>
+  <ol>
+    <li><b>Công ty mẫu A</b>: khách cũ, chào mở Bank, giao RM 03. Tự tin 0,88.</li>
+    <li><b>Công ty mẫu B</b>: báo giá HK 12 ngày chưa phản hồi, nhắc. Tự tin 0,83.</li>
+    <li><b>Công ty mẫu C</b>: sắp gia hạn, chuyển team Renewal. RM không bán Renew.</li>
+  </ol>
+  <p class="note" style="margin:8px 0 0">Đã loại: khách của reseller (không upsell) và ngành Forex (chỉ hạ ưu tiên).</p>`,
+  src:'crm.oneibc.com, luật bán hàng' };
+S.mktHook = { q:'Hook tuần này nên chọn gì?', intent:'Chọn hook tuần', ic:'0,93', conf:'0,79',
+  tools:[['web.search','câu hỏi founder · 3 thị trường'],['neo4j.cypher','hook_history · 12 hook']],
+  crews:[['Mi1-mkt-03','Nghe thị trường và quy định'],['Mi1-mkt-02','Viết hook card'],['Mi1-mkt-04','Quét gói đối thủ']],
+  html:()=>`
+  <div class="ans-head"><span class="chip crit">Tự tin 0,79 · dưới 0,8</span></div>
+  <div class="tw"><table><thead><tr><th>Hook</th><th class="num">Điểm</th><th>Câu hỏi gốc</th></tr></thead><tbody>
+    <tr><td class="mono">SG-SUBST-02</td><td class="num">78</td><td>Công ty Singapore cần chứng minh substance thế nào để giữ tài khoản ngân hàng?</td></tr>
+    <tr><td class="mono">HK-BANK-03</td><td class="num">74</td><td>Mở tài khoản HK online mất bao lâu khi giám đốc ở nước ngoài?</td></tr>
+    <tr><td class="mono">US-WY-01</td><td class="num">61</td><td>Wyoming hay Delaware cho founder bán hàng online?</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin:8px 0 0">Điểm = 25% mức lặp lại, 25% khớp dịch vụ ưu tiên, 20% ý định mua, 15% bằng chứng, 15% kết quả CRM tương tự. Dưới 0,8 vì chưa có claim pháp lý đã duyệt cho SG-SUBST-02.</p>
+  <p style="margin:10px 0 0"><button class="btn esc" data-escalate="Chọn hook tuần 45 (tự tin 0,79)">Escalate lên Mark</button></p>`,
+  src:'social, website chính phủ, Help Centre (mẫu)' };
+const PROMPTS = { mark:['today','play','forecast'], amy:['amyToday','amyNba'], mkt:['play','mktHook'] };
+
+function routeFree(text){
+  const t = text.toLowerCase(), r = state.role;
+  if (/kịch bản|hiệu quả|win gate/.test(t)) return 'play';
+  if (/hook/.test(t) && r === 'mkt') return 'mktHook';
+  if (/nguồn lực|tuần sau|dự báo|chuẩn bị/.test(t) && r === 'mark') return 'forecast';
+  if (/ưu tiên|deal|nba/.test(t) && r === 'amy') return 'amyNba';
+  if (/hôm nay|cần làm|xác nhận/.test(t)) return r === 'amy' ? 'amyToday' : (r === 'mark' ? 'today' : null);
+  return null;
+}
+function guessCrew(text){
+  const t = text.toLowerCase(), out = [];
+  if (/đối thủ|giá/.test(t)) out.push(['Mi1-mkt-04','Quét gói đối thủ']);
+  if (/đối tác|affiliate|reseller|hoa hồng/.test(t)) out.push(['Mi1-ptn-01','Hiệu suất đối tác']);
+  if (/lead|nguồn|tracking|dữ liệu/.test(t)) out.push(['Mi1-data-01','Kiểm dữ liệu liên quan']);
+  if (/rm|deal|pipeline|khách/.test(t)) out.push(['Mi1-sa-01','Tra pipeline']);
+  if (/nội dung|hook|kênh|quảng cáo|ads/.test(t)) out.push(['Mi1-mkt-01','Đo kênh và kịch bản']);
+  if (!out.length) out.push(['Mi1-mkt-03','Tìm tín hiệu liên quan']);
+  return out.slice(0, 3);
+}
+
+const MODS = {
+  chat:{ n:'Hỏi Mi1' }, decide:{ n:'Hàng chờ quyết định' }, queue:{ n:'Hàng chờ của Amy' }, dash:{ n:'Dashboard Growth' },
+  graph:{ n:'Đồ thị và Cypher' }, fleet:{ n:'Thuyền viên' }, playbook:{ n:'Hook và win gate' }, partner:{ n:'Partner và reseller' }, compete:{ n:'Gói và giá đối thủ' }
+};
+const MOD_TOOLS = {
+  chat:[], decide:[['neo4j.cypher','decision_queue']], queue:[['teams.read','tự báo RM · 5 bản nháp']],
+  dash:[['crm.read','Internal Control · 28/10'],['neo4j.cypher','funnel_to_payment']], graph:[['neo4j.schema','23 thực thể']],
+  fleet:[['fleet.status','7 thuyền viên']], playbook:[['neo4j.cypher','hook_cards · 4']], partner:[['neo4j.cypher','partner_perf · 4']], compete:[['web.diff','3 trang giá']]
+};
+const modName = id => id === 'chat' ? `Hỏi ${ROLES[state.role].agent}` : MODS[id].n;
+function modStat(id){
+  const r = state.role;
+  switch(id){
+    case 'chat': return { s:`${PROMPTS[r].length} câu hỏi gợi ý` };
+    case 'decide': return { s:`${state.decisions.length} chờ quyết, lâu nhất 4 ngày`, alert:state.decisions.length > 3 };
+    case 'queue': { const low = state.drafts.filter(d => confNum(d.conf) < .8).length; return { s:`${state.drafts.length} bản nháp, ${low} dưới 0,8`, alert:low > 0 }; }
+    case 'dash': return { s: r==='mark' ? 'Internal Control RM 9,45% (28/10)' : r==='amy' ? 'Pipeline theo Stage' : 'Kênh và hook tuần 44', alert:r==='mark' };
+    case 'graph': return { s:'Độ phủ nối 41% (mẫu)' };
+    case 'fleet': return { s:'7 thuyền viên' };
+    case 'playbook': return { s:'4 hook đang thử' };
+    case 'partner': return { s:'1 hoa hồng chờ duyệt' };
+    case 'compete': return { s:'3 thay đổi giá tuần này' };
+  }
+  return { s:'' };
+}
+
+/* ================= 3D scene ================= */
+let renderer = null;
+try { renderer = new THREE.WebGLRenderer({ antialias:true }); } catch (e) { renderer = null; }
+const fallback = () => { $('#fallback').hidden = false; $('#loading').hidden = true; };
+if (!renderer) fallback();
+const scene = new THREE.Scene();
+const LAB = new THREE.Color('#E4DBCD');
+scene.background = LAB; scene.fog = new THREE.Fog(LAB, 14, 32);
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, .05, 90);
+const cam = { dist:7.4, fov:32, ty:1.05, lift:.45 };
+const mouse = { x:0, y:0 };
+const AX = { x:new THREE.Vector3(1,0,0), y:new THREE.Vector3(0,1,0), z:new THREE.Vector3(0,0,1) };
+const L = { mi1X:-2, orbitC:new THREE.Vector3(-2, 1.05, 0) };
+if (renderer){
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = .9;
+  $('#stage').appendChild(renderer.domElement);
+  scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(renderer), .04).texture;
+}
+scene.add(new THREE.HemisphereLight(0xfff7ec, 0xb9ab95, .9));
+const key = new THREE.DirectionalLight(0xfff1df, 1.6); key.position.set(3, 6, 5); scene.add(key);
+const rim = new THREE.DirectionalLight(0xdbeeff, .7); rim.position.set(-4, 3, -4); scene.add(rim);
+
+function canvasTex(w, h, draw, repeat){
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  if (repeat){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
+  t.anisotropy = 4; return t;
+}
+const carbonTex = (rx, ry) => canvasTex(64, 64, (g, w, h) => {
+  g.fillStyle = '#1b1c1e'; g.fillRect(0, 0, w, h);
+  for (let y = 0; y < h; y += 8) for (let x = 0; x < w; x += 8){
+    const odd = ((x + y) / 8) % 2 === 0;
+    const grd = odd ? g.createLinearGradient(x, y, x + 8, y) : g.createLinearGradient(x, y, x, y + 8);
+    grd.addColorStop(0, '#151618'); grd.addColorStop(.5, odd ? '#34363a' : '#2a2c2f'); grd.addColorStop(1, '#151618');
+    g.fillStyle = grd; g.fillRect(x + .5, y + .5, 7, 7);
+  }
+}, [rx, ry]);
+const shadowTex = canvasTex(128, 128, (g, w, h) => {
+  const r = g.createRadialGradient(w/2, h/2, 0, w/2, h/2, w/2);
+  r.addColorStop(0, 'rgba(60,46,28,.42)'); r.addColorStop(.55, 'rgba(60,46,28,.14)'); r.addColorStop(1, 'rgba(60,46,28,0)');
+  g.fillStyle = r; g.fillRect(0, 0, w, h);
+});
+const M = {
+  ceramic: new THREE.MeshPhysicalMaterial({ color:0xF1EBE1, roughness:.38, clearcoat:1, clearcoatRoughness:.18 }),
+  floor:   new THREE.MeshStandardMaterial({ color:0xDCD2C2, roughness:.62 }),
+  wall:    new THREE.MeshStandardMaterial({ color:0xE2D9CA, roughness:.95, side:THREE.BackSide }),
+  carbon:  new THREE.MeshPhysicalMaterial({ map:carbonTex(2, 6), roughness:.42, metalness:.25, clearcoat:1, clearcoatRoughness:.12 }),
+  carbonS: new THREE.MeshPhysicalMaterial({ map:carbonTex(6, 1), roughness:.42, metalness:.25, clearcoat:1, clearcoatRoughness:.12 }),
+  bezel:   new THREE.MeshPhysicalMaterial({ map:carbonTex(8, 5), roughness:.4, metalness:.3, clearcoat:1, clearcoatRoughness:.1 }),
+  led:     new THREE.MeshStandardMaterial({ color:0x8fd3ff, emissive:0x3FA9F5, emissiveIntensity:2.2 }),
+  slat:    new THREE.MeshStandardMaterial({ color:0xfffaf2, emissive:0xfff3e2, emissiveIntensity:1.1 }),
+  ring:    new THREE.MeshBasicMaterial({ color:0x1D1E20, transparent:true, opacity:.14 }),
+  orbit:   new THREE.LineDashedMaterial({ color:0x1D1E20, dashSize:.045, gapSize:.045, transparent:true, opacity:.32 }),
+  orbitHi: new THREE.LineDashedMaterial({ color:0x3FA9F5, dashSize:.045, gapSize:.045, transparent:true, opacity:.9 }),
+  hit:     new THREE.MeshBasicMaterial({ visible:false })
+};
+
+/* lab shell */
+const lab = new THREE.Group(); scene.add(lab);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 96), M.floor); floor.rotation.x = -Math.PI/2; lab.add(floor);
+const wall = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 8, 96, 1, true, Math.PI*.58, Math.PI*.84), M.wall);
+wall.position.set(0, 4, 0); lab.add(wall);
+for (let i = 0; i < 13; i++){
+  const a = Math.PI*.5 + (i - 6) * .12, x = Math.cos(a) * 10.85, z = -Math.sin(a) * 10.85;
+  const isCarbon = i % 4 === 2;
+  const m = new THREE.Mesh(isCarbon ? new THREE.BoxGeometry(.55, 5.2, .06) : new THREE.BoxGeometry(.07, 5.6, .04), isCarbon ? M.carbon : M.slat);
+  m.position.set(x, isCarbon ? 2.8 : 3.0, z); m.lookAt(0, m.position.y, 0); lab.add(m);
+}
+/* Mi1's pedestal moves with the left band */
+const base = new THREE.Group(); lab.add(base);
+[1.0, 1.9].forEach(r => { const m = new THREE.Mesh(new THREE.RingGeometry(r, r + .01, 140), M.ring); m.rotation.x = -Math.PI/2; m.position.y = .003; base.add(m); });
+const pedTop = new THREE.Mesh(new THREE.CylinderGeometry(.62, .66, .1, 64), M.ceramic); pedTop.position.y = .05; base.add(pedTop);
+const pedBand = new THREE.Mesh(new THREE.CylinderGeometry(.665, .665, .03, 64, 1, true), M.carbonS); pedBand.position.y = .025; base.add(pedBand);
+const pedLed = new THREE.Mesh(new THREE.TorusGeometry(.625, .005, 8, 100), M.led); pedLed.rotation.x = Math.PI/2; pedLed.position.y = .102; base.add(pedLed);
+const notch = new THREE.Mesh(new THREE.BoxGeometry(.1, .014, .03), M.led); notch.position.set(0, .104, .6); base.add(notch);
+const sh = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), new THREE.MeshBasicMaterial({ map:shadowTex, transparent:true, depthWrite:false }));
+sh.rotation.x = -Math.PI/2; sh.position.y = .004; base.add(sh);
+
+/* ---------- wall screens (canvas textures) ---------- */
+function curvedGeo(w, h, bend){
+  /* gentle concave curve that echoes the curved lab wall behind it */
+  const g = new THREE.PlaneGeometry(w, h, 48, 1), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++){ const u = p.getX(i) / (w / 2); p.setZ(i, bend * u * u); }
+  p.needsUpdate = true; g.computeVertexNormals(); return g;
+}
+M.bezelC = new THREE.MeshPhysicalMaterial({ color:0xE8DECF, roughness:.34, clearcoat:1, clearcoatRoughness:.16, side:THREE.DoubleSide });
+function makeScreen(cw, ch){
+  const canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch;
+  const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const g = new THREE.Group();
+  const bezel = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), M.bezelC); g.add(bezel);
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map:tex, toneMapped:false, transparent:true })); g.add(face);
+  const strip = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), M.led); g.add(strip);
+  const cables = [0, 1].map(() => { const c = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, 1, 6), M.carbonS); g.add(c); return c; });
+  scene.add(g);
+  return { canvas, ctx:canvas.getContext('2d'), tex, g, bezel, face, strip, cables, w:1, h:1 };
+}
+function sizeScreen(sc, x, y, z, w, h, cw, ch){
+  sc.w = w; sc.h = h;
+  if (sc.canvas.width !== cw || sc.canvas.height !== ch){ sc.canvas.width = cw; sc.canvas.height = ch; }
+  sc.g.position.set(x, y, z);
+  const bend = w * .07;
+  sc.bezel.geometry.dispose(); sc.bezel.geometry = curvedGeo(w + .14, h + .14, bend); sc.bezel.position.z = -.012;
+  sc.face.geometry.dispose(); sc.face.geometry = curvedGeo(w, h, bend);
+  sc.strip.geometry.dispose(); sc.strip.geometry = curvedGeo(w * .6, .012, bend * .36); sc.strip.position.set(0, -h / 2 - .04, .004);
+  const cableH = 6;
+  sc.cables.forEach((c, i) => { c.scale.set(1, cableH, 1); c.position.set((i ? 1 : -1) * w * .35, h / 2 + .07 + cableH / 2, bend * .49 - .01); });
+}
+const procScreen = makeScreen(1600, 1000);
+const boardScreen = makeScreen(1300, 1000);
+
+/* ---------- layout: left third for Mi1, middle for the process screen, right for the board ---------- */
+function layout(){
+  const narrow = isNarrow(), aspect = innerWidth / innerHeight;
+  cam.fov = narrow ? 42 : 32; cam.dist = narrow ? 7.9 : 7.4; cam.ty = narrow ? -.25 : 1.05; cam.lift = narrow ? .2 : .45;
+  camera.fov = cam.fov; camera.aspect = aspect; camera.updateProjectionMatrix();
+  if (renderer) renderer.setSize(innerWidth, innerHeight);
+  const t = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
+  const hw = z => (cam.dist - z) * t * aspect, hh = z => (cam.dist - z) * t;
+  L.mi1X = (narrow ? -.6 : -.64) * hw(0);
+  base.position.x = L.mi1X;
+  L.orbitC.set(L.mi1X, ROLES[state.role].head ? (narrow ? .95 : 1.25) : (narrow ? .95 : 1.0), 0);
+  if (narrow){
+    const z = -1.0, w = 1.16 * hw(z), hgt = w * .92, x = .36 * hw(z), y = cam.ty + .42 * hh(z) + cam.lift * .3;
+    sizeScreen(procScreen, x, y, z, w, hgt, 1000, 920);
+    boardScreen.g.visible = false;
+  } else {
+    const z = -2.2, wp = .6 * hw(z), hp = 1.3;
+    sizeScreen(procScreen, -.64 * hw(z), 2.4, z, wp, hp, 1600, Math.round(1600 * hp / wp));
+    const zb = -1.9, wb = .5 * hw(zb), hb = wb * .8;
+    sizeScreen(boardScreen, .22 * hw(zb), cam.ty + .1 * hh(zb), zb, wb, hb, Math.round(1280 * wb / hb), 1280);
+    boardScreen.g.visible = false;
+  }
+  drawProc(); drawBoard();
+}
+
+/* ---------- canvas drawing ---------- */
+const C = { bg:'rgba(246,240,231,.80)', grid:'rgba(36,33,28,.045)', text:'#24211C', muted:'#6A6257', led:'#13629A', good:'#3A8457', warn:'#9C6C12', crit:'#B0453A', line:'rgba(36,33,28,.14)' };
+const F = { body:'"Be Vietnam Pro", system-ui, sans-serif', mono:'"JetBrains Mono", ui-monospace, monospace', disp:'"Chakra Petch", "Be Vietnam Pro", sans-serif' };
+function screenBase(ctx, W, H, label, right){
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40){ ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40){ ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  const vg = ctx.createLinearGradient(0, 0, W * .6, H); vg.addColorStop(0, 'rgba(255,255,255,.45)'); vg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `500 ${Math.round(W * (W > 1100 ? .024 : .03))}px ${F.mono}`; ctx.fillStyle = C.led; ctx.textAlign = 'left';
+  ctx.fillText(label, W * .04, H * .075);
+  if (right){ ctx.textAlign = 'right'; ctx.fillStyle = C.muted; ctx.fillText(right, W * .96, H * .075); ctx.textAlign = 'left'; }
+}
+function fit(ctx, text, maxW){
+  text = String(text);
+  if (ctx.measureText(text).width <= maxW) return text;
+  let s = text; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+  return s + '…';
+}
+function wrap(ctx, text, maxW, maxLines){
+  const words = String(text).split(' '), lines = []; let cur = '';
+  for (const w of words){ const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; } else cur = t; }
+  if (cur) lines.push(cur);
+  if (lines.length > maxLines){ const keep = lines.slice(0, maxLines); keep[maxLines - 1] = fit(ctx, keep[maxLines - 1] + '…', maxW); return keep; }
+  return lines;
+}
+function rrect(ctx, x, y, w, h, r){ ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
+function pill(ctx, x, y, text, color, size){
+  ctx.font = `500 ${size}px ${F.body}`;
+  const w = ctx.measureText(text).width + size * 1.2, h = size * 1.6;
+  ctx.strokeStyle = color; ctx.lineWidth = 2; rrect(ctx, x - w, y - h * .72, w, h, h / 2); ctx.stroke();
+  ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(text, x - w / 2, y); ctx.textAlign = 'left';
+}
+function stIcon(ctx, x, y, st, r){
+  if (st === 'done'){ ctx.strokeStyle = C.good; ctx.lineWidth = r * .45; ctx.beginPath(); ctx.moveTo(x - r * .8, y); ctx.lineTo(x - r * .2, y + r * .6); ctx.lineTo(x + r * .9, y - r * .7); ctx.stroke(); return; }
+  const live = st === 'running' || st === 'thinking' || st === 'working';
+  ctx.fillStyle = live ? C.led : 'rgba(36,33,28,.25)'; ctx.beginPath(); ctx.arc(x, y, r * .55, 0, Math.PI * 2); ctx.fill();
+  if (live){ ctx.strokeStyle = 'rgba(91,184,255,.35)'; ctx.lineWidth = r * .3; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); }
+}
+const LBL = { queued:'Đã gọi', thinking:'Đang nghĩ', working:'Đang làm', done:'Xong' };
+const proc = { run:null, last:null };
+const stepD = (s, r) => typeof s.d === 'function' ? s.d(r) : s.d;
+const elapsed = r => vn(((r.t1 || performance.now()) - r.t0) / 1000) + ' giây';
+function progress(r){
+  let d = r.steps.filter(s => s.st === 'done').length;
+  const running = r.steps.find(s => s.st === 'running');
+  if (running && running.fleet && r.crews.length) d += r.crews.filter(c => c.st === 'done').length / r.crews.length * .9;
+  else if (running) d += .35;
+  return Math.min(1, d / r.steps.length);
+}
+function drawProc(){
+  const sc = procScreen, ctx = sc.ctx, W = sc.canvas.width, H = sc.canvas.height, compact = isNarrow();
+  const r = proc.run, agent = ROLES[state.role].agent;
+  screenBase(ctx, W, H, `${agent.toUpperCase()} · TIẾN TRÌNH XỬ LÝ`, r ? elapsed(r) : 'chờ lệnh');
+  const P = W * .04, k = compact ? W / 1000 : W / 1250;
+  if (!r){
+    ctx.fillStyle = C.text; ctx.font = `600 ${Math.round((compact ? 86 : 74) * k)}px ${F.disp}`;
+    ctx.fillText('Sẵn sàng', P, H * (compact ? .3 : .26));
+    ctx.fillStyle = C.muted; ctx.font = `400 ${Math.round((compact ? 40 : 32) * k)}px ${F.body}`;
+    wrap(ctx, compact ? `Chọn module bên dưới hoặc hỏi ${agent}.` : `Chọn một module quanh ${agent}, hoặc hỏi ${agent}. Mỗi bước xử lý, công cụ được gọi và thuyền viên được gọi sẽ hiện ở đây.`, W - 2 * P, 3)
+      .forEach((l, i) => ctx.fillText(l, P, H * (compact ? .42 : .36) + i * (compact ? 52 : 44) * k));
+    if (proc.last){
+      ctx.fillStyle = C.muted; ctx.font = `500 ${Math.round((compact ? 30 : 26) * k)}px ${F.mono}`;
+      ctx.fillText(fit(ctx, `Lần gần nhất · ${proc.last.title} · ${proc.last.steps.length} bước · ${elapsed(proc.last)}`, W - 2 * P), P, H * .9);
+    }
+    sc.tex.needsUpdate = true; return;
+  }
+  const cur = r.steps.find(s => s.st === 'running');
+  const doneN = r.steps.filter(s => s.st === 'done').length;
+  ctx.fillStyle = C.muted; ctx.font = `500 ${Math.round((compact ? 34 : 28) * k)}px ${F.body}`;
+  ctx.fillText(fit(ctx, r.title, W - 2 * P), P, H * (compact ? .16 : .145));
+  ctx.fillStyle = C.text; ctx.font = `600 ${Math.round((compact ? 64 : 58) * k)}px ${F.disp}`;
+  const ttl = r.t1 ? `Xong · ${r.steps.length} bước${r.crews.length ? ' · ' + r.crews.length + ' thuyền viên' : ''}` : (cur ? cur.t : 'Bắt đầu');
+  const ttlLines = wrap(ctx, ttl, W - 2 * P, compact ? 2 : 1);
+  const ty0 = H * (compact ? .25 : .23);
+  ttlLines.forEach((l, i) => ctx.fillText(l, P, ty0 + i * 70 * k));
+  const by = ty0 + (ttlLines.length - 1) * 70 * k + 30 * k;
+  ctx.fillStyle = 'rgba(36,33,28,.1)'; rrect(ctx, P, by, W - 2 * P, 12 * k, 6 * k); ctx.fill();
+  ctx.fillStyle = '#3FA9F5'; rrect(ctx, P, by, Math.max(12 * k, (W - 2 * P) * progress(r)), 12 * k, 6 * k); ctx.fill();
+  ctx.fillStyle = C.muted; ctx.font = `500 ${Math.round((compact ? 28 : 22) * k)}px ${F.mono}`; ctx.textAlign = 'right';
+  ctx.fillText(`bước ${Math.min(r.steps.length, doneN + (cur ? 1 : 0))}/${r.steps.length}`, W - P, by - 14 * k); ctx.textAlign = 'left';
+  if (compact){
+    let y = by + 80 * k;
+    const show = cur && cur.d ? stepD(cur, r) : '';
+    if (show){ ctx.fillStyle = C.muted; ctx.font = `400 ${Math.round(30 * k)}px ${F.mono}`; wrap(ctx, show, W - 2 * P, 2).forEach(l => { ctx.fillText(l, P, y); y += 40 * k; }); y += 20 * k; }
+    if (r.crews.length){
+      const done = r.crews.filter(c => c.st === 'done').length;
+      ctx.fillStyle = C.led; ctx.font = `500 ${Math.round(28 * k)}px ${F.mono}`; ctx.fillText(`FLEET · ${r.crews.length} THUYỀN VIÊN · ${done}/${r.crews.length} XONG`, P, y); y += 56 * k;
+      r.crews.forEach((c, i) => {
+        stIcon(ctx, P + 14 * k, y - 12 * k, c.st, 14 * k);
+        ctx.fillStyle = r.sel === i ? C.led : C.text; ctx.font = `500 ${Math.round(34 * k)}px ${F.mono}`; ctx.fillText(c.code, P + 44 * k, y);
+        ctx.fillStyle = C.muted; ctx.font = `400 ${Math.round(30 * k)}px ${F.body}`; ctx.textAlign = 'right'; ctx.fillText(LBL[c.st], W - P, y); ctx.textAlign = 'left';
+        y += 58 * k;
+      });
+    }
+    sc.tex.needsUpdate = true; return;
+  }
+  /* desktop: steps on the left, fleet on the right */
+  const colY = by + 70 * k, leftW = r.crews.length ? W * .54 : W - 2 * P, rowH = Math.min(70 * k, (H - colY - 30 * k) / r.steps.length);
+  r.steps.forEach((s, i) => {
+    const y = colY + i * rowH;
+    stIcon(ctx, P + 12 * k, y - 9 * k, s.st, 12 * k);
+    ctx.fillStyle = s.st === 'pending' ? C.muted : C.text; ctx.font = `${s.st === 'running' ? 600 : 500} ${Math.round(28 * k)}px ${F.body}`;
+    ctx.fillText(fit(ctx, s.t, leftW - 50 * k), P + 40 * k, y);
+    const d = stepD(s, r);
+    if (d && rowH > 50 * k){ ctx.fillStyle = C.muted; ctx.font = `400 ${Math.round(20 * k)}px ${F.mono}`; ctx.fillText(fit(ctx, d, leftW - 50 * k), P + 40 * k, y + 26 * k); }
+  });
+  if (r.crews.length){
+    const x0 = W * .6, cw = W - P - x0;
+    ctx.strokeStyle = C.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 - 30 * k, colY - 30 * k); ctx.lineTo(x0 - 30 * k, H - 50 * k); ctx.stroke();
+    const done = r.crews.filter(c => c.st === 'done').length;
+    ctx.fillStyle = C.led; ctx.font = `500 ${Math.round(22 * k)}px ${F.mono}`;
+    ctx.fillText(`FLEET · ${r.crews.length} THUYỀN VIÊN · ${done}/${r.crews.length} XONG`, x0, colY);
+    r.crews.forEach((c, i) => {
+      const y = colY + 70 * k + i * 108 * k;
+      if (r.sel === i){ ctx.fillStyle = 'rgba(91,184,255,.12)'; rrect(ctx, x0 - 14 * k, y - 40 * k, cw + 14 * k, 96 * k, 12 * k); ctx.fill(); }
+      stIcon(ctx, x0 + 10 * k, y - 10 * k, c.st, 11 * k);
+      ctx.fillStyle = C.text; ctx.font = `500 ${Math.round(28 * k)}px ${F.mono}`; ctx.fillText(c.code, x0 + 34 * k, y);
+      const col = c.st === 'done' ? C.good : c.st === 'queued' ? C.muted : C.led;
+      pill(ctx, W - P, y, LBL[c.st] + (c.tok ? ` · ${c.tok}k` : ''), col, Math.round(20 * k));
+      ctx.fillStyle = C.muted; ctx.font = `400 ${Math.round(22 * k)}px ${F.body}`;
+      ctx.fillText(fit(ctx, c.task, cw - 34 * k), x0 + 34 * k, y + 36 * k);
+    });
+  }
+  sc.tex.needsUpdate = true;
+}
+function drawBoard(){
+  if (!boardScreen.g.visible) return;
+  const sc = boardScreen, ctx = sc.ctx, W = sc.canvas.width, H = sc.canvas.height, k = H / 900;
+  screenBase(ctx, W, H, 'WORKSTREAM · BÁO CÁO 28/10', '');
+  const P = W * .05;
+  ctx.fillStyle = C.muted; ctx.font = `500 ${Math.round(26 * k)}px ${F.body}`; ctx.fillText('Internal Control RM, tới 28/10', P, 150 * k);
+  ctx.fillStyle = C.crit; ctx.font = `600 ${Math.round(96 * k)}px ${F.disp}`; ctx.fillText('9,45%', P, 250 * k);
+  ctx.fillStyle = C.muted; ctx.font = `400 ${Math.round(24 * k)}px ${F.mono}`; ctx.fillText('8.636,78 / 91.400 USD', P, 295 * k);
+  let y = 360 * k;
+  WORKSTREAMS.forEach(([n, lvl, st, d]) => {
+    const col = lvl === 'crit' ? C.crit : lvl === 'warn' ? C.warn : C.good;
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(P + 9 * k, y - 10 * k, 9 * k, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.text; ctx.font = `600 ${Math.round(28 * k)}px ${F.body}`; ctx.fillText(fit(ctx, n, W - 2 * P - 220 * k), P + 34 * k, y);
+    pill(ctx, W - P, y, st, col, Math.round(20 * k));
+    ctx.fillStyle = C.muted; ctx.font = `400 ${Math.round(22 * k)}px ${F.body}`; ctx.fillText(fit(ctx, d, W - 2 * P - 34 * k), P + 34 * k, y + 34 * k);
+    y += 98 * k;
+  });
+  sc.tex.needsUpdate = true;
+}
+if (document.fonts){ document.fonts.ready.then(() => { drawProc(); drawBoard(); }); document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => { drawProc(); drawBoard(); }); }
+
+/* ---------- satellites on short dashed orbits ---------- */
+const labelsEl = $('#labels');
+const orbitRoot = new THREE.Group(); scene.add(orbitRoot);
+const sats = [];
+let orbitSpeed = 1, hoverSat = null;
+function orbitPoint(o, theta, out){
+  out.set(Math.cos(theta) * o.r, 0, Math.sin(theta) * o.r * o.zf);
+  out.applyAxisAngle(AX.x, o.inc).applyAxisAngle(AX.z, o.psi).applyAxisAngle(AX.y, o.node);
+  return out.add(L.orbitC);
+}
+function orbitParams(i, n){
+  const narrow = isNarrow(), headRole = ROLES[state.role].head;
+  const r = (narrow ? .62 : (headRole ? 1.05 : .92)) + (i % 3) * (narrow ? .08 : .14);
+  const zf = narrow ? .7 : .8;
+  const inc = THREE.MathUtils.degToRad([16, -12, 26, -20, 10, -28, 20][i % 7]);
+  const psi = THREE.MathUtils.degToRad(narrow ? [55, -50, 66, -60, 46, -70, 52][i % 7] : [24, -20, 34, -30, 16, -38, 28][i % 7]);
+  const node = (i / n) * Math.PI * 2;
+  const speed = (Math.PI * 2) / (60 + (i % 4) * 18) * (i % 2 ? -1 : 1);
+  return { r, zf, inc, psi, node, speed, phase:(i / n) * Math.PI * 2 + i * .7 };
+}
+function buildSats(){
+  sats.forEach(s => { orbitRoot.remove(s.g); orbitRoot.remove(s.line); s.label.remove(); s.line.geometry.dispose(); });
+  sats.length = 0;
+  const mods = ROLES[state.role].mods, narrow = isNarrow(), ts = narrow ? .12 : .17;
+  const tileGeo = new RoundedBoxGeometry(ts, ts, ts, 3, .04);
+  mods.forEach((id, i) => {
+    const o = orbitParams(i, mods.length);
+    const pts = [];
+    for (let k = 0; k <= 160; k++) pts.push(orbitPoint(o, k / 160 * Math.PI * 2, new THREE.Vector3()));
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), M.orbit);
+    line.computeLineDistances(); line.visible = false; orbitRoot.add(line);
+    const g = new THREE.Group();
+    const tile = new THREE.Mesh(tileGeo, M.ceramic);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(ts * .6, ts * .6), id === 'graph' ? M.carbon : M.led); face.position.z = ts / 2 + .001; tile.add(face);
+    const hit = new THREE.Mesh(new THREE.SphereGeometry(.22, 12, 8), M.hit);
+    hit.userData.satId = id; tile.userData.satId = id;
+    g.add(tile, hit); orbitRoot.add(g);
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'mod glass'; b.dataset.mod = id;
+    b.addEventListener('pointerenter', () => { hoverSat = id; });
+    b.addEventListener('pointerleave', () => { if (hoverSat === id) hoverSat = null; });
+    b.addEventListener('focus', () => { hoverSat = id; });
+    b.addEventListener('blur', () => { if (hoverSat === id) hoverSat = null; });
+    labelsEl.appendChild(b);
+    sats.push({ id, g, tile, line, label:b, ...o, theta:o.phase });
+  });
+  refreshLabels();
+}
+function refreshLabels(){
+  sats.forEach(s => {
+    const st = modStat(s.id);
+    s.label.innerHTML = `<span class="n">${esc(modName(s.id))}</span><span class="s${st.alert ? ' alert' : ''}">${esc(st.s)}</span>`;
+    s.label.setAttribute('aria-label', `${modName(s.id)}: ${st.s}`);
+  });
+  $('#dock').innerHTML = ROLES[state.role].mods.map(id => { const st = modStat(id); return `<button type="button" class="glass" data-mod="${id}"><span class="n">${esc(modName(id))}</span><span class="s${st.alert ? ' alert' : ''}">${esc(st.s)}</span></button>`; }).join('');
+}
+
+/* ---------- Mi1 and head-only crew ---------- */
+let baseRoot = null, clips = [], mixer = null, actions = {}, current = null;
+const mi1Group = new THREE.Group(); scene.add(mi1Group);
+const mi1Inner = new THREE.Group(); mi1Group.add(mi1Inner);
+const mi1 = { bones:{}, headOnly:false, yaw:0, headYaw:0, headPitch:0, look:null, headRest:null };
+const EPS = .02;
+let spin = 0, spinV = 0;
+const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
+function findBones(root){ const b = {}; root.traverse(o => { if (o.isBone) b[o.name] = o; }); return b; }
+/* collapse everything below the neck: shrink the root bone, then grow the neck back so only the head keeps its size */
+function applyHeadOnly(b){ if (b.pelvis && b.neck){ b.pelvis.scale.setScalar(EPS); b.neck.scale.setScalar(1 / EPS); } }
+function play(name, { once=false, fade=.35 } = {}){
+  const a = actions[name]; if (!a || a === current) return;
+  a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = once;
+  a.enabled = true; a.setEffectiveWeight(1);
+  if (current) current.crossFadeTo(a, fade, false);
+  a.play(); current = a;
+}
+function centreHead(wrapper, inner, bones){
+  inner.position.set(0, 0, 0); wrapper.updateMatrixWorld(true);
+  const p = new THREE.Vector3(); bones.head.getWorldPosition(p); wrapper.worldToLocal(p);
+  inner.position.set(-p.x, -p.y + .05, -p.z);
+}
+function setMi1HeadOnly(on){
+  mi1.headOnly = on;
+  const b = mi1.bones; if (!b.pelvis) return;
+  mi1Group.position.set(L.mi1X, on ? L.orbitC.y : .1, 0);
+  if (!on){ b.pelvis.scale.setScalar(1); b.neck.scale.setScalar(1); mi1Inner.position.set(0, 0, 0); mi1Group.scale.setScalar(1); }
+  else { applyHeadOnly(b); mi1Group.scale.setScalar(isNarrow() ? 1.2 : 1.45); centreHead(mi1Group, mi1Inner, b); }
+}
+const mi1Y = t => mi1.headOnly ? L.orbitC.y + (reduce ? 0 : Math.sin(t * 1.4) * .03) : .1;
+
+const crewPool = [];
+const activeCrewCount = () => crewPool.filter(c => c.active).length;
+function crewSlot(i, t, out){
+  const n = Math.max(1, activeCrewCount());
+  const gap = isNarrow() ? .3 : .34;
+  const x = L.mi1X + (i - (n - 1) / 2) * gap;
+  return out.set(x, (isNarrow() ? .3 : .32) + (reduce ? 0 : Math.sin(t * 1.3 + i) * .03), isNarrow() ? .9 : 1.0);
+}
+function makeCrew(){
+  const root = SkeletonUtils.clone(baseRoot);
+  root.position.set(0, 0, 0); root.rotation.set(0, 0, 0);
+  const inner = new THREE.Group(); inner.add(root);
+  const g = new THREE.Group(); g.add(inner);
+  const bones = findBones(root);
+  const mx = new THREE.AnimationMixer(root);
+  const pick = n => clips.find(c => c.name === n);
+  const acts = { Idle: mx.clipAction(pick('Idle')), Thinking: mx.clipAction(pick('Thinking')) };
+  acts.Idle.play(); mx.update(0); applyHeadOnly(bones);
+  centreHead(g, inner, bones);
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(.2, .006, 8, 64), M.led); halo.rotation.x = Math.PI/2; halo.position.y = -.24; g.add(halo);
+  const hit = new THREE.Mesh(new THREE.SphereGeometry(.3, 12, 8), M.hit); g.add(hit);
+  const tag = document.createElement('button'); tag.type = 'button'; tag.className = 'tag glass'; tag.hidden = true;
+  labelsEl.appendChild(tag);
+  const c = { g, root, inner, bones, mx, acts, tag, cur:acts.Idle, active:false, scale:0, idx:0, code:'', task:'', status:'queued' };
+  hit.userData.crew = c;
+  tag.addEventListener('click', () => focusCrew(c));
+  g.visible = false; scene.add(g);
+  return c;
+}
+function crewSet(c, status){
+  c.status = status;
+  c.tag.className = `tag glass st-${status}`;
+  c.tag.innerHTML = `<span class="code"><span class="dot"></span>${esc(c.code)}</span><span class="task">${esc(c.task)}</span>`;
+  c.tag.setAttribute('aria-label', `${c.code}: ${c.task}, ${LBL[status]}`);
+  const want = (status === 'thinking' || status === 'working') ? c.acts.Thinking : c.acts.Idle;
+  if (want !== c.cur){ want.reset().play(); c.cur.crossFadeTo(want, .3, false); c.cur = want; }
+}
+function spawnCrew(list){
+  if (!baseRoot) return [];
+  while (crewPool.length < list.length) crewPool.push(makeCrew());
+  return list.map(([code, task], i) => {
+    const c = crewPool[i]; Object.assign(c, { code, task, idx:i, active:true }); c.tag.hidden = false;
+    crewSet(c, 'queued'); return c;
+  });
+}
+function dismissCrew(){ crewPool.forEach(c => { c.active = false; }); if (mi1.look && mi1.look.crew) mi1.look = null; }
+
+/* model: the glTF binary ships as base64 text because the host does not serve .glb */
+if (renderer){
+  const loader = new GLTFLoader();
+  const onModel = gltf => {
+    baseRoot = gltf.scene; clips = gltf.animations;
+    baseRoot.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(baseRoot, true);
+    baseRoot.scale.setScalar(1.75 / ((box.max.y - box.min.y) || 1));
+    baseRoot.updateMatrixWorld(true);
+    const box2 = new THREE.Box3().setFromObject(baseRoot, true);
+    baseRoot.position.y -= box2.min.y;
+    baseRoot.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
+    mi1.bones = findBones(baseRoot);
+    mixer = new THREE.AnimationMixer(baseRoot);
+    clips.forEach(c => actions[c.name] = mixer.clipAction(c));
+    play('Idle');
+    mi1Inner.add(baseRoot);
+    $('#loading').hidden = true;
+    applyRole(state.role, true);
+  };
+  (async () => {
+    try {
+      const res = await fetch('mi1-model.txt');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const total = Number(res.headers.get('content-length')) || 13562648;
+      const reader = res.body.getReader(); const parts = []; let got = 0;
+      for (;;){ const { done, value } = await reader.read(); if (done) break; parts.push(value); got += value.length; $('#lp').textContent = Math.min(99, Math.round(got / total * 100)) + '%'; }
+      const b64 = new TextDecoder().decode(await new Blob(parts).arrayBuffer());
+      const bin = atob(b64.trim()); const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      loader.parse(buf.buffer, '', onModel, err => { console.error(err); fallback(); });
+    } catch (err) { console.error(err); fallback(); }
+  })();
+}
+
+/* ---------- look-at: the head turns toward the target, the body follows a little ---------- */
+const qA = new THREE.Quaternion(), qB = new THREE.Quaternion(), qP = new THREE.Quaternion(), qI = new THREE.Quaternion();
+const rightAx = new THREE.Vector3(), tp = new THREE.Vector3(), hp = new THREE.Vector3();
+function lookTarget(out){
+  const l = mi1.look; if (!l) return null;
+  if (l.sat) return l.sat.g.getWorldPosition(out);
+  if (l.crew) return l.crew.g.getWorldPosition(out);
+  if (l.screen) return null;
+  if (l.panel) return isNarrow() ? out.set(L.mi1X + .4, -.6, 3.5) : out.set(6, 1.3, 2.5);
+  return null;
+}
+function updateLook(dt){
+  let wantYaw = 0, wantPitch = 0;
+  const head = mi1.bones.head;
+  if (head && lookTarget(tp)){
+    head.getWorldPosition(hp);
+    wantYaw = THREE.MathUtils.clamp(wrapA(Math.atan2(tp.x - mi1Group.position.x, tp.z - mi1Group.position.z) - spin), -1.45, 1.45);
+    wantPitch = THREE.MathUtils.clamp(Math.atan2(tp.y - hp.y, Math.hypot(tp.x - hp.x, tp.z - hp.z)), -.45, .5);
+  }
+  const k = Math.min(1, dt * 5);
+  mi1.yaw += (THREE.MathUtils.clamp(wantYaw * .55, -1.1, 1.1) - mi1.yaw) * Math.min(1, dt * 3);
+  mi1.headYaw += (THREE.MathUtils.clamp(wantYaw - mi1.yaw, -.8, .8) - mi1.headYaw) * k;
+  mi1.headPitch += (wantPitch - mi1.headPitch) * k;
+  mi1Group.rotation.y = spin + mi1.yaw;
+  if (!head) return;
+  mi1.headRest = head.quaternion.clone();
+  if (Math.abs(mi1.headYaw) < 1e-4 && Math.abs(mi1.headPitch) < 1e-4) return;
+  mi1Group.updateMatrixWorld(true);
+  head.parent.getWorldQuaternion(qP);
+  rightAx.set(1, 0, 0).applyAxisAngle(AX.y, spin + mi1.yaw + mi1.headYaw);
+  qA.setFromAxisAngle(AX.y, mi1.headYaw);
+  qB.setFromAxisAngle(rightAx, -mi1.headPitch).multiply(qA);
+  qI.copy(qP).invert();
+  head.quaternion.premultiply(qP).premultiply(qB).premultiply(qI);
+}
+
+/* ---------- projection ---------- */
+const bubble = document.createElement('div'); bubble.className = 'bubble glass'; labelsEl.appendChild(bubble);
+const v3 = new THREE.Vector3(), tmp = new THREE.Vector3();
+function toScreen(vec){ v3.copy(vec).project(camera); return { x:(v3.x * .5 + .5) * innerWidth, y:(-v3.y * .5 + .5) * innerHeight, z:v3.z }; }
+function setBubble(text){ bubble.innerHTML = `<b>${esc(ROLES[state.role].agent)}</b>${esc(text)}`; $('#sr-proc').textContent = text; }
+const panelOpen = () => $('#panel').classList.contains('open');
+
+/* ================= loop ================= */
+const clock = new THREE.Clock();
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+let lastDraw = 0;
+function tick(){
+  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+  if (mi1.bones.head && mi1.headRest) mi1.bones.head.quaternion.copy(mi1.headRest);
+  if (mixer) mixer.update(dt);
+  if (mi1.headOnly) applyHeadOnly(mi1.bones);
+  if (!reduce){ spin += spinV; spinV *= .92; }
+  base.rotation.y = spin;
+  mi1Group.position.set(L.mi1X, mi1Y(t), 0);
+  updateLook(dt);
+
+  const px = reduce || isNarrow() ? 0 : mouse.x * .2, py = reduce || isNarrow() ? 0 : mouse.y * .1;
+  camera.position.set(px, cam.ty + cam.lift + py, cam.dist);
+  camera.lookAt(0, cam.ty, 0);
+
+  const goal = (hoverSat || reduce) ? 0 : 1;
+  orbitSpeed += (goal - orbitSpeed) * Math.min(1, dt * 4);
+  sats.forEach(s => {
+    s.theta += s.speed * dt * orbitSpeed;
+    orbitPoint(s, s.theta, s.g.position);
+    s.tile.rotation.y = t * .4 + s.phase; s.tile.rotation.x = .3;
+    s.line.material = (mi1.look && mi1.look.sat === s) || hoverSat === s.id ? M.orbitHi : M.orbit;
+  });
+  crewPool.forEach(c => {
+    c.scale += ((c.active ? 1 : 0) - c.scale) * Math.min(1, dt * 5);
+    c.g.visible = c.scale > .02;
+    if (!c.g.visible){ c.tag.hidden = true; return; }
+    c.mx.update(dt); applyHeadOnly(c.bones);
+    crewSlot(c.idx, t, c.g.position);
+    c.g.scale.setScalar((isNarrow() ? .28 : .32) * c.scale);
+    c.g.lookAt(camera.position.x, c.g.position.y, camera.position.z);
+  });
+  if (proc.run && !proc.run.t1 && t - lastDraw > .25){ lastDraw = t; drawProc(); }
+
+  if (renderer) renderer.render(scene, camera);
+  positionLabels();
+  requestAnimationFrame(tick);
+}
+function positionLabels(){
+  const narrow = isNarrow();
+  const leftMax = innerWidth * .34;
+  const placed = [];
+  [...sats].sort((a, b) => b.g.position.z - a.g.position.z).forEach(s => {
+    s.g.getWorldPosition(tmp);
+    const behind = tmp.z < -.2;
+    tmp.y -= .13;
+    const p = toScreen(tmp);
+    const w = s.label.offsetWidth || 140, h = s.label.offsetHeight || 40;
+    const x = Math.min(leftMax - w / 2, Math.max(w / 2 + 10, p.x));
+    let y = Math.min(innerHeight - h - 56, Math.max(74, p.y));
+    const overlaps = yy => placed.find(r => Math.abs(r.x - x) < (r.w + w) / 2 + 4 && yy < r.y + r.h + 4 && yy + h + 4 > r.y);
+    let clash = false;
+    const o = overlaps(y);
+    if (o){ const yDown = o.y + o.h + 6, yUp = o.y - h - 6; if (!overlaps(yDown) && yDown + h < innerHeight - 10) y = yDown; else if (!overlaps(yUp) && yUp > 74) y = yUp; else clash = true; }
+    const show = hoverSat === s.id || s.label.hasAttribute('aria-current');
+    if (show) placed.push({ x, y, w, h });
+    s.label.style.opacity = !show ? '0' : clash ? '.25' : behind ? '.72' : '1';
+    s.label.style.pointerEvents = show && !clash ? 'auto' : 'none';
+    s.label.style.zIndex = String(Math.round(200 + tmp.z * 20));
+    s.label.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, 0) scale(${behind ? .92 : 1})`;
+  });
+  crewPool.forEach(c => {
+    if (!c.g.visible) return;
+    c.g.getWorldPosition(tmp); tmp.y -= narrow ? .14 : .2;
+    const p = toScreen(tmp);
+    const w = c.tag.offsetWidth || 120;
+    const x = Math.min((narrow ? innerWidth * .36 : leftMax) - w / 2, Math.max(w / 2 + 8, p.x));
+    c.tag.hidden = true;
+    c.tag.style.opacity = String(Math.min(1, c.scale * 1.3));
+    c.tag.style.zIndex = '260';
+    const yy = Math.min(innerHeight - 70 - (c.idx % 2) * 46, p.y + (c.idx % 2) * 46);
+    c.tag.style.transform = `translate3d(${x}px, ${yy}px, 0) translate(-50%, 0)`;
+  });
+  const head = mi1.bones.head;
+  if (head && !narrow && !(proc.run && !proc.run.t1)){
+    head.getWorldPosition(tmp); tmp.y += mi1.headOnly ? .55 : .42;
+    const p = toScreen(tmp);
+    const w = bubble.offsetWidth || 200;
+    const x = Math.min(leftMax - w / 2, Math.max(w / 2 + 10, p.x));
+    bubble.style.display = '';
+    bubble.style.transform = `translate3d(${x}px, ${Math.max(140, p.y)}px, 0) translate(-50%, -100%)`;
+  } else bubble.style.display = 'none';
+}
+let rsT = 0;
+addEventListener('resize', () => { layout(); clearTimeout(rsT); rsT = setTimeout(() => { if (baseRoot){ setMi1HeadOnly(ROLES[state.role].head); buildSats(); } }, 200); });
+layout();
+addEventListener('pointermove', e => { mouse.x = e.clientX / innerWidth - .5; mouse.y = e.clientY / innerHeight - .5; });
+function pick(e, objs){
+  ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  return ray.intersectObjects(objs, true)[0];
+}
+if (renderer){
+  const cv = renderer.domElement;
+  /* drag anywhere on the stage to turn Mi1 and its pedestal, 360 degrees */
+  let drag = null;
+  cv.addEventListener('pointerdown', e => { drag = { x:e.clientX, moved:0 }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+  cv.addEventListener('pointerup', () => { cv.style.cursor = ''; setTimeout(() => { drag = null; }, 0); });
+  cv.addEventListener('pointermove', e => {
+    if (!drag || (e.pointerType === 'mouse' && !(e.buttons & 1))) return;
+    const dx = e.clientX - drag.x; drag.x = e.clientX; drag.moved += Math.abs(dx);
+    if (drag.moved > 4){ spin += dx * .012; spinV = dx * .004; cv.style.cursor = 'grabbing'; }
+  });
+  cv.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    const hit = pick(e, sats.map(s => s.g));
+    const id = hit ? hit.object.userData.satId || null : null;
+    if (id) hoverSat = id; else if (hoverSat && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.mod)) hoverSat = null;
+    cv.style.cursor = id ? 'pointer' : '';
+  });
+  cv.addEventListener('click', e => {
+    if (drag && drag.moved > 4) return;
+    const hit = pick(e, [...sats.map(s => s.g), ...crewPool.filter(c => c.g.visible).map(c => c.g)]);
+    if (!hit) return;
+    if (hit.object.userData.crew) return focusCrew(hit.object.userData.crew);
+    if (hit.object.userData.satId) openModule(hit.object.userData.satId);
+  });
+}
+requestAnimationFrame(tick);
+
+/* ================= process runs (shown on the wall screen) ================= */
+function newRun({ title, steps, crews }){
+  const r = { id:'p' + Date.now(), title, steps:steps.map(s => ({ ...s, st:'pending' })), crews:(crews || []).map(([code, task]) => ({ code, task, st:'queued', tok:0 })), t0:performance.now(), t1:0, sel:null };
+  proc.run = r; mi1.look = { screen:true }; renderProc(); return r;
+}
+function logHTML(r){
+  return `<summary>Tiến trình · ${r.steps.length} bước${r.crews.length ? ' · ' + r.crews.length + ' thuyền viên' : ''} · ${elapsed(r)}</summary><ol>${r.steps.map(s => `<li>${s.st === 'done' ? '✓' : '·'} ${esc(s.t)}${s.d ? `<span class="d">${esc(stepD(s, r))}</span>` : ''}</li>`).join('')}${r.crews.map(c => `<li class="mono">${c.code} · ${esc(c.task)} · ${LBL[c.st]}${c.tok ? ' · ' + c.tok + 'k token' : ''}</li>`).join('')}</ol>`;
+}
+function renderProc(){
+  drawProc();
+  const r = proc.run; if (!r) return;
+  const log = document.getElementById('log-' + r.id); if (log) log.innerHTML = logHTML(r);
+}
+function finishRun(r){
+  r.t1 = performance.now(); renderProc(); proc.last = r;
+  setTimeout(() => { if (proc.run === r){ proc.run = null; drawProc(); if (mi1.look && mi1.look.screen) mi1.look = openId ? { panel:true } : null; } }, reduce ? 800 : 5000);
+}
+async function stepRun(r, i, ms){
+  const s = r.steps[i];
+  s.st = 'running'; renderProc();
+  const d = stepD(s, r);
+  setBubble(s.t + (d && !s.fleet ? ' · ' + d : ''));
+  await sleep(ms);
+  s.st = 'done'; renderProc();
+}
+function focusCrew(c){
+  mi1.look = { crew:c };
+  if (proc.run){ proc.run.sel = c.idx; renderProc(); }
+  setBubble(`${c.code}: ${c.task} · ${LBL[c.status]}`);
+}
+
+/* ================= panel + modules ================= */
+const panel = $('#panel'), pBody = $('#p-body'), pFoot = $('#p-foot');
+let openId = null, openSeq = 0;
+function lookAtSat(id){
+  const s = sats.find(x => x.id === id);
+  if (s) mi1.look = { sat:s };
+  sats.forEach(x => { if (x.id === id) x.label.setAttribute('aria-current', 'true'); else x.label.removeAttribute('aria-current'); });
+}
+async function openModule(id){
+  if (!ROLES[state.role].mods.includes(id)) return;
+  const seq = ++openSeq;
+  lookAtSat(id);
+  await sleep(450);
+  if (seq !== openSeq) return;
+  if (!state.busy && MOD_TOOLS[id].length){
+    const r = newRun({ title:`Mở ${modName(id)}`, steps:[
+      { t:'Nhận yêu cầu', d:`mở ${modName(id)}` },
+      ...MOD_TOOLS[id].map(([tool, d]) => ({ t:`Gọi ${tool}`, d })),
+      { t:'Hiển thị', d:'panel frosted glass' }
+    ]});
+    for (let i = 0; i < r.steps.length; i++){ await stepRun(r, i, i === 0 ? 200 : 320); if (seq !== openSeq) return; }
+    finishRun(r);
+  } else { setBubble(`Mở ${modName(id)}.`); await sleep(200); if (seq !== openSeq) return; }
+  openId = id;
+  renderPanel(id);
+  panel.hidden = false; panel.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => panel.classList.add('open'));
+  if (!state.busy){ mi1.look = { panel:true }; setBubble(`${modName(id)} đã mở.`); }
+  const first = pBody.querySelector('input, button'); if (first && !isNarrow()) first.focus({ preventScroll:true });
+}
+function closePanel(){
+  openSeq++;
+  panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true');
+  setTimeout(() => { if (!panel.classList.contains('open')) panel.hidden = true; }, 350);
+  openId = null;
+  if (!state.busy){ mi1.look = null; setBubble(ROLES[state.role].greet); }
+  sats.forEach(s => s.label.removeAttribute('aria-current'));
+}
+$('#p-close').addEventListener('click', closePanel);
+addEventListener('keydown', e => { if (e.key === 'Escape' && openId) closePanel(); });
+document.addEventListener('click', e => {
+  const act = e.target.closest('[data-act]'); if (act){ perform(act.dataset.act, act); return; }
+  const m = e.target.closest('[data-mod]'); if (m){ openModule(m.dataset.mod); return; }
+  const o = e.target.closest('[data-open]'); if (o){ openModule(o.dataset.open); return; }
+  const tst = e.target.closest('[data-toast]'); if (tst){ toast(tst.dataset.toast); return; }
+  const es = e.target.closest('[data-escalate]'); if (es){ escalate(es.dataset.escalate, es); return; }
+  const dec = e.target.closest('[data-decide]'); if (dec){ decide(dec.dataset.decide, dec.dataset.how); return; }
+  const dr = e.target.closest('[data-draft]'); if (dr){ draftAct(dr.dataset.draft, dr.dataset.how); return; }
+  const p = e.target.closest('[data-prompt]'); if (p){ ask(S[p.dataset.prompt].q, p.dataset.prompt); return; }
+  const run = e.target.closest('[data-run]'); if (run){ runCypher(); return; }
+  const r = e.target.closest('[data-role]'); if (r){ applyRole(r.dataset.role); return; }
+});
+let toastT = 0;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+function escalate(what, btn){
+  state.decisions.push({ id:'e' + Date.now(), t:`Escalate từ ${ROLES[state.role].label}: ${what}`, from:ROLES[state.role].agent, def:'Giữ đề xuất của thuyền viên', due:'48 giờ', age:'vừa gửi', conf:'dưới 0,8', money:false });
+  if (btn){ btn.disabled = true; btn.textContent = 'Đã escalate'; }
+  toast('Đã gửi lên Mark. Mi1 thêm vào hàng chờ quyết định, mặc định có hạn 48 giờ.');
+  refreshLabels();
+}
+function decide(id, how){
+  const d = state.decisions.find(x => x.id === id); if (!d) return;
+  state.decisions = state.decisions.filter(x => x.id !== id);
+  const msg = how === 'default' ? `Đã duyệt mặc định: ${d.def}.` : how === 'other' ? 'Đã ghi: anh chọn phương án khác.' : 'Đã chuyển câu hỏi sang Hỏi Mi1.';
+  toast(msg + ' Nhật ký quyết định đã cập nhật.');
+  refreshLabels(); renderPanel('decide');
+}
+function draftAct(id, how){
+  if (how === 'all'){ const n = state.drafts.filter(d => confNum(d.conf) >= .8).length; state.drafts = state.drafts.filter(d => confNum(d.conf) < .8); toast(`Đã xác nhận ${n} bản nháp có tự tin từ 0,8.`); }
+  else { state.drafts = state.drafts.filter(d => d.id !== id); toast(how === 'ok' ? 'Đã xác nhận, ghi vào đồ thị.' : 'Đã trả lại RM để bổ sung.'); }
+  refreshLabels(); renderPanel('queue');
+}
+function head(id, sub){
+  $('#p-agent').textContent = ROLES[state.role].agent + ' · ' + ROLES[state.role].agentSub;
+  $('#p-title').textContent = modName(id);
+  $('#p-sub').textContent = sub;
+}
+function renderPanel(id){
+  pFoot.hidden = true; pFoot.innerHTML = '';
+  if (id === 'chat') return renderChat();
+  if (id === 'dash') return renderDash();
+  if (id === 'decide'){
+    head(id, 'Mỗi quyết định có phương án mặc định và hạn. Quá hạn, Mi1 áp mặc định nếu không có tiền và không gửi ra ngoài.');
+    pBody.innerHTML = (state.decisions.length ? `<div class="list">${state.decisions.map(d => `
+      <div class="item">
+        <div class="t">${esc(d.t)}</div>
+        <div class="m"><span class="mono">${esc(d.from)}</span><span>Mặc định: <b>${esc(d.def)}</b></span><span>Hạn: ${esc(d.due)}</span><span>Đã chờ: ${esc(d.age)}</span>
+          <span class="chip ${confNum(d.conf) >= .8 ? 'good' : 'crit'}">Tự tin ${esc(d.conf)}</span>${d.money ? '<span class="chip warn">Có tiền</span>' : ''}</div>
+        <div class="a">${d.money ? '' : `<button class="btn primary" data-decide="${d.id}" data-how="default">Duyệt mặc định</button>`}
+          <button class="btn" data-decide="${d.id}" data-how="other">${d.money ? 'Duyệt' : 'Chọn khác'}</button>
+          <button class="btn" data-decide="${d.id}" data-how="ask">Hỏi Mi1</button></div>
+      </div>`).join('')}</div>` : `<div class="sec"><p class="note" style="margin:0">Hàng chờ trống. Mi1 sẽ đưa lên những đề xuất vượt ngưỡng ủy quyền.</p></div>`)
+      + `<p class="src">Nguồn: nhật ký quyết định (Neo4j, episodic). Dữ liệu mẫu.</p>`;
+    return;
+  }
+  if (id === 'queue'){
+    head(id, 'Mi1-sa-01 soạn nháp từ tự báo của RM. Từ 0,8 thì chị xác nhận; dưới 0,8 thì hỏi lại RM hoặc escalate.');
+    const hi = state.drafts.filter(d => confNum(d.conf) >= .8), lo = state.drafts.filter(d => confNum(d.conf) < .8);
+    pBody.innerHTML = `
+      <div class="sec"><h3>Tự tin từ 0,8 · ${hi.length}</h3>
+        ${hi.length ? `<div class="list">${hi.map(d => `<div class="item"><div class="t">${esc(d.t)}</div><div class="m"><span class="chip good">Tự tin ${d.conf}</span></div><div class="a"><button class="btn" data-draft="${d.id}" data-how="ok">Xác nhận</button><button class="btn" data-draft="${d.id}" data-how="back">Trả RM</button></div></div>`).join('')}</div>
+        <div style="margin-top:10px"><button class="btn primary" data-draft="all" data-how="all">Xác nhận tất cả ${hi.length} bản</button></div>` : '<p class="note" style="margin:0">Đã xác nhận hết.</p>'}
+      </div>
+      <div class="sec"><h3>Dưới 0,8 · ${lo.length}</h3>
+        ${lo.length ? `<div class="list">${lo.map(d => `<div class="item"><div class="t">${esc(d.t)}</div><div class="m"><span class="chip crit">Tự tin ${d.conf}</span></div><div class="a"><button class="btn" data-draft="${d.id}" data-how="back">Hỏi lại RM</button><button class="btn esc" data-escalate="${esc(d.t)}">Escalate lên Mark</button></div></div>`).join('')}</div>` : '<p class="note" style="margin:0">Không còn bản nào dưới 0,8.</p>'}
+      </div>
+      <div class="sec"><h3>Đề xuất NBA</h3><div class="list">${state.nba.map(n => `<div class="item"><div class="t">${esc(n.t)}</div><div class="m"><span>${esc(n.a)}</span><span class="chip ${confNum(n.conf) >= .8 ? 'good' : 'crit'}">Tự tin ${n.conf}</span></div>${confNum(n.conf) < .8 ? `<div class="a"><button class="btn esc" data-escalate="NBA: ${esc(n.t)}">Escalate lên Mark</button></div>` : `<div class="a"><button class="btn" data-toast="Đã giao cho RM (prototype).">Giao RM</button></div>`}</div>`).join('')}</div></div>
+      <p class="src">Nguồn: channel Đồng bộ dữ liệu trên Teams, crm.oneibc.com. Dữ liệu mẫu, tên khách là tên mẫu.</p>`;
+    return;
+  }
+  if (id === 'graph'){
+    head(id, 'Ontology Growth 23 thực thể trên Neo4j. Câu hỏi thường gặp chạy bằng truy vấn mẫu đã duyệt.');
+    pBody.innerHTML = `
+      <div class="sec"><h3>Ontology Growth</h3>${ontologySvg()}<p class="note" style="margin:6px 0 0">Khách hàng, Tài phán, Dịch vụ dùng chung nút Client, Jurisdiction, Service_Type với repo Mi1. Nhánh KYC không nằm trong quyền của Growth.</p></div>
+      <div class="sec"><h3>Truy vấn mẫu · Hook tới Payment</h3>
+<pre class="cy"><span class="kw">MATCH</span> (h:Hook)&lt;-[:FROM_HOOK]-(a:Asset)&lt;-[:TOUCHED]-(s:Session)
+      -[:LED_TO]-&gt;(c:Contact)-[:BECAME]-&gt;(o:Opportunity)
+<span class="kw">OPTIONAL MATCH</span> (o)-[:CLOSED_AS]-&gt;(:Order)-[:PAID_BY]-&gt;(p:Payment)
+<span class="kw">WHERE</span> s.started_at &gt;= date('2026-10-01')
+<span class="kw">RETURN</span> h.hook_id, count(DISTINCT c) <span class="kw">AS</span> leads,
+       count(DISTINCT o) <span class="kw">AS</span> opps, count(DISTINCT p) <span class="kw">AS</span> paid,
+       sum(p.net_revenue) <span class="kw">AS</span> net_usd
+<span class="kw">ORDER BY</span> net_usd <span class="kw">DESC</span>  <span class="cm">// mẫu đã duyệt · eval 11/12</span></pre>
+        <div class="row" style="margin-top:10px"><button class="btn primary" data-run="1">Chạy truy vấn</button><span class="chip warn">Độ phủ nối 41% phiên có Contact</span></div>
+        <div id="cy-out"></div>
+      </div>
+      <p class="src">Dữ liệu mẫu. Prototype chưa nối Neo4j.</p>`;
+    return;
+  }
+  if (id === 'fleet'){
+    head(id, 'Mỗi thuyền viên là phần đầu của Mi1, mã theo team đang phục vụ. Chưa có nguồn dữ liệu thật thì chưa bật.');
+    pBody.innerHTML = `
+      <div class="sec"><h3>Thuyền viên</h3><div class="tw"><table><thead><tr><th>Mã</th><th>Nhiệm vụ</th><th>Giám sát</th><th class="num">Eval</th><th class="num">USD/tuần</th></tr></thead><tbody>
+        ${Object.entries(CREW).map(([k, c]) => `<tr><td class="mono">${k}</td><td>${esc(c.role)}</td><td>${c.sup}</td><td class="num">${c.evalp}</td><td class="num">${c.tok}</td></tr>`).join('')}
+      </tbody></table></div></div>
+      <div class="sec"><h3>Luật vận hành</h3><ul class="note" style="margin:0;padding-left:18px">
+        <li>Tự tin dưới 0,8: hiện ở phía Amy hoặc MKT kèm nút escalate.</li>
+        <li>Tự tin tính từ tỷ lệ pass eval, độ phủ nối và cỡ mẫu, không do model tự chấm.</li>
+        <li>Việc có tiền hoặc gửi ra ngoài luôn qua người giám sát.</li>
+      </ul></div>
+      <p class="src">Eval và chi phí là dữ liệu mẫu.</p>`;
+    return;
+  }
+  if (id === 'playbook'){
+    head(id, 'Win gate ba tầng: content fit, demand fit, business fit. Chỉ nhân rộng khi tới business fit.');
+    const hooks = [
+      ['HK-BANK-02','Mở tài khoản HK khi giám đốc ở nước ngoài', 2, 'Giữ, thêm 2 tuần'],
+      ['SG-SUBST-01','Substance cho công ty Singapore', 2, 'Theo dõi'],
+      ['VN-FDI-01','Lập công ty FDI tại Việt Nam, ERC trước IRC', 1, 'Sửa CTA'],
+      ['US-DE-PAYMENT-01','Delaware có đủ để nhận thanh toán quốc tế?', 1, 'Đề xuất dừng']
+    ];
+    const gate = n => ['Content fit','Demand fit','Business fit'].map((g, i) => `<span class="chip ${i < n ? 'led' : ''}">${g}</span>`).join(' ');
+    pBody.innerHTML = `<div class="list">${hooks.map(h => `<div class="item"><div class="t"><span class="mono">${h[0]}</span> · ${esc(h[1])}</div><div class="m">${gate(h[2])}</div><div class="m"><span>Trạng thái: <b>${h[3]}</b></span></div></div>`).join('')}</div>
+      <p class="src">Hook card theo playbook OCC 1.6. Dữ liệu mẫu.</p>`;
+    return;
+  }
+  if (id === 'partner'){
+    head(id, 'Đối tác không đăng nhập. Platform tính hiệu suất và đề xuất hoa hồng; chi trả đi luồng duyệt tiền.');
+    pBody.innerHTML = `<div class="sec"><div class="tw"><table><thead><tr><th>Đối tác</th><th>Loại</th><th class="num">Giới thiệu</th><th class="num">Opp</th><th class="num">Đã trả</th><th class="num">Hoa hồng đề xuất</th></tr></thead><tbody>
+      <tr><td>Network 01</td><td>Affiliate</td><td class="num">18</td><td class="num">6</td><td class="num">3</td><td class="num">420 USD</td></tr>
+      <tr><td>Reseller 03</td><td>Reseller</td><td class="num">9</td><td class="num">9</td><td class="num">7</td><td class="num">Theo hợp đồng</td></tr>
+      <tr><td>Người giới thiệu 07</td><td>Cá nhân</td><td class="num">4</td><td class="num">2</td><td class="num">1</td><td class="num">90 USD</td></tr>
+      <tr><td>Network 02</td><td>Affiliate</td><td class="num">11</td><td class="num">1</td><td class="num">0</td><td class="num">0</td></tr>
+    </tbody></table></div></div>
+    <div class="sec"><p class="note" style="margin:0">Khách cuối của Reseller 03 mang cờ is_reseller_end_client nên không vào danh sách upsell và được tách khỏi persona.</p></div>
+    <p class="src">Tên đối tác và số liệu là mẫu.</p>`;
+    return;
+  }
+  if (id === 'compete'){
+    head(id, 'Mi1-mkt-04 chỉ đọc phần thay đổi trên trang giá đối thủ, chạy hằng tuần.');
+    pBody.innerHTML = `<div class="list">
+      <div class="item"><div class="t">Đối thủ A tăng phí thành lập Hong Kong 8%</div><div class="m"><span>28/10</span><span class="chip led">Có lợi cho báo giá HK</span></div></div>
+      <div class="item"><div class="t">Đối thủ B thêm gói Singapore kèm hỗ trợ mở bank</div><div class="m"><span>27/10</span><span class="chip warn">Cạnh tranh trực tiếp SG-SUBST</span></div></div>
+      <div class="item"><div class="t">Đối thủ C giảm giá Delaware xuống dưới mức One IBC</div><div class="m"><span>26/10</span><span class="chip crit">RM cần giải thích phạm vi gói</span></div></div>
+    </div>
+    <div class="row"><button class="btn primary" data-toast="Đã đưa vào hàng chờ của Mark: gửi bảng gói cho RM (prototype).">Đề xuất gửi bảng gói cho RM</button></div>
+    <p class="src">Tên đối thủ và thay đổi là mẫu.</p>`;
+  }
+}
+function ontologySvg(){
+  const N = [['Kênh',40,30],['Chiến dịch',150,30],['Hook',260,30],['Asset',370,30],['Phiên',40,100],['Hội thoại',150,100],['Contact',260,100],['Opportunity',380,100],['Đối tác',40,170],['Lượt giới thiệu',160,170],['Order',300,170],['Payment',400,170],['Khách hàng',150,240],['Thử nghiệm',300,240],['Quyết định',400,240]];
+  const E = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,10],[10,11],[8,9],[9,6],[6,12],[2,13],[13,14]];
+  const p = Object.fromEntries(N.map(([n, x, y], i) => [i, [x + 30, y]]));
+  return `<svg viewBox="0 0 480 270" width="100%" role="img" aria-label="Ontology Growth: Hook tới Payment, nhánh đối tác nối vào Contact">
+    <g stroke="rgba(36,33,28,.28)" stroke-width="1" fill="none">${E.map(([a, b]) => `<line x1="${p[a][0]}" y1="${p[a][1]}" x2="${p[b][0]}" y2="${p[b][1]}"/>`).join('')}</g>
+    ${N.map(([n], i) => { const [x, y] = p[i]; const hot = ['Hook','Payment','Đối tác','Contact'].includes(n); const w = n.length * 6.4 + 18;
+      return `<g><rect x="${x - w/2}" y="${y - 12}" width="${w}" height="24" rx="12" fill="${hot ? 'rgba(63,169,245,.16)' : 'rgba(255,255,255,.75)'}" stroke="${hot ? '#3FA9F5' : 'rgba(36,33,28,.25)'}"/><text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11" fill="#24211C" font-family="Be Vietnam Pro, system-ui">${n}</text></g>`; }).join('')}
+  </svg>`;
+}
+function runCypher(){
+  const out = $('#cy-out'); if (!out) return;
+  out.innerHTML = `<p class="note" style="margin:10px 0 0"><span class="typing"><i></i><i></i><i></i></span> Đang chạy trên Neo4j</p>`;
+  setTimeout(() => {
+    out.innerHTML = `<div class="tw" style="margin-top:10px"><table><thead><tr><th>hook_id</th><th class="num">leads</th><th class="num">opps</th><th class="num">paid</th><th class="num">net_usd</th></tr></thead><tbody>
+      <tr><td class="mono">HK-BANK-02</td><td class="num">34</td><td class="num">9</td><td class="num">3</td><td class="num">2.180</td></tr>
+      <tr><td class="mono">SG-SUBST-01</td><td class="num">12</td><td class="num">5</td><td class="num">2</td><td class="num">1.640</td></tr>
+      <tr><td class="mono">VN-FDI-01</td><td class="num">40</td><td class="num">3</td><td class="num">0</td><td class="num">0</td></tr>
+      <tr><td class="mono">US-DE-PAYMENT-01</td><td class="num">21</td><td class="num">2</td><td class="num">0</td><td class="num">0</td></tr>
+    </tbody></table></div><p class="note" style="margin:6px 0 0">142 ms · 4 dòng · 59% phiên không nối được Contact nên không vào kết quả.</p>`;
+  }, reduce ? 0 : 800);
+}
+function renderDash(){
+  const r = state.role;
+  if (r === 'mark'){
+    head('dash', 'Toàn cảnh Growth tới lợi nhuận, hàng chờ quyết định và chi phí fleet.');
+    const funnel = [['Phiên web',4820],['Hội thoại Ask OCC',612],['Lead xác minh',214],['Opportunity',63],['Order',19],['Payment',14]];
+    const max = funnel[0][1];
+    pBody.innerHTML = `
+      <div class="kpis">
+        <div class="kpi"><div class="l">Internal Control RM</div><div class="v">9,45%</div><div class="h">8.636,78 / 91.400 USD · 28/10</div></div>
+        <div class="kpi"><div class="l">Chờ anh quyết</div><div class="v">${state.decisions.length}</div><div class="h">lâu nhất 4 ngày</div></div>
+        <div class="kpi"><div class="l">Độ phủ nối ID</div><div class="v">41%</div><div class="h">phiên có Contact · mẫu</div></div>
+        <div class="kpi"><div class="l">Fleet tuần này</div><div class="v">7,3 USD</div><div class="h">trần 25 USD · mẫu</div></div>
+      </div>
+      <div class="sec funnel"><h3>Phễu tháng 10 tới Payment · mẫu</h3>
+        ${funnel.map(([n, v], i) => `<div class="row"><span class="lbl">${n}</span><div class="bar grow ${i >= 3 ? 'led' : ''}"><i style="width:${Math.max(1.5, v / max * 100)}%"></i></div><span class="val">${v.toLocaleString('vi-VN')}</span><span class="drop">${i ? Math.round(v / funnel[i-1][1] * 100) + '%' : ''}</span></div>`).join('')}
+        <p class="note" style="margin:8px 0 0">Cột cuối là tỷ lệ đi tiếp từ bước trước. Rơi lớn nhất ở Phiên sang Hội thoại.</p>
+      </div>
+      <div class="sec"><h3>Workstream · báo cáo 28/10</h3><div class="list">
+        ${WORKSTREAMS.map(w => `<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="chip ${w[1]}">${w[2]}</span><span class="grow"><b>${w[0]}</b> <span class="note">· ${w[3]}</span></span></div>`).join('')}
+      </div></div>
+      <p class="src">Số có nhãn 28/10 lấy từ báo cáo ngày 28/10. Số còn lại là mẫu.</p>`;
+    return;
+  }
+  if (r === 'amy'){
+    head('dash', 'Pipeline lọc theo Close Date trong kỳ, nhóm theo Stage.');
+    const st = [['Qualification',46],['Needs Analysis',31],['Proposal/Quote',22],['Negotiation',9],['Closed Won',14]];
+    pBody.innerHTML = `
+      <div class="kpis">
+        <div class="kpi"><div class="l">Bản nháp chờ xác nhận</div><div class="v">${state.drafts.length}</div><div class="h">${state.drafts.filter(d => confNum(d.conf) < .8).length} dưới 0,8</div></div>
+        <div class="kpi"><div class="l">Invoice quá hạn</div><div class="v">2</div><div class="h">mẫu</div></div>
+        <div class="kpi"><div class="l">Lead trùng</div><div class="v">2</div><div class="h">chờ gộp · mẫu</div></div>
+      </div>
+      <div class="sec funnel"><h3>Pipeline tháng 10 theo Stage · mẫu</h3>
+        ${st.map(([n, v], i) => `<div class="row"><span class="lbl">${n}</span><div class="bar grow ${i === 4 ? 'led' : ''}"><i style="width:${v / 46 * 100}%"></i></div><span class="val">${v}</span></div>`).join('')}
+      </div>
+      <div class="row"><button class="btn primary" data-open="queue">Mở hàng chờ xác nhận</button></div>
+      <p class="src">Dữ liệu mẫu.</p>`;
+    return;
+  }
+  head('dash', 'Kênh và hook tuần 44, đo tới Opportunity và Payment.');
+  pBody.innerHTML = `
+    <div class="kpis">
+      <div class="kpi"><div class="l">Lead xác minh</div><div class="v">107</div><div class="h">tuần 44 · mẫu</div></div>
+      <div class="kpi"><div class="l">Opportunity</div><div class="v">19</div><div class="h">mẫu</div></div>
+      <div class="kpi"><div class="l">Lead thiếu nguồn</div><div class="v">38%</div><div class="h">từ 27/10 · mẫu</div></div>
+    </div>
+    <div class="sec"><h3>Kênh tuần 44 · mẫu</h3><div class="tw"><table><thead><tr><th>Kênh</th><th class="num">Lead xác minh</th><th class="num">Opp</th><th class="num">Lead tới Opp</th></tr></thead><tbody>
+      <tr><td>Google Search</td><td class="num">34</td><td class="num">9</td><td class="num">26%</td></tr>
+      <tr><td>Đối tác</td><td class="num">12</td><td class="num">5</td><td class="num">42%</td></tr>
+      <tr><td>Facebook</td><td class="num">40</td><td class="num">3</td><td class="num">8%</td></tr>
+      <tr><td>LinkedIn</td><td class="num">21</td><td class="num">2</td><td class="num">10%</td></tr>
+    </tbody></table></div></div>
+    <div class="sec"><h3>Đánh giá kịch bản của Mi1-mkt-01</h3>
+      <div class="row"><span class="chip crit">Tự tin 0,71 · dưới 0,8</span><span class="note grow">Chưa đủ mẫu tới Payment</span><button class="btn esc" data-escalate="Đánh giá kịch bản tuần 44 (tự tin 0,71)">Escalate lên Mark</button></div>
+    </div>
+    <p class="src">Dữ liệu mẫu.</p>`;
+}
+
+/* ================= chat ================= */
+function renderChat(){
+  const r = state.role;
+  head('chat', r === 'mark' ? 'Mi1 gọi thuyền viên, gộp kết quả, trả về việc cần làm, quyết định cần anh và dự báo.' : `${ROLES[r].agent} trả lời trong phạm vi của ${ROLES[r].label}.`);
+  pBody.innerHTML = `<div class="chat" id="chat">${state.chats[r].join('') || `<div class="msg mi">${esc(ROLES[r].greet)}</div>`}</div>`;
+  pFoot.hidden = false;
+  pFoot.innerHTML = `<div class="prompts">${PROMPTS[r].map(k => `<button type="button" data-prompt="${k}">${esc(S[k].q)}</button>`).join('')}</div>
+    <form class="composer" id="composer"><input id="ask" aria-label="Câu hỏi cho agent" autocomplete="off" placeholder="Hỏi ${esc(ROLES[r].agent)}…"><button class="btn primary" type="submit">Gửi</button></form>`;
+  $('#composer').addEventListener('submit', e => { e.preventDefault(); const v = $('#ask').value.trim(); if (v){ $('#ask').value = ''; ask(v, routeFree(v)); } });
+  pBody.scrollTop = pBody.scrollHeight;
+}
+function pushChat(html){
+  state.chats[state.role].push(html);
+  const c = $('#chat'); if (c && openId === 'chat'){ c.insertAdjacentHTML('beforeend', html); pBody.scrollTop = pBody.scrollHeight; }
+  return state.chats[state.role].length - 1;
+}
+async function ask(q, key){
+  if (state.busy){ toast(`${ROLES[state.role].agent} đang xử lý, đợi lượt này xong.`); return; }
+  state.busy = true;
+  if (openId !== 'chat') await openModule('chat');
+  const sc = key ? S[key] : null;
+  const crews = sc ? sc.crews : guessCrew(q);
+  const tools = sc ? sc.tools : [['neo4j.cypher','tra ngữ cảnh liên quan']];
+  pushChat(`<div class="msg me">${esc(q)}</div>`);
+  const r = newRun({ title:sc ? sc.intent : 'Câu hỏi tự do', crews, steps:[
+    { t:'Đọc câu hỏi', d:`"${q}"` },
+    { t:'Phân loại ý định', d: sc ? `${sc.intent} · tin cậy ${sc.ic}` : 'chưa có kịch bản mẫu, định tuyến theo từ khóa' },
+    ...tools.map(([tool, d]) => ({ t:`Gọi ${tool}`, d })),
+    { t:`Gọi fleet · ${crews.length} thuyền viên`, d: crews.map(c => c[0]).join(', ') },
+    { t:'Chờ thuyền viên', fleet:true, d: rr => `${rr.crews.filter(c => c.st === 'done').length}/${rr.crews.length} xong` },
+    { t:'Gộp kết quả, tính tự tin', d: sc ? `tự tin ${sc.conf}${confNum(sc.conf) < .8 ? ' · dưới 0,8, gắn nút escalate' : ''}` : 'không áp dụng' },
+    { t:'Soạn trả lời', d:'việc cần làm · quyết định · dự báo · cảnh báo' }
+  ]});
+  const logIdx = pushChat(`<details class="plog" id="log-${r.id}"></details>`);
+  renderProc();
+  play('Thinking');
+  const fleetAt = 2 + tools.length;
+  for (let i = 0; i < fleetAt; i++) await stepRun(r, i, i < 2 ? 500 : 620);
+  r.steps[fleetAt].st = 'running'; renderProc(); setBubble(`Gọi ${crews.length} thuyền viên lên.`);
+  const list = spawnCrew(crews);
+  await sleep(650);
+  r.steps[fleetAt].st = 'done'; r.steps[fleetAt + 1].st = 'running'; renderProc();
+  await Promise.all(crews.map(async (cw, i) => {
+    await sleep(150 + i * 260);
+    r.crews[i].st = 'thinking'; if (list[i]) crewSet(list[i], 'thinking'); renderProc();
+    await sleep(850);
+    r.crews[i].st = 'working'; if (list[i]) crewSet(list[i], 'working'); renderProc();
+    setBubble(`${cw[0]} đang ${cw[1].charAt(0).toLowerCase() + cw[1].slice(1)}.`);
+    await sleep(1100 + i * 450);
+    r.crews[i].st = 'done'; r.crews[i].tok = 14 + i * 9 + q.length % 7; if (list[i]) crewSet(list[i], 'done'); renderProc();
+  }));
+  r.steps[fleetAt + 1].st = 'done'; renderProc();
+  for (let i = fleetAt + 2; i < r.steps.length; i++) await stepRun(r, i, 520);
+  finishRun(r);
+  const body = sc ? sc.html(state.role) : `
+    <div class="ans-head"><span class="chip">Chưa có kịch bản mẫu</span></div>
+    <p style="margin:6px 0 0">Prototype chưa có câu trả lời mẫu cho câu này. Khi chạy thật, ${esc(ROLES[state.role].agent)} phân loại ý định, gọi ${crews.map(c => c[0]).join(', ')}, rồi trả về theo cùng khung: việc cần làm, quyết định cần anh, dự báo, cảnh báo.</p>`;
+  const foot = sc ? `<p class="src" style="margin:10px 0 0">Nguồn: ${esc(sc.src)}. Dữ liệu mẫu.</p>` : '';
+  const log = document.getElementById('log-' + r.id);
+  if (log) state.chats[state.role][logIdx] = log.outerHTML;
+  pushChat(`<div class="msg mi">${body}${foot}</div>`);
+  state.busy = false;
+  play('Excited', { once:true, fade:.2 });
+  setTimeout(() => { if (!state.busy) play('Idle', { fade:.4 }); }, 1100);
+  setBubble(sc && confNum(sc.conf) < .8 ? 'Xong. Tự tin dưới 0,8 nên có nút escalate.' : 'Xong. Kết quả ở bảng hội thoại.');
+  setTimeout(() => { if (!state.busy) dismissCrew(); }, reduce ? 300 : 4500);
+}
+
+/* ================= motion sets with studio-style sound (Web Audio, starts on click) ================= */
+let actx = null, actRun = 0, soundOn = true;
+try { soundOn = localStorage.getItem('mi1-sound') !== 'off'; } catch (_) {}
+const sndBtn = $('#snd');
+function paintSnd(){ sndBtn.setAttribute('aria-pressed', String(soundOn)); sndBtn.textContent = soundOn ? 'Âm thanh: Bật' : 'Âm thanh: Tắt'; }
+paintSnd();
+sndBtn.addEventListener('click', () => { soundOn = !soundOn; paintSnd(); try { localStorage.setItem('mi1-sound', soundOn ? 'on' : 'off'); } catch (_) {} if (!soundOn && actx) actx.suspend(); });
+function tone(seq){
+  if (!soundOn) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const t0 = actx.currentTime + .02;
+    const out = actx.createGain(); out.gain.value = .9; out.connect(actx.destination);
+    seq.forEach(([f, at, dur, type = 'sine', vol = .12]) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(vol, t0 + at + .015); g.gain.exponentialRampToValueAtTime(.0001, t0 + at + dur);
+      o.connect(g).connect(out); o.start(t0 + at); o.stop(t0 + at + dur + .05);
+    });
+  } catch (_) {}
+}
+const SFX = {
+  join: [[523, 0, .2], [659, .11, .2], [784, .22, .35], [1047, .22, .35, 'sine', .04]],
+  work: [0, 1.5, 3, 4.5, 6].flatMap(o => [[392, o, .09, 'triangle', .05], [440, o + .18, .09, 'triangle', .05], [494, o + .36, .12, 'triangle', .05]]),
+  done: [[784, 0, .16], [988, .12, .16], [1175, .24, .5], [1568, .24, .5, 'sine', .05], [587, .24, .6, 'triangle', .05]]
+};
+const MOVES = { join:[['Jump', 'Mi1 vào ca.'], ['Excited', 'Sẵn sàng làm việc.']], work:[['Scenario_Study', 'Đang làm việc.']], done:[['Scenario_Celebrate', 'Xong việc.']] };
+function perform(kind, btn){
+  if (!mixer) return;
+  const id = ++actRun;
+  document.querySelectorAll('[data-act]').forEach(b => b.classList.toggle('on', b === btn));
+  tone(SFX[kind]);
+  const steps = MOVES[kind];
+  let at = 0;
+  steps.forEach(([clip, msg]) => {
+    const c = clips.find(x => x.name === clip); if (!c) return;
+    setTimeout(() => { if (id !== actRun) return; if (actions[clip] === current) current.reset().play(); else play(clip, { once:true, fade:.25 }); setBubble(msg); }, at * 1000);
+    at += c.duration;
+  });
+  setTimeout(() => { if (id !== actRun) return; play('Idle', { fade:.4 }); if (btn) btn.classList.remove('on'); }, at * 1000);
+}
+
+/* ================= roles ================= */
+function applyRole(role, initial){
+  if (state.busy && !initial){ toast('Đang xử lý, đợi lượt này xong.'); return; }
+  state.role = role;
+  document.querySelectorAll('[data-role]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.role === role)));
+  dismissCrew(); mi1.look = null;
+  if (openId){ panel.classList.remove('open'); panel.hidden = true; openId = null; }
+  proc.run = null; proc.last = null;
+  layout();
+  if (baseRoot){ setMi1HeadOnly(ROLES[role].head); buildSats(); }
+  if (mixer) play(initial ? 'Idle' : 'Excited', { once:!initial });
+  if (!initial) setTimeout(() => play('Idle'), 1000);
+  setBubble(ROLES[role].greet);
+}
+refreshLabels();
+setBubble(ROLES.mark.greet);
+</script>
