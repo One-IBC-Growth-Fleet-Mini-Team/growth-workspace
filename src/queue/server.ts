@@ -53,7 +53,8 @@ import {
   type Session,
 } from "./auth.ts";
 import { ITEM_ACTIONS, recordItemAction, recordQueueOpened, type ItemAction } from "./items.ts";
-import { renderBriefPage, renderDigestPage, renderImportPage, renderLeadDupPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
+import { renderBriefPage, renderDigestPage, renderImportPage, renderLeadDupPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, shell, type SourceStatus } from "./views/page.ts";
+import { SafeHtml } from "./views/html.ts";
 import { buildBrief, buildDigest, mondayOf } from "../mi1/core.ts";
 import { findDuplicateLeads } from "../mcp/crm-read/tools.ts";
 import { buildWoBoard, recordWoTouch, reminderTexts } from "../db/wo.ts";
@@ -97,6 +98,7 @@ import { renderTuningPage } from "./views/tuning.ts";
 import { canPost, canSee, stripForbiddenForms } from "./roles.ts";
 import { readSample } from "./samples.ts";
 import { decorate, homeFor } from "./nav.ts";
+import { guideFor, renderGuide } from "./guide.ts";
 import { currentPassword, MIN_PASSWORD, setPassword } from "../db/users.ts";
 import { renderOverviewPage } from "./views/overview.ts";
 import { buildOverview, rowsFor } from "../mi1/overview.ts";
@@ -450,6 +452,14 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/market") {
       if (!session) return redirect("/login");
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && (path === "/huong-dan" || path.startsWith("/huong-dan/"))) {
+      if (!session) return redirect("/login");
+      const name = path === "/huong-dan" ? guideFor(userOf(session)) : path.slice("/huong-dan/".length);
+      const body = renderGuide(name);
+      if (body === null) return text(404, "Không có hướng dẫn này.");
+      return respond(shell("Hướng dẫn", new SafeHtml(body + '<p class="meta">Hướng dẫn khác: <a href="/huong-dan/amy">Amy</a> · <a href="/huong-dan/mkt">Team MKT</a> · <a href="/huong-dan/mark">Mark</a> · <a href="/huong-dan/bod">BOD</a></p>')), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/overview") {

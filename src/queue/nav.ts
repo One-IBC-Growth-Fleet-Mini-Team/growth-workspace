@@ -34,6 +34,8 @@ export const PAGES: Page[] = [
   { path: "/monthly", label: "Báo cáo tháng", group: "Theo dõi", purpose: "Số tháng trước: Hàng chờ, chi phí, đối tác, bài học." },
   { path: "/runs", label: "Phiên chạy", group: "Theo dõi", purpose: "Từng phiên agent: token, chi phí, người giám sát đã xem." },
   { path: "/tuning", label: "Ngưỡng", group: "Cài đặt", purpose: "Ngưỡng, trọng số và giá trị tạm; chỉ Mark đổi." },
+  { path: "/huong-dan", label: "Hướng dẫn", group: "Cài đặt", purpose: "Hướng dẫn sử dụng cho vai trò của bạn." },
+  { path: "/password", label: "Đổi mật khẩu", group: "Cài đặt", purpose: "Đặt mật khẩu mới." },
 ];
 
 // Trang chính sau khi đăng nhập: Amy vào Hàng chờ; Team MKT, Mark, BOD vào Tổng quan.
