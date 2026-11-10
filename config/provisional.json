@@ -46,5 +46,10 @@
   "persona": {
     "value": { "min_deals": 5 },
     "status": "PROVISIONAL", "source": "Đề xuất 10/11/2026 (D-88): nhóm dưới 5 deal Closed Won không dựng persona", "decided_by": null
+  },
+  "budget_framework": {
+    "value": { "a_share": 0.25, "test_budget_share": 0.05, "max_step": 0.2, "r5_cut": 0.5, "min_days_between_changes": 7, "jimmy_total_change_share": 0.1,
+      "r2_min_impressions": 3000, "r2_min_contacts": 10, "r3_flag_weeks": 2, "r5_stop_after_cycles": 2, "weekly_total_usd": null },
+    "status": "PROVISIONAL", "source": "docs/spec/khung-quyet-dinh-awareness-conversion.md bản Tạm v0.1, Mark 10/11/2026 (D-90)", "decided_by": null
   }
 }

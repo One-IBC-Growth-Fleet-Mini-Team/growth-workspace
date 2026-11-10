@@ -1,0 +1,1853 @@
+{
+ "skill_id": "mi1-strategy",
+ "version": "1.0.0",
+ "description": "Mi1 viết lời dẫn đề xuất chiến lược tuần chỉ từ gói số; mỗi câu trỏ tới mã số liệu. Gói số tổng hợp, không tên khách. Định dạng theo repo Mi1 (L4_Skills/evals).",
+ "baseline_score": null,
+ "current_score": null,
+ "last_run_date": null,
+ "minimum_pass_rate": 0.8,
+ "failure_log": [],
+ "test_cases": [
+  {
+   "id": "TC-001",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu không",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q1.deals",
+         "label": "Deal Closed Won đã nạp",
+         "value": 61
+        },
+        {
+         "id": "q1.direct",
+         "label": "Deal khách trực tiếp",
+         "value": 19
+        },
+        {
+         "id": "q1.reseller",
+         "label": "Deal khách cuối của reseller",
+         "value": 13
+        }
+       ]
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q2.segments",
+         "label": "Persona đủ mẫu",
+         "value": 4
+        },
+        {
+         "id": "q2.top",
+         "label": "Nhóm lớn nhất",
+         "value": "Hong Kong · IBC"
+        },
+        {
+         "id": "q2.top_deals",
+         "label": "Deal của nhóm lớn nhất",
+         "value": 6
+        }
+       ]
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 25
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 7
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": false
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 2
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q4.win",
+         "label": "Chiến dịch thắng Win gate",
+         "value": 2
+        },
+        {
+         "id": "q4.not_win",
+         "label": "Chiến dịch chưa thắng",
+         "value": 2
+        },
+        {
+         "id": "q4.insufficient",
+         "label": "Chiến dịch thiếu mẫu",
+         "value": 4
+        },
+        {
+         "id": "q4.scale",
+         "label": "Tổ hợp đề xuất tăng (R6)",
+         "value": 1
+        },
+        {
+         "id": "q4.stop",
+         "label": "Tổ hợp đề xuất giảm hoặc dừng (R5)",
+         "value": 2
+        },
+        {
+         "id": "q4.hooks_proposed",
+         "label": "Hook đề xuất tuần",
+         "value": 3
+        }
+       ]
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q5.lessons_7d",
+         "label": "Bài học có bằng chứng 7 ngày qua",
+         "value": 4
+        },
+        {
+         "id": "q5.latest",
+         "label": "Bài học mới nhất",
+         "value": "Khách hỏi phí gia hạn trước khi để lại liên hệ"
+        }
+       ]
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q6.week",
+         "label": "Tuần của kế hoạch",
+         "value": "2026-11-09"
+        },
+        {
+         "id": "q6.total_old",
+         "label": "Ngân sách tuần hiện tại (USD)",
+         "value": 1418
+        },
+        {
+         "id": "q6.total_new",
+         "label": "Ngân sách tuần đề xuất (USD)",
+         "value": 1039
+        },
+        {
+         "id": "q6.needs_jimmy",
+         "label": "Cần anh Jimmy duyệt",
+         "value": true
+        },
+        {
+         "id": "q6.status",
+         "label": "Trạng thái kế hoạch",
+         "value": "pending"
+        },
+        {
+         "id": "q6.nba_pending",
+         "label": "NBA còn chờ Amy",
+         "value": 2
+        },
+        {
+         "id": "q6.partner_top",
+         "label": "Đối tác lợi nhuận cao nhất tháng",
+         "value": "P-1"
+        },
+        {
+         "id": "q6.partner_top_usd",
+         "label": "Lợi nhuận của đối tác đó (USD)",
+         "value": 775
+        }
+       ]
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 24.25
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 7
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 0.78
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 3,
+    "must_cover": [
+     3,
+     6,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  },
+  {
+   "id": "TC-002",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu [1, 2]",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "insufficient",
+       "reason": "Chưa nạp file Closed Won thật.",
+       "facts": []
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "insufficient",
+       "reason": "Chưa nạp file Closed Won thật.",
+       "facts": []
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 15
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 1
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": false
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 0
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q4.win",
+         "label": "Chiến dịch thắng Win gate",
+         "value": 0
+        },
+        {
+         "id": "q4.not_win",
+         "label": "Chiến dịch chưa thắng",
+         "value": 1
+        },
+        {
+         "id": "q4.insufficient",
+         "label": "Chiến dịch thiếu mẫu",
+         "value": 0
+        },
+        {
+         "id": "q4.scale",
+         "label": "Tổ hợp đề xuất tăng (R6)",
+         "value": 2
+        },
+        {
+         "id": "q4.stop",
+         "label": "Tổ hợp đề xuất giảm hoặc dừng (R5)",
+         "value": 1
+        },
+        {
+         "id": "q4.hooks_proposed",
+         "label": "Hook đề xuất tuần",
+         "value": 3
+        }
+       ]
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q5.lessons_7d",
+         "label": "Bài học có bằng chứng 7 ngày qua",
+         "value": 3
+        },
+        {
+         "id": "q5.latest",
+         "label": "Bài học mới nhất",
+         "value": "Khách hỏi phí gia hạn trước khi để lại liên hệ"
+        }
+       ]
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q6.week",
+         "label": "Tuần của kế hoạch",
+         "value": "2026-11-09"
+        },
+        {
+         "id": "q6.total_old",
+         "label": "Ngân sách tuần hiện tại (USD)",
+         "value": 1703
+        },
+        {
+         "id": "q6.total_new",
+         "label": "Ngân sách tuần đề xuất (USD)",
+         "value": 1118
+        },
+        {
+         "id": "q6.needs_jimmy",
+         "label": "Cần anh Jimmy duyệt",
+         "value": true
+        },
+        {
+         "id": "q6.status",
+         "label": "Trạng thái kế hoạch",
+         "value": "pending"
+        },
+        {
+         "id": "q6.nba_pending",
+         "label": "NBA còn chờ Amy",
+         "value": 7
+        },
+        {
+         "id": "q6.partner_top",
+         "label": "Đối tác lợi nhuận cao nhất tháng",
+         "value": "P-1"
+        },
+        {
+         "id": "q6.partner_top_usd",
+         "label": "Lợi nhuận của đối tác đó (USD)",
+         "value": 702
+        }
+       ]
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 43.76
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 2
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 1.0
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 3,
+    "must_cover": [
+     3,
+     6,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  },
+  {
+   "id": "TC-003",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu [5]",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q1.deals",
+         "label": "Deal Closed Won đã nạp",
+         "value": 23
+        },
+        {
+         "id": "q1.direct",
+         "label": "Deal khách trực tiếp",
+         "value": 19
+        },
+        {
+         "id": "q1.reseller",
+         "label": "Deal khách cuối của reseller",
+         "value": 19
+        }
+       ]
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q2.segments",
+         "label": "Persona đủ mẫu",
+         "value": 2
+        },
+        {
+         "id": "q2.top",
+         "label": "Nhóm lớn nhất",
+         "value": "Hong Kong · IBC"
+        },
+        {
+         "id": "q2.top_deals",
+         "label": "Deal của nhóm lớn nhất",
+         "value": 29
+        }
+       ]
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 14
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 7
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": true
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 0
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q4.win",
+         "label": "Chiến dịch thắng Win gate",
+         "value": 3
+        },
+        {
+         "id": "q4.not_win",
+         "label": "Chiến dịch chưa thắng",
+         "value": 4
+        },
+        {
+         "id": "q4.insufficient",
+         "label": "Chiến dịch thiếu mẫu",
+         "value": 4
+        },
+        {
+         "id": "q4.scale",
+         "label": "Tổ hợp đề xuất tăng (R6)",
+         "value": 1
+        },
+        {
+         "id": "q4.stop",
+         "label": "Tổ hợp đề xuất giảm hoặc dừng (R5)",
+         "value": 2
+        },
+        {
+         "id": "q4.hooks_proposed",
+         "label": "Hook đề xuất tuần",
+         "value": 3
+        }
+       ]
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "insufficient",
+       "reason": "Chưa có bài học mới kèm bằng chứng trong 7 ngày.",
+       "facts": []
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q6.week",
+         "label": "Tuần của kế hoạch",
+         "value": "2026-11-09"
+        },
+        {
+         "id": "q6.total_old",
+         "label": "Ngân sách tuần hiện tại (USD)",
+         "value": 1699
+        },
+        {
+         "id": "q6.total_new",
+         "label": "Ngân sách tuần đề xuất (USD)",
+         "value": 1085
+        },
+        {
+         "id": "q6.needs_jimmy",
+         "label": "Cần anh Jimmy duyệt",
+         "value": false
+        },
+        {
+         "id": "q6.status",
+         "label": "Trạng thái kế hoạch",
+         "value": "pending"
+        },
+        {
+         "id": "q6.nba_pending",
+         "label": "NBA còn chờ Amy",
+         "value": 7
+        },
+        {
+         "id": "q6.partner_top",
+         "label": "Đối tác lợi nhuận cao nhất tháng",
+         "value": "P-1"
+        },
+        {
+         "id": "q6.partner_top_usd",
+         "label": "Lợi nhuận của đối tác đó (USD)",
+         "value": 633
+        }
+       ]
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 18.43
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 1
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 0.47
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 3,
+    "must_cover": [
+     3,
+     6,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  },
+  {
+   "id": "TC-004",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu [4, 6]",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q1.deals",
+         "label": "Deal Closed Won đã nạp",
+         "value": 49
+        },
+        {
+         "id": "q1.direct",
+         "label": "Deal khách trực tiếp",
+         "value": 16
+        },
+        {
+         "id": "q1.reseller",
+         "label": "Deal khách cuối của reseller",
+         "value": 3
+        }
+       ]
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q2.segments",
+         "label": "Persona đủ mẫu",
+         "value": 1
+        },
+        {
+         "id": "q2.top",
+         "label": "Nhóm lớn nhất",
+         "value": "Hong Kong · IBC"
+        },
+        {
+         "id": "q2.top_deals",
+         "label": "Deal của nhóm lớn nhất",
+         "value": 30
+        }
+       ]
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 45
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 4
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": true
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 2
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "insufficient",
+       "reason": "Chưa có kết quả theo chiến dịch.",
+       "facts": []
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q5.lessons_7d",
+         "label": "Bài học có bằng chứng 7 ngày qua",
+         "value": 6
+        },
+        {
+         "id": "q5.latest",
+         "label": "Bài học mới nhất",
+         "value": "Khách hỏi phí gia hạn trước khi để lại liên hệ"
+        }
+       ]
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "insufficient",
+       "reason": "Chưa có kế hoạch ngân sách tuần (khung quyết định).",
+       "facts": []
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 20.09
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 0
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 0.98
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 3,
+    "must_cover": [
+     3,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  },
+  {
+   "id": "TC-005",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu [1, 2, 5]",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "insufficient",
+       "reason": "Chưa nạp file Closed Won thật.",
+       "facts": []
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "insufficient",
+       "reason": "Chưa nạp file Closed Won thật.",
+       "facts": []
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 26
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 6
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": true
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 3
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q4.win",
+         "label": "Chiến dịch thắng Win gate",
+         "value": 3
+        },
+        {
+         "id": "q4.not_win",
+         "label": "Chiến dịch chưa thắng",
+         "value": 1
+        },
+        {
+         "id": "q4.insufficient",
+         "label": "Chiến dịch thiếu mẫu",
+         "value": 2
+        },
+        {
+         "id": "q4.scale",
+         "label": "Tổ hợp đề xuất tăng (R6)",
+         "value": 2
+        },
+        {
+         "id": "q4.stop",
+         "label": "Tổ hợp đề xuất giảm hoặc dừng (R5)",
+         "value": 2
+        },
+        {
+         "id": "q4.hooks_proposed",
+         "label": "Hook đề xuất tuần",
+         "value": 3
+        }
+       ]
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "insufficient",
+       "reason": "Chưa có bài học mới kèm bằng chứng trong 7 ngày.",
+       "facts": []
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q6.week",
+         "label": "Tuần của kế hoạch",
+         "value": "2026-11-09"
+        },
+        {
+         "id": "q6.total_old",
+         "label": "Ngân sách tuần hiện tại (USD)",
+         "value": 1007
+        },
+        {
+         "id": "q6.total_new",
+         "label": "Ngân sách tuần đề xuất (USD)",
+         "value": 777
+        },
+        {
+         "id": "q6.needs_jimmy",
+         "label": "Cần anh Jimmy duyệt",
+         "value": true
+        },
+        {
+         "id": "q6.status",
+         "label": "Trạng thái kế hoạch",
+         "value": "pending"
+        },
+        {
+         "id": "q6.nba_pending",
+         "label": "NBA còn chờ Amy",
+         "value": 7
+        },
+        {
+         "id": "q6.partner_top",
+         "label": "Đối tác lợi nhuận cao nhất tháng",
+         "value": "P-1"
+        },
+        {
+         "id": "q6.partner_top_usd",
+         "label": "Lợi nhuận của đối tác đó (USD)",
+         "value": 840
+        }
+       ]
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 17.95
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 0
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 0.77
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 3,
+    "must_cover": [
+     3,
+     6,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  },
+  {
+   "id": "TC-006",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu [6]",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q1.deals",
+         "label": "Deal Closed Won đã nạp",
+         "value": 45
+        },
+        {
+         "id": "q1.direct",
+         "label": "Deal khách trực tiếp",
+         "value": 14
+        },
+        {
+         "id": "q1.reseller",
+         "label": "Deal khách cuối của reseller",
+         "value": 20
+        }
+       ]
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q2.segments",
+         "label": "Persona đủ mẫu",
+         "value": 3
+        },
+        {
+         "id": "q2.top",
+         "label": "Nhóm lớn nhất",
+         "value": "Hong Kong · IBC"
+        },
+        {
+         "id": "q2.top_deals",
+         "label": "Deal của nhóm lớn nhất",
+         "value": 7
+        }
+       ]
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 36
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 7
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": false
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 0
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q4.win",
+         "label": "Chiến dịch thắng Win gate",
+         "value": 0
+        },
+        {
+         "id": "q4.not_win",
+         "label": "Chiến dịch chưa thắng",
+         "value": 3
+        },
+        {
+         "id": "q4.insufficient",
+         "label": "Chiến dịch thiếu mẫu",
+         "value": 3
+        },
+        {
+         "id": "q4.scale",
+         "label": "Tổ hợp đề xuất tăng (R6)",
+         "value": 2
+        },
+        {
+         "id": "q4.stop",
+         "label": "Tổ hợp đề xuất giảm hoặc dừng (R5)",
+         "value": 0
+        },
+        {
+         "id": "q4.hooks_proposed",
+         "label": "Hook đề xuất tuần",
+         "value": 3
+        }
+       ]
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q5.lessons_7d",
+         "label": "Bài học có bằng chứng 7 ngày qua",
+         "value": 6
+        },
+        {
+         "id": "q5.latest",
+         "label": "Bài học mới nhất",
+         "value": "Khách hỏi phí gia hạn trước khi để lại liên hệ"
+        }
+       ]
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "insufficient",
+       "reason": "Chưa có kế hoạch ngân sách tuần (khung quyết định).",
+       "facts": []
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 5.44
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 8
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 0.94
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 3,
+    "must_cover": [
+     3,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  },
+  {
+   "id": "TC-007",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu [2]",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q1.deals",
+         "label": "Deal Closed Won đã nạp",
+         "value": 83
+        },
+        {
+         "id": "q1.direct",
+         "label": "Deal khách trực tiếp",
+         "value": 45
+        },
+        {
+         "id": "q1.reseller",
+         "label": "Deal khách cuối của reseller",
+         "value": 8
+        }
+       ]
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "insufficient",
+       "reason": "Chưa nạp file Closed Won thật.",
+       "facts": []
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 29
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 4
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": false
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 0
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q4.win",
+         "label": "Chiến dịch thắng Win gate",
+         "value": 0
+        },
+        {
+         "id": "q4.not_win",
+         "label": "Chiến dịch chưa thắng",
+         "value": 0
+        },
+        {
+         "id": "q4.insufficient",
+         "label": "Chiến dịch thiếu mẫu",
+         "value": 3
+        },
+        {
+         "id": "q4.scale",
+         "label": "Tổ hợp đề xuất tăng (R6)",
+         "value": 2
+        },
+        {
+         "id": "q4.stop",
+         "label": "Tổ hợp đề xuất giảm hoặc dừng (R5)",
+         "value": 1
+        },
+        {
+         "id": "q4.hooks_proposed",
+         "label": "Hook đề xuất tuần",
+         "value": 3
+        }
+       ]
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q5.lessons_7d",
+         "label": "Bài học có bằng chứng 7 ngày qua",
+         "value": 6
+        },
+        {
+         "id": "q5.latest",
+         "label": "Bài học mới nhất",
+         "value": "Khách hỏi phí gia hạn trước khi để lại liên hệ"
+        }
+       ]
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q6.week",
+         "label": "Tuần của kế hoạch",
+         "value": "2026-11-09"
+        },
+        {
+         "id": "q6.total_old",
+         "label": "Ngân sách tuần hiện tại (USD)",
+         "value": 1811
+        },
+        {
+         "id": "q6.total_new",
+         "label": "Ngân sách tuần đề xuất (USD)",
+         "value": 819
+        },
+        {
+         "id": "q6.needs_jimmy",
+         "label": "Cần anh Jimmy duyệt",
+         "value": false
+        },
+        {
+         "id": "q6.status",
+         "label": "Trạng thái kế hoạch",
+         "value": "pending"
+        },
+        {
+         "id": "q6.nba_pending",
+         "label": "NBA còn chờ Amy",
+         "value": 11
+        },
+        {
+         "id": "q6.partner_top",
+         "label": "Đối tác lợi nhuận cao nhất tháng",
+         "value": "P-1"
+        },
+        {
+         "id": "q6.partner_top_usd",
+         "label": "Lợi nhuận của đối tác đó (USD)",
+         "value": 1630
+        }
+       ]
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 44.61
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 8
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 0.44
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 3,
+    "must_cover": [
+     3,
+     6,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  },
+  {
+   "id": "TC-008",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu [1, 2, 4, 5, 6]",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "insufficient",
+       "reason": "Chưa nạp file Closed Won thật.",
+       "facts": []
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "insufficient",
+       "reason": "Chưa nạp file Closed Won thật.",
+       "facts": []
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 34
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 3
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": false
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 2
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "insufficient",
+       "reason": "Chưa có kết quả theo chiến dịch.",
+       "facts": []
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "insufficient",
+       "reason": "Chưa có bài học mới kèm bằng chứng trong 7 ngày.",
+       "facts": []
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "insufficient",
+       "reason": "Chưa có kế hoạch ngân sách tuần (khung quyết định).",
+       "facts": []
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 43.8
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 5
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 0.99
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 2,
+    "must_cover": [
+     3,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  },
+  {
+   "id": "TC-009",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu [4]",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q1.deals",
+         "label": "Deal Closed Won đã nạp",
+         "value": 76
+        },
+        {
+         "id": "q1.direct",
+         "label": "Deal khách trực tiếp",
+         "value": 20
+        },
+        {
+         "id": "q1.reseller",
+         "label": "Deal khách cuối của reseller",
+         "value": 4
+        }
+       ]
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q2.segments",
+         "label": "Persona đủ mẫu",
+         "value": 4
+        },
+        {
+         "id": "q2.top",
+         "label": "Nhóm lớn nhất",
+         "value": "Hong Kong · IBC"
+        },
+        {
+         "id": "q2.top_deals",
+         "label": "Deal của nhóm lớn nhất",
+         "value": 5
+        }
+       ]
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 5
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 9
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": true
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 0
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "insufficient",
+       "reason": "Chưa có kết quả theo chiến dịch.",
+       "facts": []
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q5.lessons_7d",
+         "label": "Bài học có bằng chứng 7 ngày qua",
+         "value": 6
+        },
+        {
+         "id": "q5.latest",
+         "label": "Bài học mới nhất",
+         "value": "Khách hỏi phí gia hạn trước khi để lại liên hệ"
+        }
+       ]
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q6.week",
+         "label": "Tuần của kế hoạch",
+         "value": "2026-11-09"
+        },
+        {
+         "id": "q6.total_old",
+         "label": "Ngân sách tuần hiện tại (USD)",
+         "value": 1296
+        },
+        {
+         "id": "q6.total_new",
+         "label": "Ngân sách tuần đề xuất (USD)",
+         "value": 1903
+        },
+        {
+         "id": "q6.needs_jimmy",
+         "label": "Cần anh Jimmy duyệt",
+         "value": false
+        },
+        {
+         "id": "q6.status",
+         "label": "Trạng thái kế hoạch",
+         "value": "pending"
+        },
+        {
+         "id": "q6.nba_pending",
+         "label": "NBA còn chờ Amy",
+         "value": 4
+        },
+        {
+         "id": "q6.partner_top",
+         "label": "Đối tác lợi nhuận cao nhất tháng",
+         "value": "P-1"
+        },
+        {
+         "id": "q6.partner_top_usd",
+         "label": "Lợi nhuận của đối tác đó (USD)",
+         "value": 1460
+        }
+       ]
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 59.47
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 1
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 0.4
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 3,
+    "must_cover": [
+     3,
+     6,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  },
+  {
+   "id": "TC-010",
+   "description": "Gói số tổng hợp, thiếu dữ liệu câu [5, 6]",
+   "input": {
+    "pack": {
+     "weekStart": "2026-11-09",
+     "answers": [
+      {
+       "question": 1,
+       "title": "Khách hiện tại là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q1.deals",
+         "label": "Deal Closed Won đã nạp",
+         "value": 49
+        },
+        {
+         "id": "q1.direct",
+         "label": "Deal khách trực tiếp",
+         "value": 38
+        },
+        {
+         "id": "q1.reseller",
+         "label": "Deal khách cuối của reseller",
+         "value": 12
+        }
+       ]
+      },
+      {
+       "question": 2,
+       "title": "Khách tiềm năng là ai?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q2.segments",
+         "label": "Persona đủ mẫu",
+         "value": 1
+        },
+        {
+         "id": "q2.top",
+         "label": "Nhóm lớn nhất",
+         "value": "Hong Kong · IBC"
+        },
+        {
+         "id": "q2.top_deals",
+         "label": "Deal của nhóm lớn nhất",
+         "value": 11
+        }
+       ]
+      },
+      {
+       "question": 3,
+       "title": "Đầu ra, bảng giá 45 tài phán và kênh đã sẵn sàng chưa?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q3.price_locked",
+         "label": "Tài phán đã khoá giá",
+         "value": 45
+        },
+        {
+         "id": "q3.price_total",
+         "label": "Tổng tài phán",
+         "value": 45
+        },
+        {
+         "id": "q3.skd_done",
+         "label": "File SKD đã có",
+         "value": 8
+        },
+        {
+         "id": "q3.sandbox_ready",
+         "label": "Sandbox8 sẵn sàng nghiệm thu",
+         "value": true
+        },
+        {
+         "id": "q3.channel_issues",
+         "label": "Tài khoản kênh có vấn đề",
+         "value": 1
+        }
+       ]
+      },
+      {
+       "question": 4,
+       "title": "Hook và kênh nào thực sự hoạt động?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q4.win",
+         "label": "Chiến dịch thắng Win gate",
+         "value": 1
+        },
+        {
+         "id": "q4.not_win",
+         "label": "Chiến dịch chưa thắng",
+         "value": 3
+        },
+        {
+         "id": "q4.insufficient",
+         "label": "Chiến dịch thiếu mẫu",
+         "value": 0
+        },
+        {
+         "id": "q4.scale",
+         "label": "Tổ hợp đề xuất tăng (R6)",
+         "value": 0
+        },
+        {
+         "id": "q4.stop",
+         "label": "Tổ hợp đề xuất giảm hoặc dừng (R5)",
+         "value": 1
+        },
+        {
+         "id": "q4.hooks_proposed",
+         "label": "Hook đề xuất tuần",
+         "value": 3
+        }
+       ]
+      },
+      {
+       "question": 5,
+       "title": "Bài học sau mỗi chu kỳ?",
+       "status": "insufficient",
+       "reason": "Chưa có bài học mới kèm bằng chứng trong 7 ngày.",
+       "facts": []
+      },
+      {
+       "question": 6,
+       "title": "Điều chỉnh chiến lược và ngân sách?",
+       "status": "insufficient",
+       "reason": "Chưa có kế hoạch ngân sách tuần (khung quyết định).",
+       "facts": []
+      },
+      {
+       "question": 7,
+       "title": "Fleet đang vận hành ra sao?",
+       "status": "ok",
+       "facts": [
+        {
+         "id": "q7.cost_usd",
+         "label": "Chi phí LLM tháng (USD)",
+         "value": 50.4
+        },
+        {
+         "id": "q7.cap_usd",
+         "label": "Trần chi phí tháng (USD)",
+         "value": 100
+        },
+        {
+         "id": "q7.unseen_runs",
+         "label": "Phiên chưa ai xem",
+         "value": 0
+        },
+        {
+         "id": "q7.decision_rate",
+         "label": "Tỷ lệ Amy quyết tuần trước",
+         "value": 0.99
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expected_output": {
+    "min_statements": 3,
+    "must_cover": [
+     3,
+     7
+    ]
+   },
+   "pass_criteria": "Đúng dạng JSON; không câu nào bị loại (số ngoài gói, mã sai); đủ số câu; có câu cho các câu hỏi bắt buộc"
+  }
+ ]
+}

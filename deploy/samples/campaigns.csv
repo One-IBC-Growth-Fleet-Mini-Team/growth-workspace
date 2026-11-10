@@ -1,4 +1,4 @@
-campaign,platform,period_start,period_end,spend_usd,leads,closed_won,gross_margin_usd,sales_cycle_complete
-Sample HK Q4,meta,2026-09-01,2026-10-31,1500,45,6,4800,true
-Sample SG Q4,google,2026-09-01,2026-10-31,2200,38,2,1200,true
-Sample BVI Q4,meta,2026-10-01,2026-11-30,600,12,0,0,false
+campaign,platform,jurisdiction,period_start,period_end,spend_usd,leads,closed_won,gross_margin_usd,sales_cycle_complete
+Sample HK Q4,meta,Hong Kong,2026-09-01,2026-10-31,1500,45,6,4800,true
+Sample SG Q4,google,Singapore,2026-09-01,2026-10-31,2200,38,2,1200,true
+Sample BVI Q4,meta,British Virgin Islands,2026-10-01,2026-11-30,600,12,0,0,false

@@ -161,3 +161,20 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - đủ 6 job hẹn giờ (9 lệnh) chạy xong; job thiếu cấu hình tự bỏ qua kèm mã lý do.
 
   Môi trường thử không có systemd nên `systemctl` được thay bằng bản giả chạy đúng `ExecStart` với `EnvironmentFile`; file unit qua `systemd-analyze verify`. Sửa chỗ chặn tìm được: lần cài đầu bắt buộc API key đúng dạng, giờ Enter để bỏ qua. Khi `ANTHROPIC_API_KEY` trống (`hasLlmKey()`): `/ask` báo chưa cấu hình, dán tự báo báo cần key, lượt 08:00 chạy NBA không LLM. Sửa câu báo "Đã tạo 1 mục mới trên Hàng chờ ()" khi chỉ có thông báo hệ thống.
+- **D-90** (10/11/2026, GĐ3 việc 1): bộ máy khung quyết định Awareness/Conversion theo `docs/spec/khung-quyet-dinh-awareness-conversion.md` (bản Tạm v0.1 của Mark), chỉ số `budget_framework`.
+  - Tổ hợp = Kênh × Tài phán. Kết quả chiến dịch thêm cột tùy chọn `jurisdiction` (migration 028; thêm cột cho nguồn có sẵn, không thêm nguồn). Ngân sách hiện tại lấy từ chi tiêu tuần gần nhất trong báo cáo Meta/Google; mục tiêu hiện tại lấy từ kế hoạch đã duyệt gần nhất.
+  - Chỗ chưa đo được theo tổ hợp nên dùng số chung: tầng 3B và TRACKING_DEGRADED là số toàn site; G2 chỉ xét khoá giá (tổ hợp chưa có quốc gia nên chưa xét verify Meta); tỷ lệ chốt (closed_won / leads) thay cho Lead → Opportunity ở R4; tỷ trọng A/C chỉ báo lệch, không tự cân lại.
+  - Mỗi tuần một kế hoạch (`budget_plans`, chỉ thêm), CRON-07 tạo ở bước đầu (Mi1-mkt-01, tool `draft_budget_change`), Mark cũng bấm tạo được. Chỉ Mark duyệt; tổng thay đổi vượt 10% thì cờ "cần anh Jimmy" (anh Jimmy không đăng nhập, duyệt ngoài hệ thống). Không có code nào áp ngân sách lên nền tảng.
+  - Tham số là giá trị tạm `budget_framework`; đổi ở `/tuning` chỉ ghi được khi lượt eval gần nhất pass và chạy sau lần đổi trước.
+  - Demo: Storyboard mẫu DEMO-IR-1 ghi tài phán Hong Kong (trước để trống), nên tên bundle mẫu đổi thành `oneibc_meta_hong-kong_hk-01_...`.
+- **D-91** (10/11/2026, GĐ3 việc 2): đề xuất chiến lược tuần ở `/strategy`.
+  - `buildStrategyPack` gom số từ các hàm đã có thành gói theo 7 câu hỏi đầu ra; mỗi số có mã (ví dụ `q3.price_locked`). Gói gồm thêm nháp ngân sách tuần (D-90), số tổ hợp đề xuất tăng (R6) hay giảm, dừng (R5), Hook đề xuất, NBA còn chờ, đối tác lợi nhuận cao nhất tháng, bài học mới có bằng chứng. Câu hỏi thiếu dữ liệu ghi "chưa đủ dữ liệu" kèm lý do do code viết.
+  - LLM chỉ viết lời dẫn dạng `{text, refs}`. Bộ kiểm loại câu không có mã, có mã lạ hoặc mã của câu hỏi thiếu dữ liệu, hoặc có số không nằm trong giá trị của các mã được trỏ (cho phép số câu hỏi 1 tới 7).
+  - Eval Gate riêng `evals/mi1-strategy/` (10 ca gói số tổng hợp, ngưỡng 0,8), chạy bằng `bun run eval:strategy`. Chưa pass hoặc chưa có API key thì trang khoá như `/ask`.
+  - Qua bộ điều phối: lượt cha `strategy`, bước Mi1 với tool `draft_strategy` (tên tool không chứa "write" theo T-FLEET-05). Nháp lưu chỉ thêm (migration 029). Chỉ Mark soạn và duyệt; bản Mark duyệt hiện trên `/digest` của tuần đó. Không tự áp thay đổi nào.
+  - Demo: LLM giả viết mỗi câu hỏi có dữ liệu một câu từ đúng số trong gói.
+- **D-92** (10/11/2026, GĐ3 việc 3): `/command/data.json` và `commandPayload` (`src/fleet/command-json.ts`) là nguồn dữ liệu duy nhất của Command Center; `/command` bản phẳng dựng từ cùng object, bản 3D sẽ đọc JSON này.
+  - Mở cho cả 4 vai trò (spec 3D mục 2 có module cho Amy và Team MKT). Module theo đúng bảng spec 3D mục 2, mỗi module có tóm tắt số và link trang thật.
+  - Việc chờ Mark (escalate của Amy, kế hoạch ngân sách chờ duyệt, đề xuất chiến lược chờ duyệt) chỉ trả cho Mark và BOD.
+  - Team MKT không thấy đầu vào từng bước, vì câu hỏi của người khác có thể chứa mã khách.
+  - Module "Ngân sách" của Team MKT chỉ có số tổng hợp, không link: `/budget` là trang có tiền, MKT không vào được (D-63). Spec 3D ghi link `/budget` cho MKT; cần Mark chốt.

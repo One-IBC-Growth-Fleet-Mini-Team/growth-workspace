@@ -1,4 +1,5 @@
 // Trang Hàng chờ (design doc mục 5.7): nhóm theo loại, thẻ có đề xuất, luật, điểm tự tin, tuổi mục, link, nút.
+import type { StrategyDraft } from "../../mi1/strategy-run.ts";
 import { METRIC_PARAMS } from "../../config.ts";
 import { REASON_CODES, REASON_LABELS, type ReasonCode } from "../../agents/sa-01/catalog.ts";
 import type { QueueEventRow, QueueItemRow } from "../../db/queue.ts";
@@ -323,9 +324,10 @@ ${b.today.length ? html`<table class="kv">${b.today.map((t) => html`<tr><td>${TY
 </ul></section>`);
 }
 
-export function renderDigestPage(d: Digest): string {
+export function renderDigestPage(d: Digest, strategy: StrategyDraft | null = null): string {
   return shell("Digest tuần", html`<h1>Digest tuần ${ddmm(d.weekStart)} tới ${ddmm(d.weekEnd)}</h1>
 <p><a href="/queue">Mở Hàng chờ</a> · <a href="/digest?week=${d.prevWeek}">Tuần trước</a></p>
+${strategy ? html`<section><h2>Đề xuất chiến lược tuần (Mark đã duyệt)</h2><ol>${strategy.statements.map((x) => html`<li>${x.text}</li>`)}</ol><p class="meta"><a href="/strategy">Gói số đầy đủ</a></p></section>` : ""}
 <div class="status ${d.gate2 ? "green" : "yellow"}">Cổng 2 tuần này: ${d.gate2 ? "đạt" : "chưa đạt"} (Amy mở Hàng chờ ${d.openDays} ngày, cần 3; quyết ${pct(d.decisionRate)} mục, cần 80%).</div>
 <section><h2>Mục và quyết định</h2><table class="kv">
 <tr><td>Mục được tạo</td><td>${d.created.length ? d.created.map((c) => `${TYPE_TEXT[c.type] ?? c.type} ${c.count}`).join(", ") : "không có"}</td></tr>

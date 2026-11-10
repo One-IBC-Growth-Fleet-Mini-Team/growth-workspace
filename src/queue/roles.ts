@@ -4,7 +4,7 @@
 import type { QueueUser } from "./auth.ts";
 
 export const MKT_PATHS: ReadonlySet<string> = new Set([
-  "/hooks", "/creative", "/ads-check", "/ads-overview", "/competitors", "/channels", "/jurisdictions", "/banks", "/data", "/market", "/lessons", "/ask", "/tasks", "/samples", "/overview", "/huong-dan", "/password", "/persona",
+  "/hooks", "/creative", "/ads-check", "/ads-overview", "/competitors", "/channels", "/jurisdictions", "/banks", "/data", "/market", "/lessons", "/ask", "/tasks", "/samples", "/overview", "/huong-dan", "/password", "/persona", "/command",
 ]);
 // MKT chỉ được POST ở việc không tốn tiền và không đổi dữ liệu dùng chung (D-63, D-66): kiểm mẫu quảng cáo, hỏi Mi1,
 // tạo Storyboard (chưa gọi model trả phí), phân tích bước 7, ghi bài học. Nạp file giá, sandbox, kênh, kéo MCP, duyệt

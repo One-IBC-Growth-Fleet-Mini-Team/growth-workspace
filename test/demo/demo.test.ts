@@ -42,7 +42,7 @@ describe("Bản demo", () => {
     const hooks = await (await page(mkt, "/hooks")).text();
     expect(hooks).toContain("Dữ liệu mẫu");
     expect(hooks).toContain("HK-01");
-    expect(await (await page(mkt, "/creative")).text()).toContain("oneibc_meta_all_hk-01_20261109_v1");
+    expect(await (await page(mkt, "/creative")).text()).toContain("oneibc_meta_hong-kong_hk-01_20261109_v1");
     expect((await page(mkt, "/budget")).status).toBe(403);
     const budget = await (await page(await as("mark"), "/budget")).text();
     expect(budget).toContain("Sample HK Q4");

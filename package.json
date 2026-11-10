@@ -10,6 +10,7 @@
     "db:migrate": "bun run src/db/migrate.ts",
     "eval:sa01": "bun run src/agents/sa-01/eval/main.ts",
     "eval:mi1": "bun run src/mi1/eval-main.ts",
+    "eval:strategy": "bun run src/mi1/strategy-eval-main.ts",
     "job:etl-crm": "bun run src/jobs/etl-crm.ts",
     "job:sa01-morning": "bun run src/jobs/sa01-morning.ts",
     "queue:serve": "bun run src/queue/server.ts",

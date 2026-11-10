@@ -88,6 +88,7 @@ import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, export
 import { renderCreativePage } from "./views/creative.ts";
 import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
 import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
+import { createWeeklyPlan, decidePlan, latestPlan } from "../db/budget-plan.ts";
 import { renderBudgetPage } from "./views/budget.ts";
 import { importMarketCsv, pullMarketScan } from "../crm/market-import.ts";
 import { buildMarketBoard } from "../db/market.ts";
@@ -109,10 +110,13 @@ import { renderAskPage } from "./views/ask.ts";
 import { renderTasksPage } from "./views/tasks.ts";
 import { buildTaskDrafts } from "../mi1/task-drafts.ts";
 import { askMi1 } from "../mi1/ask.ts";
-import { buildCommandData } from "../fleet/command-data.ts";
+import { commandPayload } from "../fleet/command-json.ts";
 import { readEvalScores } from "../fleet/eval-scores.ts";
 import { parseDisabled } from "../fleet/registry.ts";
 import { renderCommandPage } from "./views/command.ts";
+import { renderStrategyPage } from "./views/strategy.ts";
+import { approvedStrategy, decideStrategy, generateStrategy, latestStrategy } from "../mi1/strategy-run.ts";
+import { readStrategyEvalGate } from "../mi1/strategy-eval.ts";
 import { renderPersonaPage } from "./views/persona.ts";
 import { closedWonMessage, importClosedWon } from "../crm/closed-won-import.ts";
 import { buildPersonaBoard } from "../db/persona.ts";
@@ -167,6 +171,8 @@ export type QueueAppDeps = {
   askLlm?: { llm: LlmClient; price: TokenPrice; evalGate: () => { passed: boolean; version: string } };
   // Điều phối Mi1 (D-82): thuyền viên đang tắt (FLEET_DISABLED) và điểm eval gần nhất cho /command.
   fleetDisabled?: ReadonlySet<string>;
+  // Đề xuất chiến lược tuần (D-91): cổng eval riêng; LLM dùng chung với askLlm.
+  strategyGate?: () => { passed: boolean; version: string };
   evalScores?: () => Record<string, number | null>;
 };
 
@@ -268,8 +274,14 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     return renderCreativePage({ storyboards: listStoryboards(deps.db), connected: deps.creativeSource?.mode === "mcp", hooks, schedule: buildScheduleDraft(deps.db, now()), rejections: repeatedRejections(deps.db, now()), csrf: session.csrf, message });
   }
 
+  function strategyPage(session: Session, message: string | null): string {
+    const gate = deps.strategyGate?.() ?? { passed: false, version: "none" };
+    const locked = !deps.askLlm ? "Chưa cấu hình LLM (API key) nên chưa soạn được lời dẫn." : !gate.passed ? "Bộ eval đề xuất chiến lược chưa pass (bun run eval:strategy, ngưỡng 0,8) nên chưa soạn được." : null;
+    return renderStrategyPage({ draft: latestStrategy(deps.db), locked, canWrite: userOf(session).id === "mark", csrf: session.csrf, message });
+  }
+
   function budgetPage(session: Session, message: string | null): string {
-    return renderBudgetPage({ board: buildBudgetBoard(deps.db, now()), canPull: deps.adsSource?.mode === "mcp", csrf: session.csrf, message });
+    return renderBudgetPage({ board: buildBudgetBoard(deps.db, now()), plan: latestPlan(deps.db), canDecidePlan: userOf(session).id === "mark", canPull: deps.adsSource?.mode === "mcp", csrf: session.csrf, message });
   }
 
   function marketPage(session: Session, message: string | null): string {
@@ -415,7 +427,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       // Mặc định là tuần vừa xong (Digest đọc sáng thứ Hai, CRON-08).
       const w = url.searchParams.get("week");
       const week = w && /^\d{4}-\d{2}-\d{2}$/.test(w) ? mondayOf(w) : mondayOf(vnDate(new Date(now().getTime() - 7 * 86_400_000)));
-      return respond(renderDigestPage(buildDigest(deps.db, week, now())), 200, { "content-type": "text/html; charset=utf-8" });
+      return respond(renderDigestPage(buildDigest(deps.db, week, now()), approvedStrategy(deps.db, week)), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/jurisdictions") {
@@ -501,10 +513,16 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(renderTasksPage(buildTaskDrafts(deps.db, now())), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
-    if (req.method === "GET" && path === "/command") {
+    if (req.method === "GET" && path === "/strategy") {
       if (!session) return redirect("/login");
-      if (userOf(session).role !== "viewer") return text(403, "Trang điều phối dành cho Mark và BOD.");
-      const data = buildCommandData(deps.db, now(), deps.fleetDisabled ?? new Set(), deps.evalScores?.() ?? {});
+      return respond(strategyPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && (path === "/command" || path === "/command/data.json")) {
+      if (!session) return redirect("/login");
+      // Một payload cho cả bản phẳng, JSON và 3D (D-92); lọc theo vai trò trong commandPayload.
+      const data = commandPayload(deps.db, now(), userOf(session), deps.fleetDisabled ?? new Set(), deps.evalScores?.() ?? {});
+      if (path === "/command/data.json") return respond(JSON.stringify(data), 200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
       return respond(renderCommandPage(data), 200, { "content-type": "text/html; charset=utf-8", refresh: "5" });
     }
 
@@ -745,8 +763,18 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       }
 
       // Tầng 5 (D-45): nạp kết quả rồi tạo nháp bằng code; duyệt chỉ ghi quyết định, ghi người duyệt.
-      if (path === "/budget" || path === "/budget/decide") {
+      if (path === "/budget" || path === "/budget/decide" || path === "/budget/plan") {
         const by = { now: now(), actor: userOf(session).id };
+        // Kế hoạch tuần theo khung quyết định (D-90): chỉ Mark tạo và duyệt; vượt ngưỡng thì cần anh Jimmy ngoài hệ thống.
+        if (path === "/budget/plan") {
+          if (by.actor !== "mark") return text(403, "Chỉ Mark tạo và duyệt kế hoạch ngân sách.");
+          if (form.get("op") === "create") {
+            const r = createWeeklyPlan(deps.db, now(), by.actor);
+            return respond(budgetPage(session, r.created ? `Đã tạo kế hoạch tuần với ${r.lines} tổ hợp.` : "Tuần này đã có kế hoạch."), 200, { "content-type": "text/html; charset=utf-8" });
+          }
+          const r = decidePlan(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), by);
+          return respond(budgetPage(session, r === "ok" ? "Đã ghi quyết định cho kế hoạch tuần." : "Chưa ghi. Không thấy kế hoạch hoặc quyết định không hợp lệ."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+        }
         if (path === "/budget/decide") {
           const r = decideBudgetDraft(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), by);
           return respond(budgetPage(session, r === "ok" ? "Đã ghi quyết định." : "Chưa ghi. Không thấy nháp hoặc quyết định không hợp lệ."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
@@ -780,6 +808,19 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(marketPage(session, msg), ok ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
+      if (path === "/strategy") {
+        const actor = userOf(session).id;
+        if (actor !== "mark") return text(403, "Chỉ Mark soạn và duyệt đề xuất chiến lược.");
+        if (form.get("op") === "write") {
+          const gate = deps.strategyGate?.() ?? { passed: false, version: "none" };
+          if (!deps.askLlm || !gate.passed) return respond(strategyPage(session, null), 422, { "content-type": "text/html; charset=utf-8" });
+          const r = await generateStrategy(deps.db, deps.askLlm.llm, { now: now(), actor, price: deps.askLlm.price, evalGate: gate, disabled: deps.fleetDisabled });
+          return respond(strategyPage(session, r.status === "created" ? `Đã soạn: ${r.kept} câu giữ, ${r.dropped} câu loại.` : `Chưa soạn được (${r.errorCode}).`), r.status === "created" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+        }
+        const r = decideStrategy(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), { now: now(), actor });
+        return respond(strategyPage(session, r === "ok" ? "Đã ghi quyết định." : "Chưa ghi."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
       if (path === "/ask") {
         if (!deps.askLlm) return respond(renderAskPage({ configured: false, q: "", result: null, csrf: session.csrf }), 422, { "content-type": "text/html; charset=utf-8" });
         const q = String(form.get("q") ?? "").slice(0, 500);
@@ -797,7 +838,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const key = String(form.get("key") ?? "");
           const raw = String(form.get("value") ?? "").trim();
           const cur = listProvisional().find((p) => p.key === key);
-          code = setProvisional(key, raw || JSON.stringify(cur?.value ?? null), form.get("status") === "FINAL" ? "FINAL" : "PROVISIONAL", by);
+          code = setProvisional(key, raw || JSON.stringify(cur?.value ?? null), form.get("status") === "FINAL" ? "FINAL" : "PROVISIONAL", { ...by, evalRun: deps.evalRun?.() });
         } else if (form.get("op") === "activate") code = activateTuning(deps.db, String(form.get("id") ?? ""), deps.evalRun?.() ?? { ranAt: null, passed: false }, by);
         else { const r = proposeTuning(deps.db, String(form.get("param") ?? ""), String(form.get("value") ?? ""), by); code = r.status === "ok" ? "ok" : r.errorCode; }
         return respond(tuningPage(session, code === "ok" ? "Đã ghi." : `Chưa ghi. ${why[code] ?? ""}`), code === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
@@ -964,6 +1005,7 @@ if (import.meta.main) {
     evalRun: () => latestEvalRun(getEvalResultsDir(root)),
     fleetDisabled: parseDisabled(process.env.FLEET_DISABLED),
     evalScores: () => readEvalScores(getEvalResultsDir(root)),
+    strategyGate: () => readStrategyEvalGate(getEvalResultsDir(root)),
     db,
     sessionSecret: cfg.sessionSecret,
     baseUrl: cfg.baseUrl,
