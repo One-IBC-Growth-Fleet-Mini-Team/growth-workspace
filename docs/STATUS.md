@@ -23,7 +23,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## Việc tiếp theo
 
-1. Cấu hình nguồn thương hiệu One IBC cho creative-factory-v2 (`CF_BRANDS_DIR`, `CF_SHEET_ID`) để Storyboard dùng nội dung Hook thay vì ví dụ mặc định; trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
+1. Merge markng-byte/creative-factory-v2#21 (Storyboard theo Hook, mỗi Hook một mã IR). Sau đó nhập brief, campaign, brand One IBC cho creative-factory-v2 (`CF_SHEET_ID` và mã tab, hoặc `CF_BRANDS_DIR`) để các cảnh còn lại và lời kêu gọi không dùng ví dụ mặc định; trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
 2. Trang persona tổng hợp cho Team MKT: để sau, cần dữ liệu Closed Won từ CRM.
 
 ## Đang bị chặn
@@ -43,4 +43,4 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 ## PR đang mở
 
 - growth-workspace: PR file mẫu khớp nhau, demo nối creative-factory-v2 (D-84).
-- creative-factory-v2: không có PR mở.
+- creative-factory-v2: markng-byte/creative-factory-v2#21.
