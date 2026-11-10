@@ -4,7 +4,7 @@ import { REASON_CODES, REASON_LABELS, type ReasonCode } from "../../agents/sa-01
 import type { QueueEventRow, QueueItemRow } from "../../db/queue.ts";
 import { WO_TOUCH_REASONS, type WoBoardRow } from "../../db/wo.ts";
 import type { Brief, Digest } from "../../mi1/core.ts";
-import { ddmm } from "../../time.ts";
+import { ddmm, vnShortTime } from "../../time.ts";
 import type { QueueUser } from "../auth.ts";
 import { NBA_ACTIONS, RM_OUTCOMES } from "../items.ts";
 import { html, SafeHtml } from "./html.ts";
@@ -157,6 +157,17 @@ function rmListText(payload: Record<string, unknown>): string {
   return lines.join("\n");
 }
 
+const ACTION_TEXT: Record<string, string> = { confirm: "Xác nhận", edit: "Sửa", reject: "Bác", escalate: "Escalate", pii_flag: "Báo PII", rm_outcome: "Phản hồi RM" };
+// Lịch sử quyết định trên thẻ (D-74): quyết định mới nhất thắng; Bác luôn kèm lý do (đã qua lọc PII).
+function historyLine(item: PageItem): SafeHtml | string {
+  const ev = item.events.filter((e) => e.action in ACTION_TEXT);
+  if (!ev.length) return "";
+  return html`<div class="meta">Lịch sử: ${ev.map((e, i) => {
+    const reason = e.action === "reject" && e.payload ? String((JSON.parse(e.payload) as { reason?: string }).reason ?? "") : "";
+    return html`${i ? "; " : ""}${vnShortTime(e.created_at)} ${e.actor} ${ACTION_TEXT[e.action]}${reason ? ` (${reason})` : ""}`;
+  })}</div>`;
+}
+
 function card(item: PageItem, user: QueueUser, csrf: string, now: Date, threshold: number): SafeHtml {
   const payload = JSON.parse(item.effectivePayload) as Record<string, unknown>;
   const inputs = JSON.parse(item.confidence_inputs) as Record<string, unknown>;
@@ -168,6 +179,7 @@ function card(item: PageItem, user: QueueUser, csrf: string, now: Date, threshol
   return html`<article class="card" id="item-${item.id}">
 <div class="meta">${displayState(item)} · tuổi ${ageText(item.created_at, now)} · điểm tự tin ${item.confidence.toFixed(2)} ${item.confidence < threshold ? html`<strong>(dưới ${threshold.toFixed(2).replace(".", ",")})</strong>` : ""}</div>
 ${itemBody(item, payload)}
+${historyLine(item)}
 <details class="tech"><summary>Chi tiết kỹ thuật</summary><div class="meta">Luật: ${rules.length ? rules.join(", ") : "không"} · Thành phần điểm: ${JSON.stringify(inputs)}</div><pre>${JSON.stringify(payload, null, 2)}</pre></details>
 ${link ? html`<div><a href="${link}" rel="noreferrer">Mở bản gốc trong Teams</a></div>` : ""}
 ${confirmed ? html`<details><summary>Danh sách cho RM</summary><textarea readonly rows="4">${rmListText(payload)}</textarea></details>` : ""}
@@ -299,7 +311,7 @@ export function renderBriefPage(b: Brief): string {
 <p><a href="/queue">Mở Hàng chờ</a></p>
 <section><h2>Hàng chờ hôm nay</h2>
 ${b.today.length ? html`<table class="kv">${b.today.map((t) => html`<tr><td>${TYPE_TEXT[t.type] ?? t.type}</td><td>${t.total} mục</td><td>${t.pending} chờ duyệt</td></tr>`)}</table>` : html`<p class="meta">Chưa có mục nào hôm nay.</p>`}
-<p>Tổng ${b.todayTotal.total} mục, ${b.todayTotal.pending} chờ duyệt. Dự kiến mỗi ngày làm việc khoảng ${b.forecastItems} mục (trung bình 7 ngày qua).</p></section>
+<p>Hàng chờ hôm nay: ${b.todayTotal.total} mục, ${b.todayTotal.pending} chờ duyệt.${b.forecastItems > 0 ? ` Trung bình 7 ngày trước: khoảng ${b.forecastItems} mục mỗi ngày làm việc.` : ""}</p></section>
 <section><h2>Cần chú ý</h2><ul>
 <li>Còn chờ từ ngày trước: <strong>${b.carryover.count}</strong> mục${b.carryover.oldestHours !== null ? html`, lâu nhất ${hours(b.carryover.oldestHours)}` : ""}.</li>
 <li>Quá hạn đã áp mặc định "giữ nháp" trong 24 giờ qua: ${b.defaultsLast24h} mục (Amy vẫn quyết lại được).</li>

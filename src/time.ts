@@ -33,3 +33,9 @@ export function endOfVnWorkday(date: string): string {
 export function ddmm(date: string): string {
   return `${date.slice(8, 10)}/${date.slice(5, 7)}`;
 }
+
+// "dd/mm hh:mm" theo giờ Việt Nam, cho dòng lịch sử trên thẻ (D-74).
+export function vnShortTime(iso: string): string {
+  const t = new Date(Date.parse(iso) + 7 * 3600_000).toISOString();
+  return `${t.slice(8, 10)}/${t.slice(5, 7)} ${t.slice(11, 16)}`;
+}
