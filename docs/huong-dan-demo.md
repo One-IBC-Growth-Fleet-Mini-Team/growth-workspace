@@ -44,6 +44,8 @@ Khi thấy dòng "Bản demo Hàng chờ đang chạy", mở Chrome hoặc Edge:
 
 Mọi trang có dải "Dữ liệu mẫu": số liệu giả nạp từ `deploy/samples`.
 
+Thử Creative với creative-factory-v2 thật (không bắt buộc): trong thư mục creative-factory-v2 chạy `pnpm install`, `pnpm -r --filter "@creative-factory/mcp-server..." build`, rồi `PORT=8787 node packages/mcp-server/dist/main.js`. Sau đó mở demo bằng `CREATIVE_SOURCE=mcp CREATIVE_MCP_URL=http://127.0.0.1:8787 bun run demo`. Trên trang Creative: Team MKT bấm Tạo Storyboard; Mark bấm Duyệt, Chạy tạo ảnh, video, Đóng gói; Team MKT bấm Phân tích. Khi chưa cấu hình nguồn thương hiệu One IBC (`CF_BRANDS_DIR`, `CF_SHEET_ID` bên creative-factory-v2), Storyboard dùng ví dụ mặc định của creative-factory-v2, không phải nội dung Hook.
+
 Tắt: quay lại cửa sổ lệnh, nhấn Ctrl+C.
 
 Ghi chú: điểm tự tin trong demo thấp và nhiều mục có nút Escalate, vì bộ eval hiện mới có 10 ca tổng hợp (cần khoảng 30 ca Amy xác nhận). Mỗi thẻ đang hiện dữ liệu dạng thô; giao diện dễ đọc hơn sẽ làm trước khi đưa Amy dùng. Demo đã chạy thử trên Linux; Mac và Windows chưa thử trực tiếp, gặp lỗi thì chụp màn hình cửa sổ lệnh gửi lại.

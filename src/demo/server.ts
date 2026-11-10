@@ -21,6 +21,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setProvisionalPaths } from "../provisional.ts";
+import { getRemoteSource } from "../config.ts";
 import type { LlmClient } from "../agents/sa-01/llm.ts";
 
 // LLM giả cho /ask của demo: chọn truy vấn mẫu theo từ khoá trong câu hỏi.
@@ -124,6 +125,9 @@ export async function createDemo(now: Date = new Date()) {
   // Tài khoản demo cho 4 vai trò (D-75): /login?as=amy|mark|mkt|bod.
   const users: [string, QueueUser][] = [["amy", { id: "amy", role: "approver" }], ["mark", { id: "mark", role: "viewer" }], ["mkt", { id: "mkt", role: "mkt" }], ["bod", { id: "bod", role: "viewer" }]];
   const inner = createQueueApp({
+    // Creative Factory (D-84): mặc định không nối. Chạy creative-factory-v2 trên máy rồi đặt CREATIVE_SOURCE=mcp,
+    // CREATIVE_MCP_URL=http://127.0.0.1:8787 để thử Tạo Storyboard, chạy pipeline, phân tích trên demo.
+    creativeSource: getRemoteSource("CREATIVE"),
     // Hỏi Mi1 với LLM giả (D-82): chọn mẫu theo từ khoá, chi phí 0. Bản thật dùng ANTHROPIC_API_KEY.
     askLlm: { llm: demoAskLlm(), price: { inputUsdPerMTok: 0, outputUsdPerMTok: 0 }, evalGate: () => ({ passed: true, version: "demo" }) },
     db,
