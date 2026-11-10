@@ -18,6 +18,10 @@ export const PROVISIONAL_SCHEMAS = {
   tier4_repeat: z.object({ min_count: z.number().int().positive(), window_days: z.number().int().positive() }),
   q09_stage_weights: z.record(z.string(), Num),
   persona: z.object({ min_deals: z.number().int().positive() }),
+  budget_framework: z.object({
+    a_share: Rate, test_budget_share: Rate, max_step: Rate, r5_cut: Rate, min_days_between_changes: z.number().int().nonnegative(), jimmy_total_change_share: Rate,
+    r2_min_impressions: Num, r2_min_contacts: Num, r3_flag_weeks: z.number().int().positive(), r5_stop_after_cycles: z.number().int().positive(), weekly_total_usd: Num.nullable(),
+  }),
 } as const;
 export type ProvisionalKey = keyof typeof PROVISIONAL_SCHEMAS;
 export type ProvisionalStatus = "PROVISIONAL" | "FINAL";
@@ -81,9 +85,28 @@ export function tag(key: ProvisionalKey): string {
 }
 
 // Mark sửa giá trị hoặc chuyển FINAL ở /tuning. Giá trị sai dạng thì không ghi.
-export function setProvisional(key: string, valueJson: string, status: ProvisionalStatus, opts: { now: Date; actor: string }): "ok" | "ONLY_MARK" | "KEY_UNKNOWN" | "VALUE_INVALID" {
+// Khoá đổi quyết định tiền phải qua eval như các tham số ở /tuning (D-90): lượt eval gần nhất pass và chạy sau lần đổi trước.
+const EVAL_GATED: ReadonlySet<string> = new Set(["budget_framework"]);
+function lastSetAt(key: string): string | null {
+  const f = currentPaths().overrides;
+  if (!existsSync(f)) return null;
+  let at: string | null = null;
+  for (const line of readFileSync(f, "utf8").split("\n")) {
+    try { const o = JSON.parse(line) as { key?: string; at?: string }; if (o.key === key && o.at) at = o.at; } catch { /* dòng trống */ }
+  }
+  return at;
+}
+
+export function setProvisional(key: string, valueJson: string, status: ProvisionalStatus, opts: { now: Date; actor: string; evalRun?: { ranAt: string | null; passed: boolean } }): "ok" | "ONLY_MARK" | "KEY_UNKNOWN" | "VALUE_INVALID" | "EVAL_FAILED" | "EVAL_NOT_RERUN" {
   if (opts.actor !== "mark") return "ONLY_MARK";
   if (!(key in PROVISIONAL_SCHEMAS)) return "KEY_UNKNOWN";
+  if (EVAL_GATED.has(key)) {
+    const run = opts.evalRun ?? { ranAt: null, passed: false };
+    if (!run.ranAt) return "EVAL_NOT_RERUN";
+    if (!run.passed) return "EVAL_FAILED";
+    const prev = lastSetAt(key);
+    if (prev && run.ranAt <= prev) return "EVAL_NOT_RERUN";
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(valueJson);

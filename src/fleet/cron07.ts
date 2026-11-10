@@ -1,9 +1,10 @@
-// CRON-07 bản Tạm (D-87; spec mục 10 chỉ có tên "Vòng lặp Harness tuần"): 02:00 thứ Hai, Hook đề xuất của tuần chưa có
+// CRON-07 bản Tạm (D-87, D-90: bước đầu là kế hoạch ngân sách tuần theo khung quyết định; spec mục 10 chỉ có tên "Vòng lặp Harness tuần"): 02:00 thứ Hai, Hook đề xuất của tuần chưa có
 // Storyboard thì Mi1-mkt-02 gọi creative-factory-v2 bước 1 (compile) để có Storyboard chờ Mark duyệt ở /creative.
 // Không tạo ảnh, video (bước tốn tiền vẫn chờ Mark duyệt Storyboard); không gọi LLM. Tắt bằng giá trị tạm cron07.enabled.
 import type { Database } from "bun:sqlite";
 import { LLM_MONTHLY_CAP_USD } from "../config.ts";
 import { compileFromHook } from "../creative/factory.ts";
+import { createWeeklyPlan } from "../db/budget-plan.ts";
 import { buildHookBoard } from "../db/hooks.ts";
 import type { RemoteTarget } from "../mcp/remote.ts";
 import { getProvisional } from "../provisional.ts";
@@ -20,6 +21,11 @@ export async function runCron07(db: Database, now: Date, disabled: ReadonlySet<s
   const compiled: string[] = [];
   const failed: string[] = [];
   if (s.ended) return done(s.ended.reason ?? "SESSION_ENDED");
+  // Kế hoạch ngân sách tuần theo khung quyết định (D-90); không cần creative-factory.
+  await s.call("mi1-mkt-01", "draft_budget_change", "kết quả chiến dịch, báo cáo tuần, Win gate, các tầng", () => {
+    const p = createWeeklyPlan(db, now, "mi1-cron-07");
+    return { value: p, resultSummary: p.created ? `Kế hoạch tuần ${p.lines} tổ hợp chờ Mark duyệt` : "Tuần này đã có kế hoạch" };
+  });
   if (!connect) {
     s.end("blocked", "CREATIVE_NOT_CONNECTED");
     return done("CREATIVE_NOT_CONNECTED");

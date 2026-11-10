@@ -88,6 +88,7 @@ import { compileFromHook, decideStoryboard, listStoryboards, runPipeline, export
 import { renderCreativePage } from "./views/creative.ts";
 import { importCampaignCsv, importCampaignsFromMcp } from "../crm/campaign-import.ts";
 import { buildBudgetBoard, decideBudgetDraft, proposeBudgetDrafts } from "../db/budget.ts";
+import { createWeeklyPlan, decidePlan, latestPlan } from "../db/budget-plan.ts";
 import { renderBudgetPage } from "./views/budget.ts";
 import { importMarketCsv, pullMarketScan } from "../crm/market-import.ts";
 import { buildMarketBoard } from "../db/market.ts";
@@ -269,7 +270,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   }
 
   function budgetPage(session: Session, message: string | null): string {
-    return renderBudgetPage({ board: buildBudgetBoard(deps.db, now()), canPull: deps.adsSource?.mode === "mcp", csrf: session.csrf, message });
+    return renderBudgetPage({ board: buildBudgetBoard(deps.db, now()), plan: latestPlan(deps.db), canDecidePlan: userOf(session).id === "mark", canPull: deps.adsSource?.mode === "mcp", csrf: session.csrf, message });
   }
 
   function marketPage(session: Session, message: string | null): string {
@@ -745,8 +746,18 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       }
 
       // Tầng 5 (D-45): nạp kết quả rồi tạo nháp bằng code; duyệt chỉ ghi quyết định, ghi người duyệt.
-      if (path === "/budget" || path === "/budget/decide") {
+      if (path === "/budget" || path === "/budget/decide" || path === "/budget/plan") {
         const by = { now: now(), actor: userOf(session).id };
+        // Kế hoạch tuần theo khung quyết định (D-90): chỉ Mark tạo và duyệt; vượt ngưỡng thì cần anh Jimmy ngoài hệ thống.
+        if (path === "/budget/plan") {
+          if (by.actor !== "mark") return text(403, "Chỉ Mark tạo và duyệt kế hoạch ngân sách.");
+          if (form.get("op") === "create") {
+            const r = createWeeklyPlan(deps.db, now(), by.actor);
+            return respond(budgetPage(session, r.created ? `Đã tạo kế hoạch tuần với ${r.lines} tổ hợp.` : "Tuần này đã có kế hoạch."), 200, { "content-type": "text/html; charset=utf-8" });
+          }
+          const r = decidePlan(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), by);
+          return respond(budgetPage(session, r === "ok" ? "Đã ghi quyết định cho kế hoạch tuần." : "Chưa ghi. Không thấy kế hoạch hoặc quyết định không hợp lệ."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+        }
         if (path === "/budget/decide") {
           const r = decideBudgetDraft(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), by);
           return respond(budgetPage(session, r === "ok" ? "Đã ghi quyết định." : "Chưa ghi. Không thấy nháp hoặc quyết định không hợp lệ."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
@@ -797,7 +808,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const key = String(form.get("key") ?? "");
           const raw = String(form.get("value") ?? "").trim();
           const cur = listProvisional().find((p) => p.key === key);
-          code = setProvisional(key, raw || JSON.stringify(cur?.value ?? null), form.get("status") === "FINAL" ? "FINAL" : "PROVISIONAL", by);
+          code = setProvisional(key, raw || JSON.stringify(cur?.value ?? null), form.get("status") === "FINAL" ? "FINAL" : "PROVISIONAL", { ...by, evalRun: deps.evalRun?.() });
         } else if (form.get("op") === "activate") code = activateTuning(deps.db, String(form.get("id") ?? ""), deps.evalRun?.() ?? { ranAt: null, passed: false }, by);
         else { const r = proposeTuning(deps.db, String(form.get("param") ?? ""), String(form.get("value") ?? ""), by); code = r.status === "ok" ? "ok" : r.errorCode; }
         return respond(tuningPage(session, code === "ok" ? "Đã ghi." : `Chưa ghi. ${why[code] ?? ""}`), code === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });

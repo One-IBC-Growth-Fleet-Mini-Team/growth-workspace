@@ -37,7 +37,7 @@ export function seedDemoSamples(db: Database, now: Date): void {
   importPartners(db, { Partner: f("partner.csv"), Referral: f("referral.csv") }, { columns: {}, ...by });
   // Một Storyboard đã duyệt, QA PASS, đã đóng gói: để thấy nháp lịch kênh, tên bundle trên /creative.
   const at = now.toISOString();
-  db.run("INSERT INTO storyboards (creative_ir_id, hook_id, jurisdiction, title, scenes, created_at, actor) VALUES ('DEMO-IR-1', 'HK-01', NULL, 'Mở công ty HK trong 7 ngày', '[\"Cảnh 1: hồ sơ online\",\"Cảnh 2: 7 ngày\",\"Cảnh 3: bảng giá\"]', ?, 'demo')", [at]);
+  db.run("INSERT INTO storyboards (creative_ir_id, hook_id, jurisdiction, title, scenes, created_at, actor) VALUES ('DEMO-IR-1', 'HK-01', 'Hong Kong', 'Mở công ty HK trong 7 ngày', '[\"Cảnh 1: hồ sơ online\",\"Cảnh 2: 7 ngày\",\"Cảnh 3: bảng giá\"]', ?, 'demo')", [at]);
   db.run("INSERT INTO storyboard_decisions (id, creative_ir_id, decision, note, decided_at, actor) VALUES (?, 'DEMO-IR-1', 'approve', NULL, ?, 'mark')", [Bun.randomUUIDv7(), at]);
   db.run("INSERT INTO creative_runs (id, creative_ir_id, run_at, actor, qa_status, assets) VALUES (?, 'DEMO-IR-1', ?, 'mark', 'PASS', 26)", [Bun.randomUUIDv7(), at]);
   db.run("INSERT INTO creative_exports (id, creative_ir_id, package_id, bundles, exported_at, actor) VALUES (?, 'DEMO-IR-1', 'DEMO-PKG-1', ?, ?, 'mark')",

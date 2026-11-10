@@ -48,7 +48,7 @@ describe("T-CRON07 Harness tuần (Tạm)", () => {
     expect(calls.sort()).toEqual(["compile:HK-01", "compile:SG-01"]);
     const s = latestSession(db)!;
     expect(s).toMatchObject({ trigger: "cron-07", status: "succeeded" });
-    expect(s.steps.map((x) => [x.crewId, x.tool, x.status])).toEqual([["mi1-mkt-02", "compile_creative_ir", "succeeded"], ["mi1-mkt-02", "compile_creative_ir", "succeeded"]]);
+    expect(s.steps.map((x) => [x.crewId, x.tool, x.status])).toEqual([["mi1-mkt-01", "draft_budget_change", "succeeded"], ["mi1-mkt-02", "compile_creative_ir", "succeeded"], ["mi1-mkt-02", "compile_creative_ir", "succeeded"]]);
     const again = await runCron07(db, NOW, new Set(), () => target(calls));
     expect(again.compiled).toEqual([]);
     expect(calls.length).toBe(2);

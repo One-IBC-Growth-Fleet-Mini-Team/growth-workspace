@@ -161,3 +161,9 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - đủ 6 job hẹn giờ (9 lệnh) chạy xong; job thiếu cấu hình tự bỏ qua kèm mã lý do.
 
   Môi trường thử không có systemd nên `systemctl` được thay bằng bản giả chạy đúng `ExecStart` với `EnvironmentFile`; file unit qua `systemd-analyze verify`. Sửa chỗ chặn tìm được: lần cài đầu bắt buộc API key đúng dạng, giờ Enter để bỏ qua. Khi `ANTHROPIC_API_KEY` trống (`hasLlmKey()`): `/ask` báo chưa cấu hình, dán tự báo báo cần key, lượt 08:00 chạy NBA không LLM. Sửa câu báo "Đã tạo 1 mục mới trên Hàng chờ ()" khi chỉ có thông báo hệ thống.
+- **D-90** (10/11/2026, GĐ3 việc 1): bộ máy khung quyết định Awareness/Conversion theo `docs/spec/khung-quyet-dinh-awareness-conversion.md` (bản Tạm v0.1 của Mark), chỉ số `budget_framework`.
+  - Tổ hợp = Kênh × Tài phán. Kết quả chiến dịch thêm cột tùy chọn `jurisdiction` (migration 028; thêm cột cho nguồn có sẵn, không thêm nguồn). Ngân sách hiện tại lấy từ chi tiêu tuần gần nhất trong báo cáo Meta/Google; mục tiêu hiện tại lấy từ kế hoạch đã duyệt gần nhất.
+  - Chỗ chưa đo được theo tổ hợp nên dùng số chung: tầng 3B và TRACKING_DEGRADED là số toàn site; G2 chỉ xét khoá giá (tổ hợp chưa có quốc gia nên chưa xét verify Meta); tỷ lệ chốt (closed_won / leads) thay cho Lead → Opportunity ở R4; tỷ trọng A/C chỉ báo lệch, không tự cân lại.
+  - Mỗi tuần một kế hoạch (`budget_plans`, chỉ thêm), CRON-07 tạo ở bước đầu (Mi1-mkt-01, tool `draft_budget_change`), Mark cũng bấm tạo được. Chỉ Mark duyệt; tổng thay đổi vượt 10% thì cờ "cần anh Jimmy" (anh Jimmy không đăng nhập, duyệt ngoài hệ thống). Không có code nào áp ngân sách lên nền tảng.
+  - Tham số là giá trị tạm `budget_framework`; đổi ở `/tuning` chỉ ghi được khi lượt eval gần nhất pass và chạy sau lần đổi trước.
+  - Demo: Storyboard mẫu DEMO-IR-1 ghi tài phán Hong Kong (trước để trống), nên tên bundle mẫu đổi thành `oneibc_meta_hong-kong_hk-01_...`.

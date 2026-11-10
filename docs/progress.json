@@ -78,7 +78,8 @@
         "Bộ nạp Closed Won cho persona MKT, trang chờ dữ liệu thật (D-86)",
         "CRON-07 bản Tạm: Storyboard cho Hook đề xuất mỗi thứ Hai (D-87)",
         "Dựng persona từ deal Closed Won thật (D-88)",
-        "Chạy thử install.sh trọn vẹn; cài được khi chưa có API key (D-89)"
+        "Chạy thử install.sh trọn vẹn; cài được khi chưa có API key (D-89)",
+        "Khung quyết định Awareness/Conversion, kế hoạch ngân sách tuần (D-90)"
       ]
     }
   ]
