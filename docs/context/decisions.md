@@ -206,3 +206,9 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - **Hai lỗi tìm ra khi nghiệm thu, đã sửa:**
     - `screen.js` bỏ lỡ dữ liệu đọc trước khi module nạp, nên lượt bắt đầu trong 5 giây đầu bị coi là lượt cũ.
     - Dòng gợi ý bị giãn cao trên điện thoại.
+- **D-94** (10/11/2026, GĐ3 việc 5): bảng sẵn sàng Phụ lục B trên `/command`, có trong payload (`appendixB`), chỉ Mark và BOD thấy. Không xây mục nào của Phụ lục B. Mỗi hạng mục có điều kiện bật theo spec, tiến độ đo được và ai mở khoá:
+  - **/steer:** số tuần liền đạt Cổng 2, trên 4 tuần.
+  - **Sentinel-01:** số quyết định của người trong Hàng chờ, trên 50.
+  - **Monte-Carlo ngân sách:** Cổng 3, tức số mắt nối từ phiên tới Payment có dữ liệu nối được, cộng số chiến dịch đủ mẫu Win gate.
+  - **owned-channel-mcp:** hệ thống không đo được quyền API nền tảng, nên ghi "chưa ghi nhận", cần Mark xác nhận.
+  - **cross-audit:** theo Sentinel-01.

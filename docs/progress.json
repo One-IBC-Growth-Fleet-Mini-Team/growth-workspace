@@ -1,7 +1,7 @@
 {
   "_doc": "Tiến độ dự án cho trang /overview (hàng 4). Cập nhật trong cùng PR với mỗi việc. Phần trăm là ước tính theo spec v0.3.2.",
   "updated": "2026-11-09",
-  "overall_percent": 62,
+  "overall_percent": 75,
   "phases": [
     {
       "id": "GD0",
@@ -24,8 +24,8 @@
     {
       "id": "GD3",
       "name": "Học và điều chỉnh",
-      "percent": 0,
-      "note": "Không làm trong đợt này"
+      "percent": 70,
+      "note": "Đã có: khung quyết định ngân sách (Tạm), đề xuất chiến lược tuần, Command Center 3D, bảng sẵn sàng Phụ lục B. Phụ lục B chỉ bật khi đủ điều kiện."
     }
   ],
   "blocked": [
@@ -85,7 +85,8 @@
         "Command Center 3D phần (a): cảnh, Mi1, bệ xoay, ảnh dự phòng, tự về bản phẳng (D-93)",
         "Command Center 3D phần (b): vệ tinh module, nhãn ẩn, bảng kính mờ, Mi1 nhìn theo lựa chọn (D-93)",
         "Command Center 3D phần (c): đầu thuyền viên, màn hình tường hiện vết lượt chạy (D-93)",
-        "Command Center 3D phần (d): thanh động tác, âm thanh, gắn sự kiện thật; nghiệm thu spec mục 7 (D-93)"
+        "Command Center 3D phần (d): thanh động tác, âm thanh, gắn sự kiện thật; nghiệm thu spec mục 7 (D-93)",
+        "Bảng sẵn sàng Phụ lục B trên /command (D-94)"
       ]
     }
   ]

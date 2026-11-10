@@ -24,7 +24,8 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Đề xuất chiến lược tuần ở `/strategy`: gói số 7 câu hỏi đầu ra, lời dẫn của Mi1 chỉ dùng số trong gói, Eval Gate riêng 0,8, Mark duyệt thì vào Digest (D-91).
 - `/command/data.json`: một payload cho `/command` bản phẳng và bản 3D sắp làm; module theo vai trò, việc chờ Mark gồm kế hoạch ngân sách và đề xuất chiến lược (D-92).
 - Command Center 3D ở `/command/3d`: phòng lab, Mi1 trên bệ xoay 360°, vệ tinh module, bảng kính mờ, đầu thuyền viên, màn hình tường hiện vết lượt chạy, thanh động tác và âm thanh; tự về bản phẳng khi không WebGL hoặc giảm chuyển động (D-93).
-- `bun test`: 428 pass, `tsc --strict` sạch.
+- Bảng sẵn sàng Phụ lục B trên `/command` (Mark, BOD): mỗi hạng mục, điều kiện bật, tiến độ đo được, ai mở khoá; không xây mục nào của Phụ lục B (D-94).
+- `bun test`: 430 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
@@ -34,7 +35,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 1. Chạy creative-factory-v2 với `CF_PROFILE=one-ibc` (brand đúng spec mục 7, brief Tạm, CTA "Nhắn One IBC qua WhatsApp"; markng-byte/creative-factory-v2#22). Brief, campaign thật nhập sau qua Google Sheet. Trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
 2. Việt hoá câu nối Storyboard trong creative-factory-v2.
-3. GĐ3 theo `docs/kickoff/session-gd3.md`: bảng sẵn sàng Phụ lục B.
+3. Mark chốt các chỗ còn Tạm của GĐ3: khung quyết định (tỷ trọng A/C, biên ±20%, ngưỡng anh Jimmy), module Ngân sách của Team MKT, giọng văn và logo brand.
 
 ## Đang bị chặn
 
@@ -52,5 +53,5 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## PR đang mở
 
-- growth-workspace: #71 tới #74, rồi các PR Command Center 3D (D-93), merge theo thứ tự số.
+- growth-workspace: #71 tới #78, rồi PR bảng Phụ lục B (D-94), merge theo thứ tự số.
 - creative-factory-v2: không có PR mở.

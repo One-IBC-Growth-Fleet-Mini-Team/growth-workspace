@@ -13,10 +13,11 @@ import { latestStrategy } from "../mi1/strategy-run.ts";
 import type { QueueUser } from "../queue/auth.ts";
 import { monthPeriod, vnDate } from "../time.ts";
 import { buildCommandData } from "./command-data.ts";
+import { buildAppendixB, type ReadinessRow } from "./appendix-b.ts";
 
 export type Module = { id: string; label: string; href: string | null; summary: string };
 export type WaitingItem = { id: string; itemType: string; ageHours: number };
-export type CommandPayload = Omit<ReturnType<typeof buildCommandData>, "waitingMark"> & { role: QueueUser["role"]; userId: string; generatedAt: string; waitingMark: WaitingItem[] | null; modules: Module[] };
+export type CommandPayload = Omit<ReturnType<typeof buildCommandData>, "waitingMark"> & { role: QueueUser["role"]; userId: string; generatedAt: string; waitingMark: WaitingItem[] | null; modules: Module[]; appendixB: ReadinessRow[] | null };
 
 const hoursSince = (now: Date, iso: string) => Math.floor((now.getTime() - Date.parse(iso)) / 3_600_000);
 
@@ -58,5 +59,7 @@ export function commandPayload(db: Database, now: Date, u: QueueUser, disabled: 
   const session = base.session && u.role === "mkt"
     ? { ...base.session, inputSummary: "(ẩn với Team MKT)", steps: base.session.steps.map((s) => ({ ...s, inputSummary: "(ẩn với Team MKT)" })) }
     : base.session;
-  return { ...base, session, waitingMark: waiting, role: u.role, userId: u.id, generatedAt: now.toISOString(), modules: modules(db, now, u, waiting?.length ?? 0, base.crew) };
+  return { ...base, session, waitingMark: waiting, role: u.role, userId: u.id, generatedAt: now.toISOString(), modules: modules(db, now, u, waiting?.length ?? 0, base.crew),
+    // Bảng sẵn sàng Phụ lục B (D-94): việc của Mark, BOD.
+    appendixB: u.role === "viewer" ? buildAppendixB(db, now) : null };
 }
