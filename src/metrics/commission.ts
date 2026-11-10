@@ -12,3 +12,10 @@ export function proposeCommission<T extends CommissionDeal>(deals: readonly T[],
     return { ...d, rate, amount_usd: Math.round(Math.max(0, d.profit_usd) * rate * 100) / 100, status: "proposed" };
   });
 }
+
+// Tổng hoa hồng đề xuất (chưa chi) của các dòng đã có số, cho ô trên /overview (D-76).
+export function totalProposedUsd(lines: readonly { amount_usd: number | null }[]): number {
+  let t = 0;
+  for (const l of lines) if (l.amount_usd !== null) t += l.amount_usd;
+  return Math.round(t * 100) / 100;
+}
