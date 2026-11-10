@@ -5,7 +5,8 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 
 // BOD xem như Mark (viewer); Team MKT chỉ thấy số tổng hợp (D-63, src/queue/roles.ts).
 export type QueueUser = { id: "amy" | "mark" | "mkt" | "bod"; role: "approver" | "viewer" | "mkt" };
-export type Session = { sub: QueueUser["id"]; csrf: string; exp: number };
+// iat: lúc cấp phiên (ms). Phiên cấp trước lần đổi mật khẩu gần nhất của tài khoản bị huỷ (D-85).
+export type Session = { sub: QueueUser["id"]; csrf: string; exp: number; iat?: number };
 
 export const SESSION_COOKIE = "gw_session";
 export const OIDC_COOKIE = "gw_oidc";
@@ -52,7 +53,7 @@ export function createSessionCookie(secret: string, s: Session): string {
 }
 
 export function newSession(user: QueueUser, now: Date): Session {
-  return { sub: user.id, csrf: randomBytes(24).toString("base64url"), exp: now.getTime() + SESSION_TTL_MS };
+  return { sub: user.id, csrf: randomBytes(24).toString("base64url"), exp: now.getTime() + SESSION_TTL_MS, iat: now.getTime() };
 }
 
 export function sessionSetCookie(secret: string, s: Session, secure = true): string {

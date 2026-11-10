@@ -11,6 +11,13 @@ export function currentPassword(db: Database, user: string): { hash: string; mus
   return r ? { hash: r.hash, mustChange: r.must_change === 1 } : null;
 }
 
+// Đổi mật khẩu (kể cả đặt lại bằng add-user) huỷ mọi phiên cấp trước đó của tài khoản (D-85). Phiên cũ chưa có iat
+// coi như cấp từ trước nên cũng bị huỷ nếu tài khoản đã có mật khẩu trong DB.
+export function sessionRevoked(db: Database, s: { sub: string; iat?: number }): boolean {
+  const r = db.query("SELECT MAX(set_at) AS t FROM user_passwords WHERE user_id = ?").get(s.sub) as { t: string | null } | null;
+  return r?.t ? (s.iat ?? 0) < Date.parse(r.t) : false;
+}
+
 export async function setPassword(db: Database, user: AccountId, password: string, opts: { mustChange: boolean; now: Date; actor: string }): Promise<void> {
   if (password.length < MIN_PASSWORD) throw new Error("PASSWORD_TOO_SHORT");
   const hash = await Bun.password.hash(password, { algorithm: "argon2id" });
