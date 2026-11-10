@@ -10,6 +10,7 @@ Team MKT dùng Growth Workspace để kiểm nội dung trước khi đăng, ch�
 4. **Lịch kênh**: trang Creative có "Nháp lịch đăng tuần" từ Creative đã duyệt, QA đạt, tài phán đã chốt giá. Chỉ là nháp; chép sang công cụ đăng.
 5. **Nháp việc** ("Nháp việc"): việc MKT soạn sẵn từ số liệu (sửa câu 2 tới 3 của copy, sửa trang đích). Chép sang Jira.
 6. **Tổng quan tuần**: trang Tổng quan, hàng "Growth": cờ từng tầng, Win gate, lịch kênh. Bấm vào ô để xem chi tiết.
+7. **Persona khách** (nhóm "Theo dõi"): hiện "Chờ dữ liệu thật" tới khi Amy nạp file Closed Won xuất từ CRM; trang không dựng persona từ dữ liệu mẫu.
 
 ## Nạp file
 

@@ -16,7 +16,8 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Mi1 Command Center bản phẳng: sổ thuyền viên `src/fleet/registry.ts`, điều phối lượt chạy cha và con cho `/ask` và CRON-06, trang `/command` cho Mark và BOD (D-82). Tắt thuyền viên bằng `FLEET_DISABLED`.
 - Nghiệm thu 4 vai trò trên demo (10/11/2026): mọi bước trong hướng dẫn đạt. Luồng Creative chạy được với creative-factory-v2 thật trên máy (Storyboard, duyệt, QA PASS, đóng gói chạy thử, phân tích).
 - Đổi mật khẩu cần mật khẩu cũ (trừ lần đầu với mật khẩu tạm); đổi xong huỷ mọi phiên khác của tài khoản (D-85).
-- `bun test`: 399 pass, `tsc --strict` sạch.
+- Persona MKT: bộ nạp CSV Closed Won (Opportunity, Account; không lưu tên hay mã khách) ở `/persona`, file mẫu trong `deploy/samples`. Chưa nạp thì trang hiện "Chờ dữ liệu thật" (D-86).
+- `bun test`: 402 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
@@ -25,13 +26,13 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 ## Việc tiếp theo
 
 1. Chạy creative-factory-v2 với `CF_PROFILE=one-ibc` (brand đúng spec mục 7, brief Tạm, CTA "Nhắn One IBC qua WhatsApp"; markng-byte/creative-factory-v2#22). Brief, campaign thật nhập sau qua Google Sheet. Trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
-2. Trang persona tổng hợp cho Team MKT: để sau, cần dữ liệu Closed Won từ CRM.
+2. Dựng persona trên `/persona` khi Amy đã nạp file Closed Won thật (bộ nạp đã có, D-86).
 
 ## Đang bị chặn
 
 | # | Việc | Cần gì | Ai gỡ |
 |---|---|---|---|
-| a | Dữ liệu CRM thật | File xuất hoặc API chỉ đọc Opportunity, Lead, Order | MobCEC |
+| a | Dữ liệu CRM thật | File xuất hoặc API chỉ đọc Opportunity, Lead, Order; file Closed Won cho persona | MobCEC |
 | b | Đọc channel Teams "Đồng bộ dữ liệu" | Đăng ký app Microsoft Graph | Admin tenant |
 | c | Bộ eval Mi1-sa-01 | Khoảng 30 ca Amy xác nhận | Amy |
 | d | Danh mục mã lý do từ chối | Amy và RM xác nhận | Amy, RM |
@@ -43,5 +44,5 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## PR đang mở
 
-- growth-workspace: PR đổi mật khẩu cần mật khẩu cũ, huỷ phiên khác (D-85).
+- growth-workspace: PR đổi mật khẩu (D-85), rồi PR nạp Closed Won cho persona (D-86), merge theo thứ tự.
 - creative-factory-v2: markng-byte/creative-factory-v2#22 (CF_PROFILE=one-ibc).

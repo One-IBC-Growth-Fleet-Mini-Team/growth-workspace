@@ -1,0 +1,4 @@
+Opportunity ID,Account ID,Stage,Close Date,Jurisdiction,Service Family,Amount
+OPP-CW-01,ACC-CW-01,Closed Won,15/09/2026,Hong Kong,IBC,1500
+OPP-CW-02,ACC-CW-02,Closed Won,02/10/2026,Singapore,BANK,2200
+OPP-CW-03,ACC-CW-03,Closed Lost,20/10/2026,Hong Kong,IBC,

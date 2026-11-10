@@ -9,6 +9,7 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | Cổng | Biến môi trường | Mặc định (chạy ngay) | Adapter khác đã có code | Adapter chờ hoặc để sau | Code |
 |---|---|---|---|---|---|
 | CRM (Opportunity, Client, Lead, Order) | `CRM_SOURCE` | `csv`: Amy tải file ở `/import`; bảng ghép cột ở `CRM_CSV_COLUMNS_PATH` | `api`: ETL chỉ đọc qua `CRM_API_BASE`, `CRM_API_TOKEN` (chờ MobCEC mở API, Q-01) | MCP của CRM nếu MobCEC cung cấp | `src/crm/csv-import.ts`, `src/crm/etl.ts`, `src/crm/http.ts` |
+| CRM Closed Won cho persona (D-86) | không có | `csv`: Amy tải file Opportunity Closed Won và Account ở `/persona`; chỉ đọc cột trong danh sách, không lưu tên hay mã khách | `api` cùng ETL chỉ đọc khi MobCEC mở API | | `src/crm/closed-won-import.ts` |
 | Tự báo RM | `REPORT_SOURCE` | `paste`: Amy dán thread ở `/paste` | `graph`: đọc channel Teams qua Microsoft Graph (chờ admin tenant, Q-02) | | `src/teams/paste-report.ts`, `src/teams/graph-read.ts` |
 | Đăng nhập Hàng chờ | `AUTH_MODE` | `password`: mã băm argon2id `AMY_PASSWORD_HASH`, `MARK_PASSWORD_HASH`; tuỳ chọn `MKT_PASSWORD_HASH`, `BOD_PASSWORD_HASH` (D-63) | `entra`: Microsoft Entra OIDC (chờ app Entra) | | `src/queue/auth.ts` |
 | Thông báo | `TEAMS_WEBHOOK_URL_AMY`, `TEAMS_WEBHOOK_URL_MARK` | để trống: không gửi gì | webhook Teams (chỉ ngày và link, D-11) | email, Slack | `src/teams/notify.ts` |
