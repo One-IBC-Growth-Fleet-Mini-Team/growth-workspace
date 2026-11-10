@@ -219,7 +219,6 @@ ${GROUPS.map((g) => {
     const list = visible.filter((i) => i.item_type === g.type);
     return html`<section><h2>${g.title} (${list.length})</h2>${list.length ? list.map((i) => card(i, args.user, args.csrf, args.now, args.threshold ?? METRIC_PARAMS.confidenceEscalateBelow)) : html`<p class="meta">Không có mục.</p>`}</section>`;
   })}
-<form method="post" action="/logout"><input type="hidden" name="csrf" value="${args.csrf}"><button type="submit">Đăng xuất</button></form>
 </body></html>`;
   return body.value;
 }

@@ -865,7 +865,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const u = userOf(s);
           const headers = new Headers();
           res.headers.forEach((v, k) => headers.append(k, v));
-          const body = decorate(await res.text(), u, deps.db, new URL(req.url).pathname);
+          const body = decorate(await res.text(), u, deps.db, new URL(req.url).pathname, s.csrf);
           return new Response(u.role === "mkt" ? stripForbiddenForms(u, body) : body, { status: res.status, headers });
         }
         return res;

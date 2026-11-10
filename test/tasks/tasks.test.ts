@@ -47,7 +47,8 @@ describe("T-TASK nháp việc", () => {
     const c = createSessionCookie(SECRET, { sub: "mark", csrf: "k", exp: Date.parse("2026-11-10T00:00:00Z") });
     const page = await (await app.fetch(new Request(`${BASE}/tasks`, { headers: { cookie: c } }))).text();
     expect(page).toContain("TRACKING_DEGRADED");
-    expect(page).not.toContain("<form");
+    // Chỉ có nút Đăng xuất của thanh điều hướng; không có form gửi nháp đi đâu.
+    expect(page.replace(/<form method="post" action="\/logout"[\s\S]*?<\/form>/, "")).not.toContain("<form");
     expect(await (await app.fetch(new Request(`${BASE}/queue`, { headers: { cookie: c } }))).text()).toContain('href="/tasks"');
   });
 });
