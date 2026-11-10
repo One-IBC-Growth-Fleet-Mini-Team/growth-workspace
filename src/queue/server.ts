@@ -110,7 +110,7 @@ import { renderAskPage } from "./views/ask.ts";
 import { renderTasksPage } from "./views/tasks.ts";
 import { buildTaskDrafts } from "../mi1/task-drafts.ts";
 import { askMi1 } from "../mi1/ask.ts";
-import { buildCommandData } from "../fleet/command-data.ts";
+import { commandPayload } from "../fleet/command-json.ts";
 import { readEvalScores } from "../fleet/eval-scores.ts";
 import { parseDisabled } from "../fleet/registry.ts";
 import { renderCommandPage } from "./views/command.ts";
@@ -518,10 +518,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(strategyPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
-    if (req.method === "GET" && path === "/command") {
+    if (req.method === "GET" && (path === "/command" || path === "/command/data.json")) {
       if (!session) return redirect("/login");
-      if (userOf(session).role !== "viewer") return text(403, "Trang điều phối dành cho Mark và BOD.");
-      const data = buildCommandData(deps.db, now(), deps.fleetDisabled ?? new Set(), deps.evalScores?.() ?? {});
+      // Một payload cho cả bản phẳng, JSON và 3D (D-92); lọc theo vai trò trong commandPayload.
+      const data = commandPayload(deps.db, now(), userOf(session), deps.fleetDisabled ?? new Set(), deps.evalScores?.() ?? {});
+      if (path === "/command/data.json") return respond(JSON.stringify(data), 200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
       return respond(renderCommandPage(data), 200, { "content-type": "text/html; charset=utf-8", refresh: "5" });
     }
 

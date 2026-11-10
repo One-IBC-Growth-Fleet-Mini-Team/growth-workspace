@@ -90,7 +90,7 @@ describe("T-FLEET điều phối Mi1", () => {
     expect(sumCostUsd([])).toBe(0);
   });
 
-  test("T-FLEET-06 /command: Mark và BOD xem vết CRON-06 và /ask, tự tải lại 5 giây; Amy và MKT không vào", async () => {
+  test("T-FLEET-06 /command: Mark và BOD xem vết CRON-06 và /ask, tự tải lại 5 giây; Amy và MKT không thấy việc chờ Mark", async () => {
     const db = freshDb();
     await runCron06(db, NOW, new Set());
     const { app } = makeApp(db, { fleetDisabled: new Set(["mi1-mkt-03"]), evalScores: () => ({ mi1: 0.9 }) });
@@ -106,7 +106,11 @@ describe("T-FLEET điều phối Mi1", () => {
       expect(page).toContain("Eval: 90%");
       expect(page).toContain("trần 100 USD");
     }
-    expect((await get(app, "/command", session(AMY).cookie)).status).toBe(403);
-    expect((await get(app, "/command", session({ id: "mkt", role: "mkt" }).cookie)).status).toBe(403);
+    // Từ D-92: mọi vai trò vào được (module theo vai), nhưng việc chờ Mark chỉ Mark, BOD thấy.
+    for (const u of [AMY, { id: "mkt", role: "mkt" } as const]) {
+      const r = await get(app, "/command", session(u).cookie);
+      expect(r.status).toBe(200);
+      expect(await r.text()).not.toContain("Việc chờ Mark");
+    }
   });
 });
