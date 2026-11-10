@@ -68,6 +68,12 @@ export function getEvalResultsDir(repoRoot: string, env: Env = process.env): str
 
 export type LlmPricing = { model: string; inputUsdPerMTok: number; outputUsdPerMTok: number };
 
+// API key Claude được để trống lúc cài và điền sau (D-89). Trống thì không gọi LLM: /ask báo chưa cấu hình, dán tự báo
+// báo cần key, lượt 08:00 chỉ làm NBA (không dùng LLM).
+export function hasLlmKey(env: Env = process.env): boolean {
+  return (env.ANTHROPIC_API_KEY ?? "").trim() !== "";
+}
+
 export function getLlmPricing(env: Env = process.env): LlmPricing {
   return {
     model: required(env, "LLM_MODEL"),

@@ -372,7 +372,8 @@ export function describeSa01(r: Pick<Sa01Result, "itemsCreated" | "summary">, pa
   const s = r.summary;
   const out: string[] = [];
   const kinds = Object.entries(s.created).map(([k, n]) => `${n} ${TYPE_TEXT[k] ?? k}`);
-  out.push(r.itemsCreated ? `Đã tạo ${r.itemsCreated} mục mới trên Hàng chờ (${kinds.join(", ")}).` : "Không tạo mục mới nào.");
+  // Chỉ có thông báo hệ thống (ví dụ eval chưa pass) thì ghi rõ, không để ngoặc rỗng.
+  out.push(r.itemsCreated ? `Đã tạo ${r.itemsCreated} mục mới trên Hàng chờ (${kinds.length ? kinds.join(", ") : "thông báo hệ thống"}).` : "Không tạo mục mới nào.");
   if (part === "paste") out.push(`Đọc được ${s.reports} bản tự báo.${s.piiMasked ? ` Đã che ${s.piiMasked} email, số điện thoại, giấy tờ hoặc đường dẫn.` : ""}`);
   if (s.duplicates > 0) out.push(`Bỏ qua ${s.duplicates} mục đã có trên Hàng chờ hôm nay (trùng).`);
   for (const n of s.notices) out.push(n);

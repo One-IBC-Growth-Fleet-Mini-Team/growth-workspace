@@ -2,7 +2,7 @@
 // crm-read-mcp chạy như tiến trình con qua stdio, mở Growth DB chỉ đọc.
 import { join } from "node:path";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { getDbPath, getEntraConfig, getEvalResultsDir, getGraphChannel, getLlmPricing, getQueueConfig, getReportSource, getTeamsWebhooks } from "../config.ts";
+import { getDbPath, getEntraConfig, getEvalResultsDir, getGraphChannel, getLlmPricing, hasLlmKey, getQueueConfig, getReportSource, getTeamsWebhooks } from "../config.ts";
 import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
 import { readEvalStats } from "../agents/sa-01/eval/runner.ts";
 import { runSa01 } from "../agents/sa-01/run.ts";
@@ -39,7 +39,8 @@ try {
     db,
     crm,
     graph: channel ? { client: createGraphClient({ getToken: createGraphTokenProvider(getEntraConfig()) }), ...channel } : null,
-    llm: createAnthropicLlm({ model: pricing.model }),
+    // Chưa có key thì không gọi LLM; NBA vẫn chạy (D-89).
+    llm: hasLlmKey() ? createAnthropicLlm({ model: pricing.model }) : null,
     pricing,
     evalStats: stats,
     evalVersion,
