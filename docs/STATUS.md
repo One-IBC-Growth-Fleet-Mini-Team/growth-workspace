@@ -184,7 +184,7 @@ Chỗ gãy hoặc dễ gây hiểu nhầm (chưa sửa; sửa ở PR riêng khi 
 4. **`/market` tràn ngang khoảng 50px ở 375px** (form nạp có mép phải tới 417px): ô chọn "Loại" có chữ dài (liệt kê tên cột trong option).
 5. **Hỏi Mi1 (`/ask`):** bản demo không có LLM giả cho trang này, nên chỉ thấy "Chưa cấu hình LLM"; chưa thử được luồng hỏi trên demo.
 6. **Demo thiếu dữ liệu mẫu cho các trang Mi1-mkt:** Hook, Creative, ngân sách, quảng cáo tuần, giá đối thủ, thị trường đều trống. Tầng 3B, Win gate, nháp lịch kênh, đóng gói, tên bundle không thấy được trên demo nếu không nạp tay.
-7. **Repo không có file CSV mẫu cho Amy** (CRM, đơn hàng, đối tác, WO, sự kiện, sheet giá, chiến dịch). Tên cột chỉ có trong dòng hướng dẫn trên trang hoặc trong code; lần chạy này phải đọc code để biết tên cột.
+7. Đã sửa (D-72). **Repo không có file CSV mẫu cho Amy** (CRM, đơn hàng, đối tác, WO, sự kiện, sheet giá, chiến dịch). Tên cột chỉ có trong dòng hướng dẫn trên trang hoặc trong code; lần chạy này phải đọc code để biết tên cột.
 8. **Demo chỉ có Amy và Mark:** `/login?as=` không có Team MKT, BOD, nên chưa thử phân quyền D-63, D-66 trên demo (đã có test HTTP T-ROLE).
 9. **Cần Amy xác nhận:** trên Hàng chờ, thẻ đã Xác nhận vẫn bấm Bác được (quyết định mới nhất thắng). Đúng thiết kế chỉ thêm, nhưng Amy nên biết bấm nhầm thì sửa bằng quyết định mới.
 

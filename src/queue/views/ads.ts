@@ -26,7 +26,7 @@ ${args.rows ? html`<section><h2>Kết quả (${args.rows.length})</h2><table cla
 <label>Description <input name="description" maxlength="200"></label>
 <button type="submit">Kiểm</button></form></section>
 <section><h2>Kiểm nhiều mẫu</h2><form method="post" action="/ads-check" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
-<label>CSV có cột id, jurisdiction, target_country, primary_text, headline, description <input type="file" name="batch" accept=".csv,text/csv"></label>
+<label>CSV có cột id, jurisdiction, target_country, primary_text, headline, description <input type="file" name="batch" accept=".csv,text/csv"> <span class="meta"><a href="/samples/ads-check-batch.csv" download>File mẫu</a></span></label>
 <button type="submit">Kiểm</button></form></section>
 <p class="meta">Từ cấm đang dùng${tag("k07_ad_words")}: ${args.rules.banned.join(", ")}. Cần người duyệt: ${args.rules.review.join(", ")}.</p>`);
 }

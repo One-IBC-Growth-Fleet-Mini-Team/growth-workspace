@@ -18,6 +18,6 @@ ${b.rows.map((r) => html`<tr><td>${r.jurisdiction}<br><span class="meta">${r.tie
 ${b.withoutCompetitor.length ? html`<p class="meta">Tài phán trong sheet FINAL chưa có giá đối thủ (${b.withoutCompetitor.length}): ${b.withoutCompetitor.join(", ")}.</p>` : ""}
 ${b.notInPriceSheet.length ? html`<p class="warn">Tên tài phán không có trong sheet FINAL: ${b.notInPriceSheet.join(", ")}.</p>` : ""}
 <section><h2>Nạp giá đối thủ</h2><form method="post" action="/competitors" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
-<label>CSV có cột competitor, jurisdiction, tier (starter, grow, premium), price_usd, source_url, collected_on <input type="file" name="prices" accept=".csv,text/csv"></label>
+<label>CSV có cột competitor, jurisdiction, tier (starter, grow, premium), price_usd, source_url, collected_on <input type="file" name="prices" accept=".csv,text/csv"> <span class="meta"><a href="/samples/competitor-prices.csv" download>File mẫu</a></span></label>
 <button type="submit">Nạp</button></form></section>`);
 }

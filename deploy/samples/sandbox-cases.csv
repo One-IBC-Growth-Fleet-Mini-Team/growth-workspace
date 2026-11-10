@@ -1,0 +1,4 @@
+Mã TC,STT,Trang,Tiêu chí,Status,Nguồn đối chiếu
+TC-1,1,/a,3. Function,Fail,spec
+TC-2,2,/b,1. Content,Pass,spec
+TC-3,3,/c,2. UI/UX,Pass,spec

@@ -21,6 +21,6 @@ ${d.note ? html`<p class="meta">${d.note}</p>` : ""}<form method="post" action="
 ${b.win.length ? html`<table class="kv">${b.win.map((w) => html`<tr><td>${w.campaign}</td><td>${w.status === "win" ? html`<strong>Thắng</strong>` : w.status === "not_win" ? "Chưa thắng" : html`<span class="meta">Thiếu mẫu: ${w.reasons.join(", ")}</span>`}</td><td class="meta">${w.cpl === null ? "" : `CPL ${w.cpl.toFixed(0)}`}${w.winRate === null ? "" : `, chốt ${(w.winRate * 100).toFixed(1)}%`}</td></tr>`)}</table>` : html`<p class="meta">Chưa có dữ liệu.</p>`}</section>
 <section><h2>Nạp kết quả</h2>${args.canPull ? html`<form method="post" action="/budget"><input type="hidden" name="csrf" value="${args.csrf}"><button name="pull" value="1">Kéo từ ads-mcp</button></form>` : ""}
 <form method="post" action="/budget" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
-<label>CSV cột campaign, platform, period_start, period_end, spend_usd, leads, closed_won, gross_margin_usd, sales_cycle_complete <input type="file" name="file" accept=".csv,text/csv"></label>
+<label>CSV cột campaign, platform, period_start, period_end, spend_usd, leads, closed_won, gross_margin_usd, sales_cycle_complete <input type="file" name="file" accept=".csv,text/csv"> <span class="meta"><a href="/samples/campaigns.csv" download>File mẫu</a></span></label>
 <button type="submit">Nạp</button></form></section>`);
 }

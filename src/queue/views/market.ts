@@ -14,5 +14,5 @@ ${args.message ? html`<p class="warn">${args.message}</p>` : ""}
 <section><h2>Nạp dữ liệu</h2>${args.canPull ? html`<form method="post" action="/market"><input type="hidden" name="csrf" value="${args.csrf}"><button name="pull" value="1">Kéo từ market-scan (quy định, tiếng khách, giá đối thủ)</button></form>` : ""}
 <form method="post" action="/market" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
 <label>Loại <select name="kind"><option value="regulation">Quy định (jurisdiction, title, summary, effective_date, source_url)</option><option value="reviews">Tiếng khách (source, jurisdiction, theme, rating, text)</option></select></label>
-<label>CSV <input type="file" name="file" accept=".csv,text/csv"></label><button type="submit">Nạp</button></form></section>`);
+<label>CSV <input type="file" name="file" accept=".csv,text/csv"> <span class="meta"><a href="/samples/market-regulation.csv" download>File mẫu quy định</a> <a href="/samples/market-reviews.csv" download>File mẫu tiếng khách</a></span></label><button type="submit">Nạp</button></form></section>`);
 }

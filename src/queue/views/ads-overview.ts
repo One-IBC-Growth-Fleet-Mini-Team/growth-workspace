@@ -20,6 +20,6 @@ ${o.flags.length ? html`<table class="kv">${o.flags.map((f) => html`<tr><td>${f.
 <section><h2>Nạp báo cáo tuần</h2><form method="post" action="/ads-overview" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
 <label>Nền tảng <select name="platform"><option value="meta">Meta Ads Manager</option><option value="google">Google Ads</option></select></label>
 <label>Tuần bắt đầu (thứ Hai) <input type="date" name="week" value="${o.week}" required></label>
-<label>CSV xuất theo cấp quảng cáo, đúng khoảng thứ Hai tới Chủ nhật <input type="file" name="report" accept=".csv,text/csv"></label>
+<label>CSV xuất theo cấp quảng cáo, đúng khoảng thứ Hai tới Chủ nhật <input type="file" name="report" accept=".csv,text/csv"> <span class="meta"><a href="/samples/meta-ads.csv" download>File mẫu meta</a> <a href="/samples/google-ads.csv" download>File mẫu google</a></span></label>
 <button type="submit">Nạp</button></form></section>`);
 }

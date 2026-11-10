@@ -1,0 +1,5 @@
+Ngày cập nhật: 01 Nov 2026
+Category,Bank Name,Complexity Level,Processing Time - Internal,Processing Time,Initial Deposit,Currencies Support,Meeting Requirement (Online/Physical)
+Digital/EMIs,Sample EMI One,LOW,within 7 days,2-5 days,Not required,USD,Online
+,Sample EMI Two,MEDIUM,1-2 week,1-2 week,Not required,USD,Online
+Traditional,Sample Bank HK,HIGH,4-6 month,4-6 week,HKD 10000,HKD,Personal Visit

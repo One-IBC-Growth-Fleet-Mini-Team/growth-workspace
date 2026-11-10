@@ -1,0 +1,4 @@
+Lead ID,Owner ID,Created Date,Lead Status,Email,Phone
+LEAD-0001,RM_A,01/11/2026 09:00,Open,sample.one@example.invalid,+44 7700 900001
+LEAD-0002,RM_B,02/11/2026 10:00,Open,Sample.One@example.invalid,
+LEAD-0003,RM_A,03/11/2026 11:00,Qualified,sample.three@example.invalid,+44 7700 900003

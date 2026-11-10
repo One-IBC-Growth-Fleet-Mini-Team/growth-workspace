@@ -24,7 +24,7 @@ ${s ? html`<section><h2>Kế hoạch cho ${args.jurisdiction}</h2><ul>${s.plan.m
 <h3>Ngân hàng truyền thống nhận (${s.traditional.length})</h3>${list(s.traditional)}
 <h3>Không nhận công ty ở nơi này (${s.notSupported.length})</h3><p class="meta">${s.notSupported.join(", ")}</p></section>` : ""}
 ${args.canImport ? html`<section><h2>Nạp ma trận</h2><form method="post" action="/banks" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
-<label>CSV của sheet "Product Matrix - Bank Name X Support" (bắt buộc) <input type="file" name="matrix" accept=".csv,text/csv"></label>
-<label>CSV của sheet "Bank ( Core Information for Clients)" <input type="file" name="core" accept=".csv,text/csv"></label>
+<label>CSV của sheet "Product Matrix - Bank Name X Support" (bắt buộc) <input type="file" name="matrix" accept=".csv,text/csv"> <span class="meta"><a href="/samples/bank-matrix.csv" download>File mẫu</a></span></label>
+<label>CSV của sheet "Bank ( Core Information for Clients)" <input type="file" name="core" accept=".csv,text/csv"> <span class="meta"><a href="/samples/bank-core.csv" download>File mẫu</a></span></label>
 <button type="submit">Nạp</button></form></section>` : ""}`);
 }

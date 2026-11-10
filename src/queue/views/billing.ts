@@ -23,8 +23,8 @@ ${args.reminders.length ? html`<details><summary>Tin nhắc theo từng RM (ché
 <section><h2>PO không khớp SO nào (${b.poWithoutSo.length})</h2>${b.poWithoutSo.length ? html`<table class="kv">${b.poWithoutSo.map((x) => html`<tr><td>${x.po_number}</td><td>${x.so_number ?? "chưa gắn SO"}</td></tr>`)}</table>` : html`<p class="meta">Không có.</p>`}</section>
 ${args.canImport ? html`<section><h2>Nạp file</h2><p class="meta">Xuất từ CRM dạng CSV UTF-8. Có file nào nạp file đó; chỉ đọc mã đơn, Status, ngày, không đọc tên khách hay số tiền.</p>
 <form method="post" action="/billing" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
-<label>SO (đơn bán) <input type="file" name="salesorder" accept=".csv,text/csv"></label>
-<label>PO (đơn đặt nhà cung cấp) <input type="file" name="purchaseorder" accept=".csv,text/csv"></label>
-<label>Invoice <input type="file" name="invoice" accept=".csv,text/csv"></label>
+<label>SO (đơn bán) <input type="file" name="salesorder" accept=".csv,text/csv"> <span class="meta"><a href="/samples/salesorder.csv" download>File mẫu</a></span></label>
+<label>PO (đơn đặt nhà cung cấp) <input type="file" name="purchaseorder" accept=".csv,text/csv"> <span class="meta"><a href="/samples/purchaseorder.csv" download>File mẫu</a></span></label>
+<label>Invoice <input type="file" name="invoice" accept=".csv,text/csv"> <span class="meta"><a href="/samples/invoice.csv" download>File mẫu</a></span></label>
 <button type="submit">Nạp</button></form></section>` : ""}`);
 }
