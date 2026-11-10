@@ -28,6 +28,7 @@ const GRID = "display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1
 export function renderCommandPage(d: CommandPayload): string {
   const s = d.session;
   return shell("Điều phối Mi1", html`<h1>Điều phối Mi1</h1>
+<p><a href="/command/3d?on=1">Xem bản 3D</a></p>
 <p class="meta">Tự tải lại mỗi 5 giây. Mi1 chỉ gọi thuyền viên đang bật, bằng tool trong danh sách của thuyền viên đó; việc cần duyệt vẫn đi vào Hàng chờ.</p>
 <section><h2>Phiên gần nhất</h2>
 ${s ? html`<p>${s.trigger === "ask" ? "Hỏi Mi1" : s.trigger.toUpperCase()} · ${s.actor} · bắt đầu ${time(s.startedAt)} · <strong${s.status === "succeeded" ? "" : html` class="warn"`}>${STATUS_VI[s.status] ?? s.status}</strong>${s.reason ? ` (${s.reason})` : ""} · chi phí ${usd(d.sessionCostUsd)}</p>

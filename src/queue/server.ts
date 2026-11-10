@@ -111,6 +111,8 @@ import { renderTasksPage } from "./views/tasks.ts";
 import { buildTaskDrafts } from "../mi1/task-drafts.ts";
 import { askMi1 } from "../mi1/ask.ts";
 import { commandPayload } from "../fleet/command-json.ts";
+import { staticFile } from "./static.ts";
+import { renderCommand3dPage } from "./views/command3d.ts";
 import { readEvalScores } from "../fleet/eval-scores.ts";
 import { parseDisabled } from "../fleet/registry.ts";
 import { renderCommandPage } from "./views/command.ts";
@@ -516,6 +518,22 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/strategy") {
       if (!session) return redirect("/login");
       return respond(strategyPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    // File tĩnh (D-93): danh sách cố định trong src/queue/static; cache được vì không có dữ liệu nghiệp vụ.
+    if (req.method === "GET" && path.startsWith("/static/")) {
+      if (!session) return redirect("/login");
+      const f = staticFile(path);
+      if (!f) return text(404, "Không tìm thấy.");
+      return new Response(f.body, { status: 200, headers: { ...SECURITY_HEADERS, "content-type": f.type, "cache-control": "private, max-age=86400" } });
+    }
+
+    if (req.method === "GET" && path === "/command/3d") {
+      if (!session) return redirect("/login");
+      const data = commandPayload(deps.db, now(), userOf(session), deps.fleetDisabled ?? new Set(), deps.evalScores?.() ?? {});
+      // CSP riêng: chạy script của chính app (Three.js vendored), gọi /command/data.json; không CDN ngoài.
+      return respond(renderCommand3dPage(data), 200, { "content-type": "text/html; charset=utf-8",
+        "content-security-policy": "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self' blob: data:; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'" });
     }
 
     if (req.method === "GET" && (path === "/command" || path === "/command/data.json")) {
@@ -932,7 +950,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         // Trang HTML của người đã đăng nhập: thanh điều hướng, dòng mô tả (D-77); MKT ẩn form không được dùng (D-66).
         const r = readSession(req, deps.sessionSecret, now());
         const s = r && !sessionRevoked(deps.db, r) ? r : null;
-        if (s && res.status === 200 && res.headers.get("content-type")?.startsWith("text/html")) {
+        if (s && res.status === 200 && res.headers.get("content-type")?.startsWith("text/html") && new URL(req.url).pathname !== "/command/3d") {
           const u = userOf(s);
           const headers = new Headers();
           res.headers.forEach((v, k) => headers.append(k, v));
@@ -1031,6 +1049,6 @@ if (import.meta.main) {
     marketSource: getRemoteSource("MARKET"),
     notifyEscalation: hooks.mark ? (link) => postTeams(hooks.mark!, escalationMessage(link)) : undefined,
   });
-  Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY });
+  Bun.serve({ hostname: cfg.host, port: cfg.port, fetch: app.fetch, maxRequestBodySize: MAX_IMPORT_BODY, idleTimeout: 120 }); // model 3D 10 MB (D-93)
   log({ event: "queue.listening", count: cfg.port });
 }

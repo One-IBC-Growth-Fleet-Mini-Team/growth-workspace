@@ -201,7 +201,7 @@ export async function createDemo(now: Date = new Date()) {
 
 if (import.meta.main) {
   const { app } = await createDemo();
-  Bun.serve({ hostname: DEMO_HOST, port: DEMO_PORT, fetch: app.fetch });
+  Bun.serve({ hostname: DEMO_HOST, port: DEMO_PORT, fetch: app.fetch, idleTimeout: 120 });
   process.stdout.write(
     [
       "",

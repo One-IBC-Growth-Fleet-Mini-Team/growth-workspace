@@ -178,3 +178,11 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - Việc chờ Mark (escalate của Amy, kế hoạch ngân sách chờ duyệt, đề xuất chiến lược chờ duyệt) chỉ trả cho Mark và BOD.
   - Team MKT không thấy đầu vào từng bước, vì câu hỏi của người khác có thể chứa mã khách.
   - Module "Ngân sách" của Team MKT chỉ có số tổng hợp, không link: `/budget` là trang có tiền, MKT không vào được (D-63). Spec 3D ghi link `/budget` cho MKT; cần Mark chốt.
+- **D-93** (10/11/2026, GĐ3 việc 4): Command Center 3D ở `/command/3d`, làm theo `docs/spec/command-center-3d.md`, đọc `/command/data.json` (D-92).
+  - **Phần (a):** phòng lab beige, Mi1 toàn thân trên bệ (1/3 bên trái desktop, phía trên điện thoại), kéo hoặc vuốt để xoay 360°.
+  - **Thư viện:** Three.js r0.160.0 vendored ở `src/queue/static/vendor/three/`, chỉ các file spec mục 6 cần. Các addon đổi `from 'three'` thành đường dẫn tương đối để không cần import map, vì CSP chặn script inline.
+  - **File tĩnh:** model `mi1.glb` của Mark chép vào `src/queue/static/command3d/`. Route `/static/...` chỉ phục vụ file có sẵn lúc khởi động, cần đăng nhập, cho cache.
+  - **CSP riêng cho `/command/3d`:** `script-src 'self'`, `connect-src 'self'`, ảnh `blob:`; không CDN.
+  - **Thứ tự hiển thị:** trang hiện ngay bảng rút gọn từ payload, rồi mới nạp model. Không WebGL, `prefers-reduced-motion` hoặc người dùng bấm "Bản phẳng" (nhớ trong `localStorage`) thì tự chuyển về `/command`. Nạp model lỗi thì hiện ảnh tĩnh `mi1-fallback.png`, chụp từ chính bản 3D.
+  - **Hiệu năng:** dưới 40 fps trong 3 giây đầu thì giảm độ phân giải.
+  - **Server:** `idleTimeout` của Bun tăng lên 120 giây để tải được model 10 MB trên máy chậm.
