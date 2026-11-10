@@ -99,7 +99,7 @@ import { canPost, canSee, stripForbiddenForms } from "./roles.ts";
 import { readSample } from "./samples.ts";
 import { decorate, homeFor } from "./nav.ts";
 import { guideFor, renderGuide } from "./guide.ts";
-import { currentPassword, MIN_PASSWORD, setPassword } from "../db/users.ts";
+import { currentPassword, MIN_PASSWORD, sessionRevoked, setPassword } from "../db/users.ts";
 import { renderOverviewPage } from "./views/overview.ts";
 import { buildOverview, rowsFor } from "../mi1/overview.ts";
 import { listProvisional, setProvisional } from "../provisional.ts";
@@ -185,11 +185,11 @@ const SECURITY_HEADERS = {
 };
 
 // Trang đổi mật khẩu (D-79).
-function renderPasswordPage(csrf: string, message: string | null): string {
+function renderPasswordPage(csrf: string, message: string | null, needCurrent = false): string {
   const esc = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;");
   return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Đổi mật khẩu</title></head><body style="font-family:system-ui,sans-serif;padding:16px;max-width:480px;margin:auto">
 <h1>Đổi mật khẩu</h1><p>Đặt mật khẩu mới, ít nhất ${MIN_PASSWORD} ký tự. Mật khẩu tạm không dùng được nữa sau bước này.</p>${message ? `<p style="color:#9a5b00">${esc(message)}</p>` : ""}
-<form method="post" action="/password"><input type="hidden" name="csrf" value="${esc(csrf)}"><label style="display:block;margin:8px 0">Mật khẩu mới <input type="password" name="password" required minlength="${MIN_PASSWORD}"></label>
+<form method="post" action="/password"><input type="hidden" name="csrf" value="${esc(csrf)}">${needCurrent ? `<label style="display:block;margin:8px 0">Mật khẩu hiện tại <input type="password" name="current" required autocomplete="current-password"></label>` : ""}<label style="display:block;margin:8px 0">Mật khẩu mới <input type="password" name="password" required minlength="${MIN_PASSWORD}"></label>
 <label style="display:block;margin:8px 0">Gõ lại <input type="password" name="password2" required minlength="${MIN_PASSWORD}"></label><button type="submit">Đổi</button></form></body></html>`;
 }
 
@@ -346,22 +346,31 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       );
     }
 
-    const session = readSession(req, deps.sessionSecret, now());
+    const raw = readSession(req, deps.sessionSecret, now());
+    const session = raw && !sessionRevoked(deps.db, raw) ? raw : null;
     // Phân quyền theo vai trò (D-63): MKT về trang Hook thay cho Hàng chờ; trang có mã khách trả 403.
     if (session) {
       const u = userOf(session);
       // Mật khẩu tạm (D-79): phải đổi ở /password trước khi dùng trang khác.
       if (path !== "/password" && path !== "/logout" && currentPassword(deps.db, u.id)?.mustChange) return redirect("/password");
       if (path === "/password") {
-        if (req.method === "GET") return respond(renderPasswordPage(session.csrf, null), 200, { "content-type": "text/html; charset=utf-8" });
+        // Mật khẩu cũ bắt buộc, trừ lần đầu đổi mật khẩu tạm (D-85).
+        const stored = currentPassword(deps.db, u.id);
+        const oldHash = stored?.hash ?? deps.passwordHashes?.get(u.id);
+        const needCurrent = oldHash !== undefined && !stored?.mustChange;
+        const page = (msg: string | null, status: number) => respond(renderPasswordPage(session.csrf, msg, needCurrent), status, { "content-type": "text/html; charset=utf-8" });
+        if (req.method === "GET") return page(null, 200);
         if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
         const form = await req.formData();
         if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
+        if (needCurrent && !(await Bun.password.verify(String(form.get("current") ?? ""), oldHash!))) return page("Mật khẩu hiện tại không đúng.", 422);
         const a = String(form.get("password") ?? "");
-        if (a !== String(form.get("password2") ?? "")) return respond(renderPasswordPage(session.csrf, "Hai lần gõ không khớp."), 422, { "content-type": "text/html; charset=utf-8" });
-        if (a.length < MIN_PASSWORD) return respond(renderPasswordPage(session.csrf, `Mật khẩu cần ít nhất ${MIN_PASSWORD} ký tự.`), 422, { "content-type": "text/html; charset=utf-8" });
-        await setPassword(deps.db, u.id, a, { mustChange: false, now: now(), actor: u.id });
-        return redirect(homeFor(u), [], 303);
+        if (a !== String(form.get("password2") ?? "")) return page("Hai lần gõ không khớp.", 422);
+        if (a.length < MIN_PASSWORD) return page(`Mật khẩu cần ít nhất ${MIN_PASSWORD} ký tự.`, 422);
+        // Cùng một thời điểm cho mật khẩu mới và phiên mới: mọi phiên khác bị huỷ, phiên này được cấp lại và giữ nguyên.
+        const at = now();
+        await setPassword(deps.db, u.id, a, { mustChange: false, now: at, actor: u.id });
+        return redirect(homeFor(u), [sessionSetCookie(deps.sessionSecret, newSession(u, at), secure)], 303);
       }
       // Điểm vào theo vai trò (D-77): "/" về trang chính; MKT không có Hàng chờ nên về Tổng quan.
       if (req.method === "GET" && (path === "/" || (u.role === "mkt" && path === "/queue"))) return redirect(homeFor(u));
@@ -860,7 +869,8 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       try {
         const res = await handle(req);
         // Trang HTML của người đã đăng nhập: thanh điều hướng, dòng mô tả (D-77); MKT ẩn form không được dùng (D-66).
-        const s = readSession(req, deps.sessionSecret, now());
+        const r = readSession(req, deps.sessionSecret, now());
+        const s = r && !sessionRevoked(deps.db, r) ? r : null;
         if (s && res.status === 200 && res.headers.get("content-type")?.startsWith("text/html")) {
           const u = userOf(s);
           const headers = new Headers();
