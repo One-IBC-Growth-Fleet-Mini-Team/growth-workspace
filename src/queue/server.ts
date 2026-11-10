@@ -112,6 +112,8 @@ import { buildCommandData } from "../fleet/command-data.ts";
 import { readEvalScores } from "../fleet/eval-scores.ts";
 import { parseDisabled } from "../fleet/registry.ts";
 import { renderCommandPage } from "./views/command.ts";
+import { renderPersonaPage } from "./views/persona.ts";
+import { closedWonMessage, importClosedWon, latestClosedWon } from "../crm/closed-won-import.ts";
 import { readAskEvalGate } from "../mi1/eval.ts";
 import type { LlmClient } from "../agents/sa-01/llm.ts";
 import type { TokenPrice } from "../metrics/cost.ts";
@@ -544,6 +546,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       return respond(renderLeadDupPage({ snapshotAt: snap?.snapshot_at ?? null, groups }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
+    if (req.method === "GET" && path === "/persona") {
+      if (!session) return redirect("/login");
+      return respond(renderPersonaPage({ latest: latestClosedWon(deps.db), canImport: userOf(session).role === "approver", csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
     if (req.method === "GET" && path === "/partners") {
       if (!session) return redirect("/login");
       const m = url.searchParams.get("month");
@@ -568,7 +575,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
-      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" || path === "/hooks" || path === "/budget" || path === "/market" ? MAX_IMPORT_BODY : MAX_BODY;
+      const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/persona" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" || path === "/hooks" || path === "/budget" || path === "/market" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
@@ -815,6 +822,17 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         }
         const r = importBilling(deps.db, files, { columns: deps.columns ?? {}, now: now(), actor: userOf(session).id });
         return respond(billingPage(session, billingImportMessage(r)), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
+      }
+
+      if (path === "/persona") {
+        if (userOf(session).role !== "approver") return text(403, "Không có quyền.");
+        const files: { opportunity?: string; account?: string } = {};
+        for (const field of ["opportunity", "account"] as const) {
+          const f = form.get(field);
+          if (f instanceof File && f.size > 0) files[field] = await f.text();
+        }
+        const r = importClosedWon(deps.db, files, { now: now(), actor: userOf(session).id });
+        return respond(renderPersonaPage({ latest: latestClosedWon(deps.db), canImport: true, csrf: session.csrf, message: closedWonMessage(r) }), r.status === "succeeded" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/partners") {

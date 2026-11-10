@@ -33,6 +33,7 @@ const FILES: [file: string, marker: string][] = [
   ["024-partner-tiers.sql", "partner_tiers"],
   ["025-user-passwords.sql", "user_passwords"],
   ["026-fleet-runs.sql", "fleet_sessions"],
+  ["027-closed-won.sql", "closed_won_imports"],
 ];
 const MIGRATIONS: { version: number; marker: string; sql: string }[] = [];
 for (const [name, marker] of FILES) {

@@ -9,6 +9,7 @@ export const SAMPLE_FILES: Record<string, string> = {
   "sandbox-bugs.csv": "Tab Bug sandbox8", "sandbox-cases.csv": "Tab Test Cases sandbox8", "bank-matrix.csv": "Ma trận ngân hàng", "bank-core.csv": "Thông tin ngân hàng",
   "events.csv": "Sự kiện web, CRM", "campaigns.csv": "Kết quả theo chiến dịch", "meta-ads.csv": "Báo cáo tuần Meta Ads", "google-ads.csv": "Báo cáo tuần Google Ads",
   "competitor-prices.csv": "Giá gói đối thủ", "hooks.csv": "Điểm Hook", "market-regulation.csv": "Quy định", "market-reviews.csv": "Tiếng khách", "ads-check-batch.csv": "Nhiều mẫu quảng cáo",
+  "closed-won-opportunity.csv": "Opportunity Closed Won (CRM)", "closed-won-account.csv": "Account của deal Closed Won (CRM)",
 };
 
 const DIR = new URL("../../deploy/samples/", import.meta.url).pathname;
