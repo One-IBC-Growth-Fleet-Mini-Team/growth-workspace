@@ -178,8 +178,8 @@ Lần chạy 09/11/2026 (sau PR #49): `bun run demo`, Playwright đi hết luồ
 Không có trang lỗi (mọi trang 200), không có lỗi console, nạp file nào cũng ra câu báo đúng số dòng. Lead trùng tìm đúng hai Lead cùng email khác hoa thường. Đề xuất hoa hồng đúng 15% cho đối tác bậc partner. Tầng 3B báo thiếu mẫu (1 asset_view). Đăng xuất được.
 
 Chỗ gãy hoặc dễ gây hiểu nhầm (chưa sửa; sửa ở PR riêng khi Mark cho phép):
-1. **Dán tự báo RM:** gửi xong thì về Hàng chờ, không có câu báo đã tạo bao nhiêu mục. Amy không biết lần dán có ăn không.
-2. **Nạp CSV CRM:** báo "NBA: 0 mục mới" sau khi nạp một Opportunity mới, nhưng không nói vì sao (deal không qua luật NBA nào, hay đã có NBA hôm nay). Amy không phân biệt được đúng hay lỗi.
+1. Đã sửa (D-73). **Dán tự báo RM:** gửi xong thì về Hàng chờ, không có câu báo đã tạo bao nhiêu mục. Amy không biết lần dán có ăn không.
+2. Đã sửa (D-73). **Nạp CSV CRM:** báo "NBA: 0 mục mới" sau khi nạp một Opportunity mới, nhưng không nói vì sao (deal không qua luật NBA nào, hay đã có NBA hôm nay). Amy không phân biệt được đúng hay lỗi.
 3. **Brief sáng:** "Dự kiến mỗi ngày làm việc khoảng 0 mục" trong khi hôm nay có 17 mục. `load_forecast` chỉ tính 7 ngày trước, demo không có lịch sử nên ra 0; câu này dễ hiểu nhầm khi mới cài.
 4. **`/market` tràn ngang khoảng 50px ở 375px** (form nạp có mép phải tới 417px): ô chọn "Loại" có chữ dài (liệt kê tên cột trong option).
 5. **Hỏi Mi1 (`/ask`):** bản demo không có LLM giả cho trang này, nên chỉ thấy "Chưa cấu hình LLM"; chưa thử được luồng hỏi trên demo.

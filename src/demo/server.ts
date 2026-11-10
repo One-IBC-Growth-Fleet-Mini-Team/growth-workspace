@@ -5,7 +5,7 @@
 import { openReadWrite } from "../db/open.ts";
 import { migrate } from "../db/migrate.ts";
 import { insertEtlRun, insertSnapshotSucceeded } from "../db/crm-snapshot.ts";
-import { runSa01 } from "../agents/sa-01/run.ts";
+import { runSa01, describeSa01 } from "../agents/sa-01/run.ts";
 import { directCrmReadTools } from "../mcp/crm-read/client.ts";
 import { createQueueApp } from "../queue/server.ts";
 import type { QueueUser } from "../queue/auth.ts";
@@ -125,7 +125,7 @@ export async function createDemo(now: Date = new Date()) {
       const run = await runSa01(queueDate, { db, crm: directCrmReadTools(db), graph: null, parts: { selfReports: false, nba: true }, llm: null,
         pricing: { model: "demo-fake-llm", inputUsdPerMTok: 0, outputUsdPerMTok: 0 },
         evalStats: { self_report_parse: { passRate: 1, caseCount: 2 }, reason_code: { passRate: 1, caseCount: 2 }, nba: { passRate: 1, caseCount: 4 } }, trigger: "demo-import" });
-      return { ok: true, message: `${importMessage(r)} NBA: ${run.itemsCreated} mục mới.` };
+      return { ok: true, message: `${importMessage(r)} ${describeSa01(run, "nba")}` };
     },
     // Thử trang dán tự báo với LLM giả.
     onPaste: async (text, reportDate) => {
@@ -140,7 +140,7 @@ export async function createDemo(now: Date = new Date()) {
         evalStats: { self_report_parse: { passRate: 1, caseCount: 2 }, reason_code: { passRate: 1, caseCount: 2 }, nba: { passRate: 1, caseCount: 4 } },
         trigger: "demo-paste",
       });
-      return { created: r.itemsCreated };
+      return { created: r.itemsCreated, message: describeSa01(r, "paste") };
     },
   });
 
