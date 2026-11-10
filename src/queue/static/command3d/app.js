@@ -15,7 +15,7 @@ if (store.get('gw3d') === 'off' || reduce || !hasWebGL()) {
 } else {
   window.gwStore = store;
   // Phần (b), (c), (d) thêm module vào danh sách này.
-  const features = [];
+  const features = ['./sats.js', './screen.js', './crew.js', './actions.js'];
   import('./core.js').then(() => Promise.allSettled(features.map((f) => import(f)))).catch(() => {
     document.getElementById('loading').hidden = true;
     document.getElementById('fallback').hidden = false;

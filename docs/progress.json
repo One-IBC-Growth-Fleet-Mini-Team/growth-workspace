@@ -82,7 +82,10 @@
         "Khung quyết định Awareness/Conversion, kế hoạch ngân sách tuần (D-90)",
         "Đề xuất chiến lược tuần, Eval Gate riêng, vào Digest khi Mark duyệt (D-91)",
         "API dữ liệu Command Center theo vai trò (D-92)",
-        "Command Center 3D phần (a): cảnh, Mi1, bệ xoay, ảnh dự phòng, tự về bản phẳng (D-93)"
+        "Command Center 3D phần (a): cảnh, Mi1, bệ xoay, ảnh dự phòng, tự về bản phẳng (D-93)",
+        "Command Center 3D phần (b): vệ tinh module, nhãn ẩn, bảng kính mờ, Mi1 nhìn theo lựa chọn (D-93)",
+        "Command Center 3D phần (c): đầu thuyền viên, màn hình tường hiện vết lượt chạy (D-93)",
+        "Command Center 3D phần (d): thanh động tác, âm thanh, gắn sự kiện thật; nghiệm thu spec mục 7 (D-93)"
       ]
     }
   ]

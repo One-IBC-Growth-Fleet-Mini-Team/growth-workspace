@@ -23,8 +23,8 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Khung quyết định Awareness/Conversion bản Tạm: kế hoạch ngân sách tuần theo tổ hợp Kênh × Tài phán ở `/budget`, CRON-07 tạo mỗi thứ Hai, Mark duyệt, cờ anh Jimmy khi vượt ngưỡng (D-90).
 - Đề xuất chiến lược tuần ở `/strategy`: gói số 7 câu hỏi đầu ra, lời dẫn của Mi1 chỉ dùng số trong gói, Eval Gate riêng 0,8, Mark duyệt thì vào Digest (D-91).
 - `/command/data.json`: một payload cho `/command` bản phẳng và bản 3D sắp làm; module theo vai trò, việc chờ Mark gồm kế hoạch ngân sách và đề xuất chiến lược (D-92).
-- Command Center 3D ở `/command/3d` (đang làm theo 4 PR): phòng lab, Mi1 trên bệ xoay 360°, ảnh dự phòng, tự về bản phẳng (D-93).
-- `bun test`: 425 pass, `tsc --strict` sạch.
+- Command Center 3D ở `/command/3d`: phòng lab, Mi1 trên bệ xoay 360°, vệ tinh module, bảng kính mờ, đầu thuyền viên, màn hình tường hiện vết lượt chạy, thanh động tác và âm thanh; tự về bản phẳng khi không WebGL hoặc giảm chuyển động (D-93).
+- `bun test`: 428 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
@@ -34,7 +34,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 1. Chạy creative-factory-v2 với `CF_PROFILE=one-ibc` (brand đúng spec mục 7, brief Tạm, CTA "Nhắn One IBC qua WhatsApp"; markng-byte/creative-factory-v2#22). Brief, campaign thật nhập sau qua Google Sheet. Trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
 2. Việt hoá câu nối Storyboard trong creative-factory-v2.
-3. GĐ3 theo `docs/kickoff/session-gd3.md`: Command Center 3D, bảng sẵn sàng Phụ lục B.
+3. GĐ3 theo `docs/kickoff/session-gd3.md`: bảng sẵn sàng Phụ lục B.
 
 ## Đang bị chặn
 

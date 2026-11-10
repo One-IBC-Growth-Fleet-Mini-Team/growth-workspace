@@ -51,4 +51,30 @@ describe("T-3D Command Center 3D", () => {
     const app = readFileSync(STATIC + "command3d/app.js", "utf8");
     for (const s of ["prefers-reduced-motion", "getContext('webgl", "location.replace('/command')", "gw3d"]) expect(app).toContain(s);
   });
+  test("T-3D-04 vệ tinh (spec mục 2): nhãn ẩn mặc định, là nút bấm Tab tới được, dock trên điện thoại, không vẽ quỹ đạo, link trang thật", () => {
+    const js = readFileSync(STATIC + "command3d/sats.js", "utf8");
+    expect(readFileSync(STATIC + "command3d/app.js", "utf8")).toContain("'./sats.js'");
+    expect(js).toContain(".mod{position:fixed;left:0;top:0;font:500 12px");
+    expect(js).toContain("opacity:0");
+    expect(js).toContain("b.type = 'button'");
+    expect(js).toContain("addEventListener('focus'");
+    expect(js).toContain("#dock{position:fixed");
+    expect(js).toContain("Mở trang đầy đủ");
+    expect(js).not.toMatch(/new THREE\.Line\(|LineDashedMaterial/);
+  });
+  test("T-3D-05 màn hình tường và đầu thuyền viên (spec mục 1, 3): treo bằng dây, mặt cong, hiện từng bước, tool, trạng thái, cổng, chi phí, tổng thuyền viên; đầu dựng từ cùng rig", () => {
+    const screen = readFileSync(STATIC + "command3d/screen.js", "utf8");
+    const crew = readFileSync(STATIC + "command3d/crew.js", "utf8");
+    expect(readFileSync(STATIC + "command3d/app.js", "utf8")).toContain("'./screen.js', './crew.js'");
+    for (const s of ["CylinderGeometry(0.004", "curved(", "thuyền viên được gọi", "st.tool", "st.gates", "costUsd", "đang chạy", "chờ", "gw:run-start", "gw:run-done", "ctx.lookAhead"]) expect(screen).toContain(s);
+    expect(screen).not.toMatch(/inputSummary/);
+    for (const s of ["SkeletonUtils.clone", "pelvis.scale.setScalar(EPS)", "neck.scale.setScalar(1 / EPS)", "d.role !== 'viewer'"]) expect(crew).toContain(s);
+  });
+  test("T-3D-06 thanh động tác và âm thanh (spec mục 4): Join, Working, Done task, âm thanh WebAudio không tải file, nhớ lựa chọn, gắn sự kiện thật", () => {
+    const js = readFileSync(STATIC + "command3d/actions.js", "utf8");
+    expect(readFileSync(STATIC + "command3d/app.js", "utf8")).toContain("'./actions.js'");
+    for (const s of [">Join<", ">Working<", ">Done task<", "Âm thanh: Bật", "Âm thanh: Tắt", "'Jump'", "'Excited'", "'Scenario_Study'", "'Scenario_Celebrate'", "ctx.play('Idle')",
+      "new AudioContext()", "stopAll()", "gw3d-sound", "gw:run-start", "gw:run-done", "perform('join')"]) expect(js).toContain(s);
+    expect(js).not.toMatch(/new Audio\(|\.mp3|\.wav|\.ogg/);
+  });
 });

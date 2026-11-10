@@ -186,3 +186,23 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - **Thứ tự hiển thị:** trang hiện ngay bảng rút gọn từ payload, rồi mới nạp model. Không WebGL, `prefers-reduced-motion` hoặc người dùng bấm "Bản phẳng" (nhớ trong `localStorage`) thì tự chuyển về `/command`. Nạp model lỗi thì hiện ảnh tĩnh `mi1-fallback.png`, chụp từ chính bản 3D.
   - **Hiệu năng:** dưới 40 fps trong 3 giây đầu thì giảm độ phân giải.
   - **Server:** `idleTimeout` của Bun tăng lên 120 giây để tải được model 10 MB trên máy chậm.
+  - **Phần (b):** `sats.js`. Mỗi module của vai trò là một khối ceramic quay quanh Mi1; đường quỹ đạo không vẽ. Nhãn ẩn mặc định nhưng vẫn là nút bấm: hiện khi rê chuột, khi Tab tới hoặc khi đang chọn, nên mọi module bấm được bằng bàn phím. Rê vào thì vệ tinh dừng quay. Bấm hoặc Enter thì mở bảng kính mờ (tóm tắt và "Mở trang đầy đủ"); Esc để đóng. Mi1 quay đầu nhìn vệ tinh đang chọn bằng cách xoay xương đầu sau animation, không giơ tay. Điện thoại có thêm lưới dock dưới Mi1. Bảng rút gọn phẳng tự ẩn khi đã có vệ tinh.
+  - **Phần (c):** hai module mới.
+    - `screen.js`: màn hình tiến trình treo bằng dây sau lưng Mi1, mặt cong, viền ceramic beige, nền kính mờ ánh beige. Hiện lượt chạy gần nhất từ payload: từng bước (thuyền viên, tool, trạng thái chờ / đang chạy / xong / lỗi, cổng đã qua, chi phí), tổng thuyền viên được gọi và thanh tiến trình. Màn hình không hiện đầu vào của bước. Lượt mới thì hiện dần từng bước; trong lúc đó Mi1 nhìn thẳng người dùng.
+    - `crew.js`: đầu thuyền viên dựng từ cùng rig của Mi1 (thu thân về gần 0, giữ đầu), một hàng dưới bệ đỡ. Thuyền viên đang được gọi phát Thinking. Vai Amy, Team MKT thì Mi1 hiện dạng đầu.
+  - **Phần (d):** `actions.js`, thanh kính mờ gồm Join, Working, Done task, vạch ngăn và nút Âm thanh.
+    - **Động tác:** Join = Jump rồi Excited; Working = Scenario_Study; Done task = Scenario_Celebrate; sau đó về Idle.
+    - **Âm thanh:** tổng hợp bằng WebAudio, không tải file. Tắt thì dừng ngay âm đang phát. Lựa chọn nhớ trong `localStorage`; mặc định tắt vì trình duyệt chặn tự phát âm thanh.
+    - **Gắn sự kiện thật:** mở trang thì Join; lượt chạy mới bắt đầu (màn hình tường thấy lượt mới) thì Working; hiện xong các bước thì Done task.
+    - **Giới hạn:** dữ liệu đọc mỗi 5 giây, nên lượt chạy hiện chậm tối đa 5 giây sau khi bắt đầu.
+  - **Nghiệm thu spec mục 7 trên demo** (Chromium, WebGL qua SwiftShader, 10/11/2026). Cả 5 mục đạt:
+    1. JSON và bản 3D cùng một lượt chạy.
+    2. Giảm chuyển động hoặc tắt WebGL thì tự về `/command`.
+    3. Ở 375px không tràn ngang; 7 nút dock; Tab tới được module.
+    4. Hỏi Mi1 thì Working, màn hình tường hiện từng bước, rồi Done task.
+    5. Bật hoặc tắt âm thanh, tải lại trang vẫn giữ nguyên.
+
+    Ảnh `docs/reference/command-center/acceptance-desktop.png` và `acceptance-mobile.png` để Mark so với ảnh của prototype. Chưa đo 60 fps trên laptop thật, vì môi trường build chỉ có WebGL phần mềm.
+  - **Hai lỗi tìm ra khi nghiệm thu, đã sửa:**
+    - `screen.js` bỏ lỡ dữ liệu đọc trước khi module nạp, nên lượt bắt đầu trong 5 giây đầu bị coi là lượt cũ.
+    - Dòng gợi ý bị giãn cao trên điện thoại.

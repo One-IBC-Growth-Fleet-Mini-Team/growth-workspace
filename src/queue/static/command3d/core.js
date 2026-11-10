@@ -75,7 +75,8 @@ function layout() {
   camera.fov = cam.fov; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   camera.position.set(0, cam.ty + 0.45, cam.dist); camera.lookAt(0, cam.ty, 0);
   renderer.setSize(innerWidth, innerHeight);
-  base.position.set(ctx.narrow ? 0 : -0.64 * halfWidthAt(0), ctx.narrow ? 0.55 : 0, 0);
+  // Điện thoại: Mi1 nửa trái, màn hình tiến trình nửa phải (spec mục 1).
+  base.position.set((ctx.narrow ? -0.42 : -0.64) * halfWidthAt(0), ctx.narrow ? 0.2 : 0, 0);
   for (const f of ctx.onLayout) f();
 }
 addEventListener('resize', layout);
