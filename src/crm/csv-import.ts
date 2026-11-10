@@ -62,12 +62,13 @@ function convert(value: string, field: string, format: DateFormat | undefined): 
     throw new CsvValueError();
   }
   if (!format || format === "yyyy-mm-dd" || format === "iso") return v;
-  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/.exec(v);
+  // Excel hay xuất d/m/yy hoặc d/m/yyyy (D-78); năm 2 chữ số hiểu là 20yy.
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})(?:\s+(\d{1,2}):(\d{2}))?$/.exec(v);
   if (!m) throw new CsvValueError();
   const [a, b] = [m[1]!.padStart(2, "0"), m[2]!.padStart(2, "0")];
   const [dd, mm] = format.startsWith("dd") ? [a, b] : [b, a];
   if (Number(mm) > 12 || Number(dd) > 31) throw new CsvValueError();
-  const date = `${m[3]}-${mm}-${dd}`;
+  const date = `${m[3]!.length === 2 ? `20${m[3]}` : m[3]}-${mm}-${dd}`;
   if (format === "dd/mm/yyyy hh:mm") return `${date}T${(m[4] ?? "00").padStart(2, "0")}:${m[5] ?? "00"}:00${VN_OFFSET}`;
   return date;
 }
@@ -83,7 +84,10 @@ export type Detail = { code: string; detail: string };
 
 // Dựng bản ghi thô từ CSV theo bảng ghép; chỉ cột có trong bảng ghép được đọc.
 // Thiếu cột bắt buộc ném CSV_MISSING_COLUMN; ô không đổi được ném CSV_BAD_VALUE (chỉ kèm tên cột, số dòng).
-export function readCsvRows(resource: string, text: string, spec: Record<string, ColumnSpec>, required: string[]): Record<string, unknown>[] {
+export type SkippedRow = { resource: string; row: number; column: string };
+
+// Như readCsvRows nhưng ô không đổi được thì bỏ riêng dòng đó và ghi lại (tên cột, số dòng), không dừng cả file (D-78).
+export function readCsvRowsLenient(resource: string, text: string, spec: Record<string, ColumnSpec>, required: string[]): { rows: { raw: Record<string, unknown>; row: number }[]; skipped: SkippedRow[] } {
   const csv = parseCsv(text);
   const cols = Object.entries(spec).map(([field, s]) => {
     const column = typeof s === "string" ? s : s.column;
@@ -93,18 +97,30 @@ export function readCsvRows(resource: string, text: string, spec: Record<string,
     const c = cols.find((x) => x.field === req);
     if (!c || c.index < 0) throw { code: "CSV_MISSING_COLUMN", detail: `${resource}: ${c?.column ?? req}` } satisfies Detail;
   }
-  return csv.rows.map((cells, i) => {
+  const rows: { raw: Record<string, unknown>; row: number }[] = [];
+  const skipped: SkippedRow[] = [];
+  csv.rows.forEach((cells, i) => {
     const raw: Record<string, unknown> = {};
     for (const c of cols) {
       if (c.index < 0) continue;
       try {
         setPath(raw, c.field, convert(cells[c.index] ?? "", c.field, c.format));
       } catch {
-        throw { code: "CSV_BAD_VALUE", detail: `${resource} dòng ${i + 2}: ${c.column}` } satisfies Detail;
+        skipped.push({ resource, row: csv.rowNo[i]!, column: c.column });
+        return;
       }
     }
-    return raw;
+    rows.push({ raw, row: csv.rowNo[i]! });
   });
+  return { rows, skipped };
+}
+
+// Thiếu cột bắt buộc ném CSV_MISSING_COLUMN; ô không đổi được ném CSV_BAD_VALUE (chỉ kèm tên cột, số dòng).
+export function readCsvRows(resource: string, text: string, spec: Record<string, ColumnSpec>, required: string[]): Record<string, unknown>[] {
+  const r = readCsvRowsLenient(resource, text, spec, required);
+  const bad = r.skipped[0];
+  if (bad) throw { code: "CSV_BAD_VALUE", detail: `${resource} dòng ${bad.row}: ${bad.column}` } satisfies Detail;
+  return r.rows.map((x) => x.raw);
 }
 
 export type CsvImportResult = {
@@ -113,6 +129,7 @@ export type CsvImportResult = {
   rowCounts: Partial<SnapshotRowCounts>;
   errorCode?: string;
   detail?: string; // tên resource, số dòng, tên cột; không bao giờ có giá trị ô
+  skipped?: SkippedRow[]; // dòng bị bỏ vì ô sai hoặc thiếu (D-78)
 };
 
 export function importCrmCsv(
@@ -126,6 +143,7 @@ export function importCrmCsv(
   insertEtlRun(db, etlRunId, "crm_csv", at);
   const snap: CrmSnapshot = { opportunities: [], clients: [], leads: [], clientServices: [] };
   const seen = new Set<string>();
+  const skipped: SkippedRow[] = [];
   const once = <T>(list: T[], key: string, row: T) => {
     if (seen.has(key)) return;
     seen.add(key);
@@ -136,16 +154,27 @@ export function importCrmCsv(
       const text = files[resource];
       if (!text) continue;
       const spec = opts.columns[resource] ?? DEFAULT_COLUMN_MAP[resource]!;
-      for (const raw of readCsvRows(resource, text, spec, REQUIRED[resource])) {
-        if (resource === "Opportunity") { const r = mapOpportunity(raw); once(snap.opportunities, `o\u0000${r.opportunity_id}`, r); }
-        else if (resource === "Client") { const r = mapClient(raw); once(snap.clients, `c\u0000${r.client_id}`, r); }
-        else if (resource === "Lead") { const r = mapLead(raw, opts.hasher); once(snap.leads, `l\u0000${r.lead_id}`, r); }
-        else { const r = mapOrderItem(raw); once(snap.clientServices, `s\u0000${r.client_id}\u0000${r.product_family}`, r); }
+      const read = readCsvRowsLenient(resource, text, spec, REQUIRED[resource]);
+      skipped.push(...read.skipped);
+      for (const { raw, row } of read.rows) {
+        try {
+          if (resource === "Opportunity") { const r = mapOpportunity(raw); once(snap.opportunities, `o\u0000${r.opportunity_id}`, r); }
+          else if (resource === "Client") { const r = mapClient(raw); once(snap.clients, `c\u0000${r.client_id}`, r); }
+          else if (resource === "Lead") { const r = mapLead(raw, opts.hasher); once(snap.leads, `l\u0000${r.lead_id}`, r); }
+          else { const r = mapOrderItem(raw); once(snap.clientServices, `s\u0000${r.client_id}\u0000${r.product_family}`, r); }
+        } catch (e) {
+          if (!(e instanceof CrmMappingError)) throw e;
+          const sp = spec[e.field];
+          skipped.push({ resource, row, column: sp ? (typeof sp === "string" ? sp : sp.column) : e.field });
+        }
       }
     }
+    // Không còn dòng Opportunity nào tốt thì không ghi snapshot rỗng (sẽ xoá dữ liệu NBA): báo lỗi dòng đầu tiên.
+    const firstBad = skipped.find((x) => x.resource === "Opportunity");
+    if (snap.opportunities.length === 0 && firstBad) throw { code: "CSV_BAD_VALUE", detail: `Opportunity dòng ${firstBad.row}: ${firstBad.column}` } satisfies Detail;
     const rowCounts = insertSnapshotSucceeded(db, etlRunId, snap, at);
     log({ event: "csv_import.succeeded", run_id: etlRunId, count: rowCounts.opportunity });
-    return { etlRunId, status: "succeeded", rowCounts };
+    return { etlRunId, status: "succeeded", rowCounts, skipped };
   } catch (e) {
     const d: Detail =
       e instanceof CsvError ? { code: e.code, detail: "" }
@@ -176,7 +205,9 @@ export function loadColumnMap(path: string): ColumnMap {
 export function importMessage(r: CsvImportResult): string {
   if (r.status === "succeeded") {
     const c = r.rowCounts;
-    return `Đã nạp ${c.opportunity ?? 0} Opportunity, ${c.client ?? 0} Client, ${c.lead ?? 0} Lead, ${c.client_service ?? 0} dịch vụ đã mua.`;
+    const sk = r.skipped ?? [];
+    const skipText = sk.length ? ` Bỏ qua ${sk.length} dòng: ${sk.slice(0, 5).map((x) => `${x.resource} dòng ${x.row} cột ${x.column}`).join("; ")}${sk.length > 5 ? "; ..." : ""}.` : "";
+    return `Đã nạp ${c.opportunity ?? 0} Opportunity, ${c.client ?? 0} Client, ${c.lead ?? 0} Lead, ${c.client_service ?? 0} dịch vụ đã mua.${skipText}`;
   }
   const why: Record<string, string> = {
     CSV_OPPORTUNITY_REQUIRED: "Cần có file Opportunity.",
