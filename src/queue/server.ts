@@ -25,7 +25,7 @@ import {
 } from "../config.ts";
 import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
 import { latestEvalRun, readEvalStats } from "../agents/sa-01/eval/runner.ts";
-import { runSa01 } from "../agents/sa-01/run.ts";
+import { runSa01, describeSa01 } from "../agents/sa-01/run.ts";
 import { directCrmReadTools } from "../mcp/crm-read/client.ts";
 import { latestSucceededSnapshot } from "../db/crm-read.ts";
 import { latestEditPayload, listItemEvents, listQueueItems, listRmDirectory } from "../db/queue.ts";
@@ -53,7 +53,8 @@ import {
   type Session,
 } from "./auth.ts";
 import { ITEM_ACTIONS, recordItemAction, recordQueueOpened, type ItemAction } from "./items.ts";
-import { renderBriefPage, renderDigestPage, renderImportPage, renderLeadDupPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, type SourceStatus } from "./views/page.ts";
+import { renderBriefPage, renderDigestPage, renderImportPage, renderLeadDupPage, renderLoginPage, renderPastePage, renderQueuePage, renderWoPage, shell, type SourceStatus } from "./views/page.ts";
+import { SafeHtml } from "./views/html.ts";
 import { buildBrief, buildDigest, mondayOf } from "../mi1/core.ts";
 import { findDuplicateLeads } from "../mcp/crm-read/tools.ts";
 import { buildWoBoard, recordWoTouch, reminderTexts } from "../db/wo.ts";
@@ -95,6 +96,12 @@ import { renderLessonsPage } from "./views/lessons.ts";
 import { renderRunsPage } from "./views/runs.ts";
 import { renderTuningPage } from "./views/tuning.ts";
 import { canPost, canSee, stripForbiddenForms } from "./roles.ts";
+import { readSample } from "./samples.ts";
+import { decorate, homeFor } from "./nav.ts";
+import { guideFor, renderGuide } from "./guide.ts";
+import { currentPassword, MIN_PASSWORD, setPassword } from "../db/users.ts";
+import { renderOverviewPage } from "./views/overview.ts";
+import { buildOverview, rowsFor } from "../mi1/overview.ts";
 import { listProvisional, setProvisional } from "../provisional.ts";
 import { renderMonthlyPage } from "./views/monthly.ts";
 import { renderAskPage } from "./views/ask.ts";
@@ -129,7 +136,7 @@ export type QueueAppDeps = {
   // Chế độ mật khẩu tạm (D-24) khi chưa có app Entra: mã băm argon2 theo id người dùng ("amy", "mark").
   passwordHashes?: Map<string, string>;
   // Xử lý văn bản tự báo Amy dán (D-24); trả số mục mới.
-  onPaste?: (text: string, reportDate: string) => Promise<{ created: number }>;
+  onPaste?: (text: string, reportDate: string) => Promise<{ created: number; message?: string }>;
   // Nạp file CSV xuất từ CRM (D-24); trả câu báo kết quả cho Amy (không chứa giá trị ô).
   onImport?: (files: Partial<Record<CsvResource, string>>) => Promise<{ ok: boolean; message: string }>;
   // Nạp file Work Order và file ghép PIC cho BK-08 (D-25); có hàm này thì bật trang /wo.
@@ -169,6 +176,15 @@ const SECURITY_HEADERS = {
   "referrer-policy": "same-origin",
   "cache-control": "no-store",
 };
+
+// Trang đổi mật khẩu (D-79).
+function renderPasswordPage(csrf: string, message: string | null): string {
+  const esc = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Đổi mật khẩu</title></head><body style="font-family:system-ui,sans-serif;padding:16px;max-width:480px;margin:auto">
+<h1>Đổi mật khẩu</h1><p>Đặt mật khẩu mới, ít nhất ${MIN_PASSWORD} ký tự. Mật khẩu tạm không dùng được nữa sau bước này.</p>${message ? `<p style="color:#9a5b00">${esc(message)}</p>` : ""}
+<form method="post" action="/password"><input type="hidden" name="csrf" value="${esc(csrf)}"><label style="display:block;margin:8px 0">Mật khẩu mới <input type="password" name="password" required minlength="${MIN_PASSWORD}"></label>
+<label style="display:block;margin:8px 0">Gõ lại <input type="password" name="password2" required minlength="${MIN_PASSWORD}"></label><button type="submit">Đổi</button></form></body></html>`;
+}
 
 function respond(body: string | null, status: number, extra: Record<string, string> = {}, cookies: string[] = []): Response {
   const headers = new Headers({ ...SECURITY_HEADERS, ...extra });
@@ -273,7 +289,9 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       if (f && f.until > now().getTime()) {
         return respond(renderLoginPage("Đăng nhập sai quá nhiều lần, thử lại sau 15 phút."), 429, { "content-type": "text/html; charset=utf-8" });
       }
-      const hash = deps.passwordHashes.get(who);
+      // Mật khẩu trong DB (add-user, /password; D-79) thắng mã băm trong biến môi trường.
+      const stored = PASSWORD_USERS[who] ? currentPassword(deps.db, who) : null;
+      const hash = stored?.hash ?? deps.passwordHashes.get(who);
       const ok = hash !== undefined && PASSWORD_USERS[who] !== undefined && (await Bun.password.verify(pw, hash));
       if (!ok) {
         if (PASSWORD_USERS[who]) {
@@ -284,7 +302,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         return respond(renderLoginPage("Sai tên hoặc mật khẩu."), 401, { "content-type": "text/html; charset=utf-8" });
       }
       fails.delete(who);
-      return redirect(PASSWORD_USERS[who]!.role === "mkt" ? "/hooks" : "/queue", [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()), secure)], 303);
+      return redirect(stored?.mustChange ? "/password" : homeFor(PASSWORD_USERS[who]!), [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()), secure)], 303);
     }
 
     if (req.method === "GET" && path === "/login") {
@@ -314,7 +332,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       // Trả một trang cùng site rồi mới sang /queue: chuỗi chuyển hướng bắt đầu từ Entra là khác site,
       // nên cookie phiên Strict chỉ được gửi ở lượt điều hướng mới khởi phát từ chính trang này.
       return respond(
-        '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/queue"><a href="/queue">Vào Hàng chờ</a>',
+        `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${homeFor(user)}"><a href="${homeFor(user)}">Vào Growth Workspace</a>`,
         200,
         { "content-type": "text/html; charset=utf-8" },
         [sessionSetCookie(deps.sessionSecret, newSession(user, now())), clearCookie(OIDC_COOKIE, "/auth")],
@@ -325,7 +343,21 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     // Phân quyền theo vai trò (D-63): MKT về trang Hook thay cho Hàng chờ; trang có mã khách trả 403.
     if (session) {
       const u = userOf(session);
-      if (u.role === "mkt" && req.method === "GET" && (path === "/" || path === "/queue")) return redirect("/hooks");
+      // Mật khẩu tạm (D-79): phải đổi ở /password trước khi dùng trang khác.
+      if (path !== "/password" && path !== "/logout" && currentPassword(deps.db, u.id)?.mustChange) return redirect("/password");
+      if (path === "/password") {
+        if (req.method === "GET") return respond(renderPasswordPage(session.csrf, null), 200, { "content-type": "text/html; charset=utf-8" });
+        if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
+        const form = await req.formData();
+        if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
+        const a = String(form.get("password") ?? "");
+        if (a !== String(form.get("password2") ?? "")) return respond(renderPasswordPage(session.csrf, "Hai lần gõ không khớp."), 422, { "content-type": "text/html; charset=utf-8" });
+        if (a.length < MIN_PASSWORD) return respond(renderPasswordPage(session.csrf, `Mật khẩu cần ít nhất ${MIN_PASSWORD} ký tự.`), 422, { "content-type": "text/html; charset=utf-8" });
+        await setPassword(deps.db, u.id, a, { mustChange: false, now: now(), actor: u.id });
+        return redirect(homeFor(u), [], 303);
+      }
+      // Điểm vào theo vai trò (D-77): "/" về trang chính; MKT không có Hàng chờ nên về Tổng quan.
+      if (req.method === "GET" && (path === "/" || (u.role === "mkt" && path === "/queue"))) return redirect(homeFor(u));
       if (!(req.method === "GET" ? canSee(u, path) : canPost(u, path))) return text(403, "Vai trò MKT chỉ xem số tổng hợp, không xem trang có mã khách hay duyệt việc tốn tiền.");
     }
     if (req.method === "GET" && (path === "/" || path === "/queue")) {
@@ -420,6 +452,28 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/market") {
       if (!session) return redirect("/login");
       return respond(marketPage(session, null), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && (path === "/huong-dan" || path.startsWith("/huong-dan/"))) {
+      if (!session) return redirect("/login");
+      const name = path === "/huong-dan" ? guideFor(userOf(session)) : path.slice("/huong-dan/".length);
+      const body = renderGuide(name);
+      if (body === null) return text(404, "Không có hướng dẫn này.");
+      return respond(shell("Hướng dẫn", new SafeHtml(body + '<p class="meta">Hướng dẫn khác: <a href="/huong-dan/amy">Amy</a> · <a href="/huong-dan/mkt">Team MKT</a> · <a href="/huong-dan/mark">Mark</a> · <a href="/huong-dan/bod">BOD</a></p>')), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path === "/overview") {
+      if (!session) return redirect("/login");
+      const progress = new URL("../../docs/progress.json", import.meta.url).pathname;
+      return respond(renderOverviewPage(rowsFor(userOf(session).role, buildOverview(deps.db, now(), progress))), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    if (req.method === "GET" && path.startsWith("/samples/")) {
+      if (!session) return redirect("/login");
+      const name = path.slice("/samples/".length);
+      const body = readSample(name);
+      if (body === null) return text(404, "Không có file mẫu này.");
+      return respond(body, 200, { "content-type": name.endsWith(".csv") ? "text/csv; charset=utf-8" : "text/plain; charset=utf-8", "content-disposition": `attachment; filename="${name}"` });
     }
 
     if (req.method === "GET" && path === "/tasks") {
@@ -767,8 +821,9 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           return text(422, "Ngày hoặc nội dung dán không hợp lệ.");
         }
         // Văn bản thô chỉ đi qua hàm xử lý trong bộ nhớ, không ghi DB hay log.
-        await deps.onPaste(body, reportDate);
-        return redirect(`/queue?date=${vnDate(now())}`, [], 303);
+        const r = await deps.onPaste(body, reportDate);
+        // Ở lại trang dán, báo kết quả (D-73); Amy mở Hàng chờ bằng link trên trang.
+        return respond(renderPastePage({ csrf: session.csrf, reportDate, message: r.message ?? `Đã tạo ${r.created} mục mới trên Hàng chờ.` }), 200, { "content-type": "text/html; charset=utf-8" });
       }
 
       const m = /^\/queue\/items\/([A-Za-z0-9-]{1,64})\/([a-z_]+)$/.exec(path);
@@ -790,12 +845,14 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     async fetch(req) {
       try {
         const res = await handle(req);
-        // Phiên MKT: ẩn form không được dùng (D-66).
+        // Trang HTML của người đã đăng nhập: thanh điều hướng, dòng mô tả (D-77); MKT ẩn form không được dùng (D-66).
         const s = readSession(req, deps.sessionSecret, now());
-        if (s && userOf(s).role === "mkt" && res.headers.get("content-type")?.startsWith("text/html")) {
+        if (s && res.status === 200 && res.headers.get("content-type")?.startsWith("text/html")) {
+          const u = userOf(s);
           const headers = new Headers();
           res.headers.forEach((v, k) => headers.append(k, v));
-          return new Response(stripForbiddenForms(userOf(s), await res.text()), { status: res.status, headers });
+          const body = decorate(await res.text(), u, deps.db, new URL(req.url).pathname);
+          return new Response(u.role === "mkt" ? stripForbiddenForms(u, body) : body, { status: res.status, headers });
         }
         return res;
       } catch {
@@ -829,7 +886,7 @@ if (import.meta.main) {
       evalVersion,
       trigger: "paste",
     });
-    return { created: r.itemsCreated };
+    return { created: r.itemsCreated, message: describeSa01(r, "paste") };
   };
   // Nạp CSV (D-24): ghi snapshot mới rồi sinh lại NBA cho hôm nay từ snapshot đó.
   const columns = loadColumnMap(getCrmColumnsPath());
@@ -851,7 +908,7 @@ if (import.meta.main) {
       evalVersion,
       trigger: "csv-import",
     });
-    return { ok: true, message: `${importMessage(r)} NBA: ${run.itemsCreated} mục mới.` };
+    return { ok: true, message: `${importMessage(r)} ${describeSa01(run, "nba")}` };
   };
   const onWoImport = async (files: { WorkOrder?: string; WorkOrderPic?: string }, actor: string) => {
     const r = importWorkOrders(db, files, { columns, now: new Date(), actor });

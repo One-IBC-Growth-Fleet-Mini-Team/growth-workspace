@@ -4,7 +4,7 @@
 import type { QueueUser } from "./auth.ts";
 
 export const MKT_PATHS: ReadonlySet<string> = new Set([
-  "/hooks", "/creative", "/ads-check", "/ads-overview", "/competitors", "/channels", "/jurisdictions", "/banks", "/data", "/market", "/lessons", "/ask", "/tasks",
+  "/hooks", "/creative", "/ads-check", "/ads-overview", "/competitors", "/channels", "/jurisdictions", "/banks", "/data", "/market", "/lessons", "/ask", "/tasks", "/samples", "/overview", "/huong-dan", "/password",
 ]);
 // MKT chỉ được POST ở việc không tốn tiền và không đổi dữ liệu dùng chung (D-63, D-66): kiểm mẫu quảng cáo, hỏi Mi1,
 // tạo Storyboard (chưa gọi model trả phí), phân tích bước 7, ghi bài học. Nạp file giá, sandbox, kênh, kéo MCP, duyệt
@@ -16,7 +16,7 @@ export function canSee(user: QueueUser, path: string): boolean {
 }
 
 export function canPost(user: QueueUser, path: string): boolean {
-  return user.role !== "mkt" || path === "/logout" || MKT_POSTS.has(path);
+  return user.role !== "mkt" || path === "/logout" || path === "/password" || MKT_POSTS.has(path);
 }
 
 // Bỏ khỏi trang các form POST mà vai trò này không được dùng (D-66), để MKT không bấm rồi nhận 403.

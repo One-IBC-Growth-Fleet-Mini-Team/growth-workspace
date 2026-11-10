@@ -1,0 +1,4 @@
+Invoice Number,Order Number,Owner ID,Due Date,Status
+INV-0001,SO-0001,RM_A,01/11/2026,Unpaid
+INV-0002,SO-0002,RM_B,30/11/2026,Unpaid
+INV-0003,SO-0003,RM_A,15/10/2026,Paid

@@ -46,7 +46,9 @@ Cấu hình, mật khẩu và dữ liệu giữ nguyên.
 
 Mỗi ngày 08:15 (hoặc lần đăng nhập kế tiếp nếu máy tắt lúc đó), Mi1 đánh dấu "quá hạn, giữ nháp" cho mục chưa ai quyết của ngày trước, rồi máy chép Growth DB vào thư mục `~/Growth-backup`, giữ 14 bản gần nhất. Bản sao lưu nằm trên cùng ổ đĩa: nên chép thư mục này sang Google Drive hoặc ổ USB mỗi tuần. File trong đó không có email hay số điện thoại khách (chỉ mã băm) nhưng vẫn là dữ liệu nội bộ, không chia sẻ công khai.
 
-Thêm tài khoản Team MKT hoặc BOD (D-63): chạy `~/.local/share/growth/bun/bin/bun run scripts/hash-password.ts` trong thư mục repo, gõ mật khẩu, rồi thêm dòng `MKT_PASSWORD_HASH='<mã băm>'` (hoặc `BOD_PASSWORD_HASH`) vào `~/.config/growth/growth.env` và chạy `systemctl --user restart growth-queue`. Team MKT chỉ vào được trang số tổng hợp (Hook, Creative, quảng cáo, giá đối thủ, kênh, 45 tài phán, ngân hàng, độ phủ ID, thị trường, bài học, hỏi Mi1, nháp việc); không thấy Hàng chờ, Lead, đối tác, đơn hàng, ngân sách; chỉ kiểm mẫu quảng cáo, hỏi Mi1, tạo Storyboard, phân tích, ghi bài học; không nạp file, không duyệt Storyboard. BOD xem như Mark.
+Thêm tài khoản (D-79): `bun run scripts/add-user.ts <amy|mark|mkt|bod>` trong thư mục repo đã cài, sau khi nạp biến môi trường (`set -a && . ~/.config/growth/growth.env && set +a`). Lệnh in mật khẩu tạm một lần; người dùng phải đổi ở lần đăng nhập đầu. Chạy lại lệnh là đặt lại mật khẩu. Team MKT chỉ vào trang số tổng hợp; BOD xem như Mark.
+
+Khôi phục từ bản sao lưu: `systemctl --user stop growth-queue`, rồi `bun run scripts/restore-db.ts ~/Growth-backup/<file>.sqlite`, rồi `systemctl --user start growth-queue`. DB trước khi khôi phục được giữ thành `<db>.before-restore-<thời điểm>`.
 
 Giá trị tạm (D-67): Mark sửa ở trang `/tuning`; thay đổi lưu ở `~/.local/share/growth/data/provisional-overrides.jsonl` (cạnh Growth DB). Bản sao lưu tự động hằng ngày chỉ chép Growth DB, nên khi chuyển máy hãy chép kèm file này.
 

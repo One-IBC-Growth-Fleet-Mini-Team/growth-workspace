@@ -1,0 +1,77 @@
+{
+  "_doc": "Tiến độ dự án cho trang /overview (hàng 4). Cập nhật trong cùng PR với mỗi việc. Phần trăm là ước tính theo spec v0.3.2.",
+  "updated": "2026-11-09",
+  "overall_percent": 62,
+  "phases": [
+    {
+      "id": "GD0",
+      "name": "Nền móng",
+      "percent": 90,
+      "note": "Thiếu Neo4j (để sau)"
+    },
+    {
+      "id": "GD1",
+      "name": "Biết khách và chuẩn đầu ra",
+      "percent": 85,
+      "note": "Chờ dữ liệu CRM thật"
+    },
+    {
+      "id": "GD2",
+      "name": "Thử, đo và Creative Factory",
+      "percent": 70,
+      "note": "Chạy bằng giá trị tạm (config/provisional.json)"
+    },
+    {
+      "id": "GD3",
+      "name": "Học và điều chỉnh",
+      "percent": 0,
+      "note": "Không làm trong đợt này"
+    }
+  ],
+  "blocked": [
+    {
+      "id": "a",
+      "what": "Đường đọc dữ liệu CRM (API hoặc file xuất)",
+      "who": "MobCEC"
+    },
+    {
+      "id": "b",
+      "what": "Quyền đọc channel Teams qua Microsoft Graph",
+      "who": "Admin tenant Microsoft 365"
+    },
+    {
+      "id": "c",
+      "what": "Khoảng 30 ca eval Mi1-sa-01",
+      "who": "Amy"
+    },
+    {
+      "id": "d",
+      "what": "Danh mục mã lý do từ chối",
+      "who": "Amy, RM"
+    },
+    {
+      "id": "e",
+      "what": "Chạy eval Mi1 với Claude thật (cần API key trên máy cài)",
+      "who": "Mark"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "usable-basic",
+      "name": "Dùng được cơ bản cho 4 vai trò",
+      "status": "in_progress",
+      "done": [
+        "File mẫu nạp, link tải (D-72)",
+        "Câu báo sau khi dán, nạp; NBA 0 mục nói lý do (D-73)",
+        "Brief đếm từ Hàng chờ, lịch sử quyết định trên thẻ, /market không tràn (D-74)",
+        "Demo có dữ liệu mẫu cho trang MKT, tài khoản 4 vai trò (D-75)",
+        "Dashboard /overview theo vai trò (D-76)",
+        "Điểm vào theo vai trò, điều hướng nhóm theo việc, dòng mô tả trang (D-77)",
+        "Làm cứng bộ nạp: file Excel, tự báo lệch mẫu (D-78)",
+        "Tài khoản theo vai trò, khôi phục DB, diễn tập sao lưu (D-79)",
+        "Hướng dẫn sử dụng 4 vai trò (D-80)",
+        "STATUS gọn, lịch sử sang docs/history.md, hướng dẫn Secret scanning, rà bảo mật (D-81)"
+      ]
+    }
+  ]
+}

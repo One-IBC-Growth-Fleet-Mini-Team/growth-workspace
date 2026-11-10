@@ -97,6 +97,9 @@ else
   echo "Giữ nguyên cấu hình cũ."
 fi
 
+# Bảng ghép cột theo tên cột của file xuất CRM thật (D-42, D-72); giữ file cũ nếu đã có.
+[ -f "$CONF/crm-columns.json" ] || install -m 600 "$APP_DIR/deploy/crm-columns.example.json" "$CONF/crm-columns.json"
+
 say "4/6 Nâng schema Growth DB"
 (set -a; . "$ENV_FILE"; set +a; cd "$APP_DIR" && "$BUN" run src/db/migrate.ts)
 
@@ -255,7 +258,21 @@ fi
 say "6/6 Kiểm tra"
 for _ in $(seq 1 20); do curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && break; sleep 1; done
 if curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
-  echo "Hàng chờ đang chạy. Mở http://localhost:$PORT (hoặc bấm biểu tượng 'Hàng chờ Growth'), đăng nhập bằng Amy."
+  cat <<DONE
+
+Growth Workspace đang chạy: http://localhost:$PORT  (hoặc bấm biểu tượng "Hàng chờ Growth")
+
+Bước tiếp theo:
+  1. Mở địa chỉ trên, đăng nhập bằng Amy hoặc Mark (mật khẩu vừa đặt).
+  2. Thêm tài khoản Team MKT hoặc BOD (in ra mật khẩu tạm, phải đổi ở lần đăng nhập đầu):
+       cd "$APP_DIR" && set -a && . "$ENV_FILE" && set +a && "$BUN" run scripts/add-user.ts mkt
+  3. Thử nạp file mẫu ở trang "File CRM" (link "File mẫu" cạnh từng ô), hoặc nạp file xuất thật.
+  4. Hướng dẫn cho từng vai trò: nút "Hướng dẫn" trên thanh điều hướng.
+  5. Sao lưu tự động mỗi ngày vào $BACKUP_DIR. Khôi phục:
+       systemctl --user stop growth-queue
+       cd "$APP_DIR" && set -a && . "$ENV_FILE" && set +a && "$BUN" run scripts/restore-db.ts <file trong $BACKUP_DIR>
+       systemctl --user start growth-queue
+DONE
 else
   echo "Hàng chờ chưa chạy. Xem lỗi bằng: journalctl --user -u growth-queue -n 50"
   exit 1

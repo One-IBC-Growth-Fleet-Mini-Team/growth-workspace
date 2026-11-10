@@ -21,9 +21,9 @@ ${sandboxSection(args.sandbox)}
 <section><h2>Từng tài phán</h2>${b.jurisdictions.length ? html`<table class="kv"><tr><td><strong>Tài phán, loại hình</strong></td><td><strong>Starter / Grow / Premium</strong></td><td><strong>Gia hạn / 2 năm / 3 năm</strong></td><td><strong>Tình trạng</strong></td></tr>
 ${b.jurisdictions.flatMap((j) => j.rows.map((r) => html`<tr><td>${j.name}<br><span class="meta">${r.companyType}</span></td><td>${usd(r.starter)} / ${usd(r.grow)} / ${usd(r.premium)}</td><td>${usd(r.renewal)} / ${usd(r.renewal2y)} / ${usd(r.renewal3y)}</td><td>${r.status === "locked" ? STATUS.locked : html`<span class="warn">${STATUS[r.status]}${r.status === "formula_mismatch" ? html`: Starter + 1 năm gia hạn = ${usd(r.expected2y)}, Starter + 2 năm = ${usd(r.expected3y)}; kiểm lại cột gia hạn và cột 2, 3 năm` : ""}</span>`}</td></tr>`))}</table>` : html`<p class="meta">Chưa có dữ liệu.</p>`}</section>
 <section><h2>Nạp dữ liệu</h2><form method="post" action="/jurisdictions" enctype="multipart/form-data"><input type="hidden" name="csrf" value="${args.csrf}">
-<label>File CSV của sheet "FINAL - Gói &amp; Giá năm 2 &amp; năm 3" (Google Sheets: Tệp, Tải xuống, CSV) <input type="file" name="price" accept=".csv,text/csv"></label>
-<label>CSV của tab "Bug" trong file test case sandbox8 <input type="file" name="bugs" accept=".csv,text/csv"></label>
-<label>CSV của tab "Test Cases" trong file test case sandbox8 <input type="file" name="cases" accept=".csv,text/csv"></label>
+<label>File CSV của sheet "FINAL - Gói &amp; Giá năm 2 &amp; năm 3" (Google Sheets: Tệp, Tải xuống, CSV) <input type="file" name="price" accept=".csv,text/csv"> <span class="meta"><a href="/samples/price-final.csv" download>File mẫu</a></span></label>
+<label>CSV của tab "Bug" trong file test case sandbox8 <input type="file" name="bugs" accept=".csv,text/csv"> <span class="meta"><a href="/samples/sandbox-bugs.csv" download>File mẫu</a></span></label>
+<label>CSV của tab "Test Cases" trong file test case sandbox8 <input type="file" name="cases" accept=".csv,text/csv"> <span class="meta"><a href="/samples/sandbox-cases.csv" download>File mẫu</a></span></label>
 <label>Tên các file trong thư mục Userguide eKYC, mỗi dòng một tên <textarea name="skd" rows="6"></textarea></label>
 <button type="submit">Nạp</button></form></section>`);
 }

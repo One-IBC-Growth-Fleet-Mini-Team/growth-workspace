@@ -1,0 +1,4 @@
+hook_id,text,jurisdiction,score_1,score_2,score_3,score_4,score_5
+HK-01,Mở công ty Hong Kong trong 7 ngày làm việc,Hong Kong,80,75,70,60,65
+SG-01,Công ty Singapore kèm tài khoản EMI,Singapore,70,80,60,70,55
+BVI-01,Thành lập BVI trọn gói minh bạch phí,British Virgin Islands,65,60,75,80,70

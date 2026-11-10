@@ -24,12 +24,12 @@ describe("T-ROLE phân quyền", () => {
     for (const p of ["/jurisdictions", "/logout"]) expect(canPost(BOD, p)).toBe(true);
   });
 
-  test("T-ROLE-02 qua HTTP: MKT mở /queue thì sang /hooks, mở /leads thì 403; không duyệt được Storyboard; BOD mở được Hàng chờ", async () => {
+  test("T-ROLE-02 qua HTTP: MKT mở /queue thì sang /overview, mở /leads thì 403; không duyệt được Storyboard; BOD mở được Hàng chờ", async () => {
     const { app } = makeApp(freshDb(), { now: () => NOW });
     const get = (u: QueueUser, p: string) => app.fetch(new Request(`${BASE}${p}`, { headers: { cookie: cookie(u) } }));
     const q = await get(MKT, "/queue");
     expect(q.status).toBe(302);
-    expect(q.headers.get("location")).toBe("/hooks");
+    expect(q.headers.get("location")).toBe("/overview");
     expect((await get(MKT, "/leads")).status).toBe(403);
     expect((await get(MKT, "/hooks")).status).toBe(200);
     const decide = await app.fetch(new Request(`${BASE}/creative/decide`, { method: "POST", headers: { cookie: cookie(MKT), origin: BASE, "content-type": "application/x-www-form-urlencoded" }, body: "csrf=k&id=IR-1&decision=approve" }));

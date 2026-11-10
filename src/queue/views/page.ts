@@ -4,7 +4,7 @@ import { REASON_CODES, REASON_LABELS, type ReasonCode } from "../../agents/sa-01
 import type { QueueEventRow, QueueItemRow } from "../../db/queue.ts";
 import { WO_TOUCH_REASONS, type WoBoardRow } from "../../db/wo.ts";
 import type { Brief, Digest } from "../../mi1/core.ts";
-import { ddmm } from "../../time.ts";
+import { ddmm, vnShortTime } from "../../time.ts";
 import type { QueueUser } from "../auth.ts";
 import { NBA_ACTIONS, RM_OUTCOMES } from "../items.ts";
 import { html, SafeHtml } from "./html.ts";
@@ -157,6 +157,17 @@ function rmListText(payload: Record<string, unknown>): string {
   return lines.join("\n");
 }
 
+const ACTION_TEXT: Record<string, string> = { confirm: "Xác nhận", edit: "Sửa", reject: "Bác", escalate: "Escalate", pii_flag: "Báo PII", rm_outcome: "Phản hồi RM" };
+// Lịch sử quyết định trên thẻ (D-74): quyết định mới nhất thắng; Bác luôn kèm lý do (đã qua lọc PII).
+function historyLine(item: PageItem): SafeHtml | string {
+  const ev = item.events.filter((e) => e.action in ACTION_TEXT);
+  if (!ev.length) return "";
+  return html`<div class="meta">Lịch sử: ${ev.map((e, i) => {
+    const reason = e.action === "reject" && e.payload ? String((JSON.parse(e.payload) as { reason?: string }).reason ?? "") : "";
+    return html`${i ? "; " : ""}${vnShortTime(e.created_at)} ${e.actor} ${ACTION_TEXT[e.action]}${reason ? ` (${reason})` : ""}`;
+  })}</div>`;
+}
+
 function card(item: PageItem, user: QueueUser, csrf: string, now: Date, threshold: number): SafeHtml {
   const payload = JSON.parse(item.effectivePayload) as Record<string, unknown>;
   const inputs = JSON.parse(item.confidence_inputs) as Record<string, unknown>;
@@ -168,6 +179,7 @@ function card(item: PageItem, user: QueueUser, csrf: string, now: Date, threshol
   return html`<article class="card" id="item-${item.id}">
 <div class="meta">${displayState(item)} · tuổi ${ageText(item.created_at, now)} · điểm tự tin ${item.confidence.toFixed(2)} ${item.confidence < threshold ? html`<strong>(dưới ${threshold.toFixed(2).replace(".", ",")})</strong>` : ""}</div>
 ${itemBody(item, payload)}
+${historyLine(item)}
 <details class="tech"><summary>Chi tiết kỹ thuật</summary><div class="meta">Luật: ${rules.length ? rules.join(", ") : "không"} · Thành phần điểm: ${JSON.stringify(inputs)}</div><pre>${JSON.stringify(payload, null, 2)}</pre></details>
 ${link ? html`<div><a href="${link}" rel="noreferrer">Mở bản gốc trong Teams</a></div>` : ""}
 ${confirmed ? html`<details><summary>Danh sách cho RM</summary><textarea readonly rows="4">${rmListText(payload)}</textarea></details>` : ""}
@@ -201,7 +213,7 @@ export function renderQueuePage(args: {
   const body = html`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hàng chờ ${ddmm(args.queueDate)}</title><style>${new SafeHtml(STYLE)}</style></head><body>
 <h1>Hàng chờ ngày ${ddmm(args.queueDate)}</h1>
-<nav>${args.user.role === "approver" && args.canPaste ? html`<a href="/paste">Dán tự báo của RM</a>` : ""}${args.user.role === "approver" && args.canImport ? html`<a href="/import">Nạp dữ liệu CRM (CSV)</a>` : ""}<a href="/leads">Lead trùng</a>${args.canWo ? html`<a href="/wo">WO tồn đọng</a>` : ""}<a href="/partners">Đối tác</a><a href="/jurisdictions">45 tài phán</a><a href="/banks">Gợi ý ngân hàng</a><a href="/data">Độ phủ ID</a><a href="/channels">Tài khoản kênh</a><a href="/ads-check">Kiểm quảng cáo</a><a href="/ads-overview">Quảng cáo tuần</a><a href="/competitors">Giá đối thủ</a><a href="/hooks">Hook</a><a href="/creative">Creative</a><a href="/budget">Ngân sách</a><a href="/market">Thị trường</a><a href="/lessons">Bài học</a><a href="/runs">Phiên chạy</a><a href="/tuning">Ngưỡng</a><a href="/billing">Đơn hàng và invoice</a><a href="/brief">Brief sáng</a><a href="/digest">Digest tuần</a><a href="/monthly">Báo cáo tháng</a><a href="/ask">Hỏi Mi1</a><a href="/tasks">Nháp việc</a></nav>
+
 <div class="status ${args.status}">${statusText} · Snapshot CRM: ${args.snapshotAt ?? "chưa có"} · Người dùng: ${args.user.id}</div>
 ${GROUPS.map((g) => {
     const list = visible.filter((i) => i.item_type === g.type);
@@ -229,7 +241,7 @@ ${message ? html`<p class="warn">${message}</p>` : ""}
 export function renderPastePage(args: { csrf: string; reportDate: string; message: string | null }): string {
   return shell("Dán tự báo", html`<h1>Dán tự báo của RM</h1>
 <p>Mở thread tự báo của ngày trong Teams, chọn toàn bộ các trả lời, sao chép rồi dán vào ô dưới. Mỗi bản tự báo bắt đầu bằng dòng <code>[dd/mm] [RM] Tên</code>. Nội dung dán vào được lọc thông tin khách trước khi xử lý và không được lưu nguyên văn. Xử lý mất khoảng nửa phút.</p>
-${args.message ? html`<p class="warn">${args.message}</p>` : ""}
+${args.message ? html`<p class="warn">${args.message} <a href="/queue">Mở Hàng chờ</a></p>` : ""}
 <form method="post" action="/paste"><input type="hidden" name="csrf" value="${args.csrf}">
 <label>Ngày tự báo <input type="date" name="report_date" value="${args.reportDate}" required></label>
 <label>Nội dung <textarea name="text" required maxlength="100000"></textarea></label>
@@ -238,8 +250,9 @@ ${args.message ? html`<p class="warn">${args.message}</p>` : ""}
 
 export function renderImportPage(args: { csrf: string; message: string | null; crm?: boolean; wo?: boolean }): string {
   const crm = args.crm ?? true;
+  const SAMPLE: Record<string, string> = { opportunity: "opportunity.csv", client: "client.csv", lead: "lead.csv", orderitem: "orderitem.csv", workorder: "workorder.csv", wopic: "wopic.csv" };
   const file = (name: string, label: string, note: string) =>
-    html`<label>${label} <input type="file" name="${name}" accept=".csv,text/csv"> <span class="meta">${note}</span></label>`;
+    html`<label>${label} <input type="file" name="${name}" accept=".csv,text/csv"> <span class="meta">${note} · <a href="/samples/${SAMPLE[name] ?? ""}" download>File mẫu</a></span></label>`;
   return shell("Nạp dữ liệu CRM", html`<h1>Nạp dữ liệu CRM (CSV)</h1>
 <p>Xuất danh sách từ trang quản trị CRM. Nếu file là Excel, mở bằng Excel rồi chọn "Lưu thành", định dạng "CSV UTF-8". Chỉ những cột cần dùng được đọc; email và số điện thoại được mã hoá ngay khi nạp; file gốc không được lưu.</p>
 ${args.message ? html`<p class="warn">${args.message}</p>` : ""}
@@ -298,7 +311,7 @@ export function renderBriefPage(b: Brief): string {
 <p><a href="/queue">Mở Hàng chờ</a></p>
 <section><h2>Hàng chờ hôm nay</h2>
 ${b.today.length ? html`<table class="kv">${b.today.map((t) => html`<tr><td>${TYPE_TEXT[t.type] ?? t.type}</td><td>${t.total} mục</td><td>${t.pending} chờ duyệt</td></tr>`)}</table>` : html`<p class="meta">Chưa có mục nào hôm nay.</p>`}
-<p>Tổng ${b.todayTotal.total} mục, ${b.todayTotal.pending} chờ duyệt. Dự kiến mỗi ngày làm việc khoảng ${b.forecastItems} mục (trung bình 7 ngày qua).</p></section>
+<p>Hàng chờ hôm nay: ${b.todayTotal.total} mục, ${b.todayTotal.pending} chờ duyệt.${b.forecastItems > 0 ? ` Trung bình 7 ngày trước: khoảng ${b.forecastItems} mục mỗi ngày làm việc.` : ""}</p></section>
 <section><h2>Cần chú ý</h2><ul>
 <li>Còn chờ từ ngày trước: <strong>${b.carryover.count}</strong> mục${b.carryover.oldestHours !== null ? html`, lâu nhất ${hours(b.carryover.oldestHours)}` : ""}.</li>
 <li>Quá hạn đã áp mặc định "giữ nháp" trong 24 giờ qua: ${b.defaultsLast24h} mục (Amy vẫn quyết lại được).</li>

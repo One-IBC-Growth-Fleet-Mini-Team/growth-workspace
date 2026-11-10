@@ -90,7 +90,7 @@ describe("Dán tự báo", () => {
     expect(r.reports[0]!.rmId).toBeNull();
   });
 
-  test("T-Q-02 (dán) chỉ Amy dán được; có CSRF; văn bản đi qua hàm xử lý rồi quay về Hàng chờ; không ghi văn bản thô vào DB", async () => {
+  test("T-Q-02 (dán) chỉ Amy dán được; có CSRF; văn bản đi qua hàm xử lý rồi báo số mục tạo mới (D-73); không ghi văn bản thô vào DB", async () => {
     const received: string[] = [];
     const { app } = makeApp(db, { onPaste: async (text, reportDate) => { received.push(`${reportDate}|${text}`); return { created: 2 }; } });
     const s = session(AMY);
@@ -98,7 +98,10 @@ describe("Dán tự báo", () => {
     expect(form).toContain("<textarea");
     const raw = "[31/10] [RM] RM_A\nKHÁCH NÓI: CANARY_NAME_7f3a chê giá, canary+1@example.invalid";
     const res = await post(app, "/paste", { csrf: s.csrf, report_date: "2026-10-31", text: raw }, s.cookie);
-    expect(res.status).toBe(303);
+    expect(res.status).toBe(200);
+    const page = await res.text();
+    expect(page).toContain("Đã tạo 2 mục mới trên Hàng chờ.");
+    expect(page).not.toContain("CANARY");
     expect(received).toEqual([`2026-10-31|${raw}`]);
     const dump = JSON.stringify(db.query("SELECT * FROM queue_events").all());
     expect(dump).not.toContain("CANARY");

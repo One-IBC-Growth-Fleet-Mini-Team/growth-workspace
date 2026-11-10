@@ -1,0 +1,4 @@
+PO Number,Order Number,Status
+PO-0001,SO-0001,Approved
+PO-0002,SO-0003,Draft
+PO-0003,,Draft

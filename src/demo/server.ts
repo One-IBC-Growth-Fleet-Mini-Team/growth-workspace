@@ -5,16 +5,17 @@
 import { openReadWrite } from "../db/open.ts";
 import { migrate } from "../db/migrate.ts";
 import { insertEtlRun, insertSnapshotSucceeded } from "../db/crm-snapshot.ts";
-import { runSa01 } from "../agents/sa-01/run.ts";
+import { runSa01, describeSa01 } from "../agents/sa-01/run.ts";
 import { directCrmReadTools } from "../mcp/crm-read/client.ts";
 import { createQueueApp } from "../queue/server.ts";
 import type { QueueUser } from "../queue/auth.ts";
 import { createGraphClient } from "../teams/graph-read.ts";
 import { ddmm, monthPeriod, previousWorkingDay, vnDate } from "../time.ts";
 import { fakeLlm } from "./fake-llm.ts";
-import { DEFAULT_COLUMN_MAP, importCrmCsv, importMessage } from "../crm/csv-import.ts";
+import { importCrmCsv, importMessage, loadColumnMap } from "../crm/csv-import.ts";
 import { createPiiHasher } from "../pii/hash.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
+import { seedDemoSamples, withSampleBanner } from "./samples.ts";
 import type { OpportunityRow } from "../db/types.ts";
 
 export const DEMO_HOST = "127.0.0.1";
@@ -103,7 +104,9 @@ export async function createDemo(now: Date = new Date()) {
     trigger: "demo",
   });
 
-  const users: [string, QueueUser][] = [["amy", { id: "amy", role: "approver" }], ["mark", { id: "mark", role: "viewer" }]];
+  seedDemoSamples(db, now);
+  // Tài khoản demo cho 4 vai trò (D-75): /login?as=amy|mark|mkt|bod.
+  const users: [string, QueueUser][] = [["amy", { id: "amy", role: "approver" }], ["mark", { id: "mark", role: "viewer" }], ["mkt", { id: "mkt", role: "mkt" }], ["bod", { id: "bod", role: "viewer" }]];
   const inner = createQueueApp({
     db,
     sessionSecret: SECRET,
@@ -120,12 +123,12 @@ export async function createDemo(now: Date = new Date()) {
       return { ok: r.status === "succeeded", message: woImportMessage(r) };
     },
     onImport: async (files) => {
-      const r = importCrmCsv(db, files, { hasher: createPiiHasher("demo-only-hash-key-not-for-production-0123"), columns: DEFAULT_COLUMN_MAP, now: new Date() });
+      const r = importCrmCsv(db, files, { hasher: createPiiHasher("demo-only-hash-key-not-for-production-0123"), columns: loadColumnMap(new URL("../../deploy/crm-columns.example.json", import.meta.url).pathname), now: new Date() });
       if (r.status !== "succeeded") return { ok: false, message: importMessage(r) };
       const run = await runSa01(queueDate, { db, crm: directCrmReadTools(db), graph: null, parts: { selfReports: false, nba: true }, llm: null,
         pricing: { model: "demo-fake-llm", inputUsdPerMTok: 0, outputUsdPerMTok: 0 },
         evalStats: { self_report_parse: { passRate: 1, caseCount: 2 }, reason_code: { passRate: 1, caseCount: 2 }, nba: { passRate: 1, caseCount: 4 } }, trigger: "demo-import" });
-      return { ok: true, message: `${importMessage(r)} NBA: ${run.itemsCreated} mục mới.` };
+      return { ok: true, message: `${importMessage(r)} ${describeSa01(run, "nba")}` };
     },
     // Thử trang dán tự báo với LLM giả.
     onPaste: async (text, reportDate) => {
@@ -140,7 +143,7 @@ export async function createDemo(now: Date = new Date()) {
         evalStats: { self_report_parse: { passRate: 1, caseCount: 2 }, reason_code: { passRate: 1, caseCount: 2 }, nba: { passRate: 1, caseCount: 4 } },
         trigger: "demo-paste",
       });
-      return { created: r.itemsCreated };
+      return { created: r.itemsCreated, message: describeSa01(r, "paste") };
     },
   });
 
@@ -148,7 +151,13 @@ export async function createDemo(now: Date = new Date()) {
   const app = {
     async fetch(req: Request): Promise<Response> {
       const url = new URL(req.url);
-      if (url.pathname !== "/login") return inner.fetch(req);
+      if (url.pathname !== "/login") {
+        const res = await inner.fetch(req);
+        if (!res.headers.get("content-type")?.startsWith("text/html")) return res;
+        const headers = new Headers();
+        res.headers.forEach((v, k) => headers.append(k, v));
+        return new Response(withSampleBanner(await res.text()), { status: res.status, headers });
+      }
       const who = url.searchParams.get("as") ?? "amy";
       const start = await inner.fetch(new Request(`${BASE}/login`));
       const oidcCookie = start.headers.get("set-cookie")!.split(";")[0]!;
@@ -168,6 +177,8 @@ if (import.meta.main) {
       "Bản demo Hàng chờ đang chạy (dữ liệu tổng hợp, không gọi CRM, Teams hay Claude API).",
       `  Vào bằng Amy (người duyệt):  ${BASE}/login`,
       `  Vào bằng Mark (chỉ xem):     ${BASE}/login?as=mark`,
+      `  Vào bằng Team MKT:           ${BASE}/login?as=mkt`,
+      `  Vào bằng BOD:                ${BASE}/login?as=bod`,
       "Mở bằng Chrome hoặc Edge. Nhấn Ctrl+C ở cửa sổ này để tắt; tắt là mất dữ liệu demo.",
       "",
     ].join("\n"),
