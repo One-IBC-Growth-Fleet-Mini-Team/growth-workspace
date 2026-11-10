@@ -8,6 +8,7 @@ import { importCampaignCsv } from "../../src/crm/campaign-import.ts";
 import { importCompetitorPrices } from "../../src/crm/competitor-import.ts";
 import { importCrmCsv, loadColumnMap } from "../../src/crm/csv-import.ts";
 import { importEvents } from "../../src/crm/event-import.ts";
+import { missingFields } from "../../src/metrics/id-coverage.ts";
 import { importHookCsv } from "../../src/crm/hook-import.ts";
 import { importPriceSheet, importSkdList } from "../../src/crm/jurisdiction-import.ts";
 import { importMarketCsv } from "../../src/crm/market-import.ts";
@@ -39,6 +40,9 @@ describe("T-SAMPLE file mẫu", () => {
     expect(importSandboxLog(db, { bugs: f("sandbox-bugs.csv"), cases: f("sandbox-cases.csv") }, by).status).toBe("succeeded");
     expect(importBankFiles(db, { matrix: f("bank-matrix.csv"), core: f("bank-core.csv") }, by).status).toBe("succeeded");
     expect(importEvents(db, f("events.csv"), by)).toMatchObject({ status: "succeeded", events: 3 });
+    // File mẫu sự kiện có đủ trường bắt buộc của Phụ lục A cho từng sự kiện.
+    const [head, ...lines] = f("events.csv").trim().split("\n").map((l) => l.split(","));
+    for (const l of lines) expect(missingFields(l[1]!, Object.fromEntries(head!.map((h, i) => [h, l[i] ?? ""])))).toEqual([]);
     expect(importCampaignCsv(db, f("campaigns.csv"), by).status).toBe("succeeded");
     expect(importAdReport(db, f("meta-ads.csv"), { platform: "meta", weekStart: "2026-11-02", ...by }).status).toBe("succeeded");
     expect(importAdReport(db, f("google-ads.csv"), { platform: "google", weekStart: "2026-11-02", ...by }).status).toBe("succeeded");

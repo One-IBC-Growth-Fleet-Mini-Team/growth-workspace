@@ -8,6 +8,7 @@ Sau khi đăng nhập, trang đầu tiên là Tổng quan. BOD chỉ xem, không
 2. **Hàng "Vận hành"**: Hàng chờ của Amy có bị dồn không (còn chờ từ trước), invoice quá hạn, WO tồn đọng.
 3. **Hàng "Growth"**: Win gate (chiến dịch thắng), hoa hồng đề xuất (chưa chi), cờ các tầng. Số có nhãn "Tạm" dùng ngưỡng chưa chốt.
 4. **Hàng "Hệ thống"**: nguồn dữ liệu có mới không, chi phí LLM tháng so với trần 100 USD.
+5. **Điều phối Mi1** (nhóm "Theo dõi"): Mi1 vừa làm gì từng bước và thuyền viên nào đang chạy. Chỉ xem.
 
 Bấm vào ô bất kỳ để xem chi tiết.
 

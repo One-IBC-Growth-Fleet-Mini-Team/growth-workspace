@@ -46,10 +46,11 @@ export function homeFor(u: QueueUser): string {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export function navHtml(u: QueueUser, current: string): string {
+// csrf có thì thêm nút Đăng xuất cuối thanh, để mọi vai trò đăng xuất được ở mọi trang (PHẦN 8).
+export function navHtml(u: QueueUser, current: string, csrf?: string): string {
   const groups = ["Hằng ngày", "Nạp dữ liệu", "Theo dõi", "Cài đặt"] as const;
   const visible = PAGES.filter((p) => canSee(u, p.path) && (!p.approverOnly || u.role === "approver") && (!p.viewerOnly || u.role === "viewer"));
-  return `<nav class="meta">${groups.map((g) => { const ps = visible.filter((p) => p.group === g); return ps.length ? `<div><strong>${g}:</strong> ${ps.map((p) => p.path === current ? `<b>${esc(p.label)}</b>` : `<a href="${p.path}">${esc(p.label)}</a>`).join(" · ")}</div>` : ""; }).join("")}</nav>`;
+  return `<nav class="meta">${groups.map((g) => { const ps = visible.filter((p) => p.group === g); return ps.length ? `<div><strong>${g}:</strong> ${ps.map((p) => p.path === current ? `<b>${esc(p.label)}</b>` : `<a href="${p.path}">${esc(p.label)}</a>`).join(" · ")}</div>` : ""; }).join("")}${csrf ? `<form method="post" action="/logout" style="display:inline"><input type="hidden" name="csrf" value="${esc(csrf)}"><button type="submit">Đăng xuất</button></form>` : ""}</nav>`;
 }
 
 export function pageInfoHtml(db: Database, path: string): string {
@@ -64,6 +65,6 @@ export function pageInfoHtml(db: Database, path: string): string {
 }
 
 // Chèn thanh điều hướng và dòng mô tả ngay sau <body> của mọi trang HTML (trừ trang đăng nhập).
-export function decorate(html: string, u: QueueUser, db: Database, path: string): string {
-  return html.replace("<body>", `<body>${navHtml(u, path)}${pageInfoHtml(db, path)}`);
+export function decorate(html: string, u: QueueUser, db: Database, path: string, csrf?: string): string {
+  return html.replace("<body>", `<body>${navHtml(u, path, csrf)}${pageInfoHtml(db, path)}`);
 }

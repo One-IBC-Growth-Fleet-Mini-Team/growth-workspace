@@ -17,6 +17,10 @@ import { createPiiHasher } from "../pii/hash.ts";
 import { importWorkOrders, woImportMessage } from "../crm/wo-import.ts";
 import { seedDemoSamples, withSampleBanner } from "./samples.ts";
 import { runCron06 } from "../fleet/cron06.ts";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { setProvisionalPaths } from "../provisional.ts";
 import type { LlmClient } from "../agents/sa-01/llm.ts";
 
 // LLM giả cho /ask của demo: chọn truy vấn mẫu theo từ khoá trong câu hỏi.
@@ -75,6 +79,8 @@ function demoOpportunities(month: { start: string; end: string }): OpportunityRo
 
 export async function createDemo(now: Date = new Date()) {
   const db = openReadWrite(":memory:");
+  // Giá trị tạm Mark sửa trên demo ghi vào thư mục tạm, không ghi vào thư mục repo (PHẦN 8).
+  setProvisionalPaths({ overrides: join(mkdtempSync(join(tmpdir(), "growth-demo-")), "provisional-overrides.jsonl") });
   migrate(db);
   db.run("INSERT INTO rm_directory (rm_id, display_name, teams_user_id) VALUES ('RM_A', 'RM_A', 'aad_rm_a'), ('RM_B', 'RM_B', 'aad_rm_b')");
 
