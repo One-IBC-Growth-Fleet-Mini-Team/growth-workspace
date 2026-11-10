@@ -232,10 +232,32 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
+# CRON-07 bản Tạm (D-87): 02:00 thứ Hai tạo sẵn Storyboard cho Hook đề xuất của tuần (cần CREATIVE_SOURCE=mcp).
+cat > "$UNIT_DIR/growth-harness.service" <<EOF
+[Unit]
+Description=Growth Workspace: vòng lặp Harness tuần (Storyboard cho Hook đề xuất)
+
+[Service]
+Type=oneshot
+WorkingDirectory=$APP_DIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$BUN run src/jobs/harness-weekly.ts
+EOF
+cat > "$UNIT_DIR/growth-harness.timer" <<EOF
+[Unit]
+Description=Growth Workspace: Harness tuần 02:00 thứ Hai
+
+[Timer]
+OnCalendar=Mon *-*-* 02:00:00 Asia/Ho_Chi_Minh
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
 systemctl --user daemon-reload
-systemctl --user enable growth-queue.service growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer
+systemctl --user enable growth-queue.service growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer growth-harness.timer
 systemctl --user restart growth-queue.service
-systemctl --user start growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer
+systemctl --user start growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer growth-harness.timer
 
 # Biểu tượng "Hàng chờ Growth" trong danh sách ứng dụng và trên màn hình.
 apps="$HOME/.local/share/applications"

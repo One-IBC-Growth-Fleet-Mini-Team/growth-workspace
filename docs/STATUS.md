@@ -17,11 +17,12 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Nghiệm thu 4 vai trò trên demo (10/11/2026): mọi bước trong hướng dẫn đạt. Luồng Creative chạy được với creative-factory-v2 thật trên máy (Storyboard, duyệt, QA PASS, đóng gói chạy thử, phân tích).
 - Đổi mật khẩu cần mật khẩu cũ (trừ lần đầu với mật khẩu tạm); đổi xong huỷ mọi phiên khác của tài khoản (D-85).
 - Persona MKT: bộ nạp CSV Closed Won (Opportunity, Account; không lưu tên hay mã khách) ở `/persona`, file mẫu trong `deploy/samples`. Chưa nạp thì trang hiện "Chờ dữ liệu thật" (D-86).
-- `bun test`: 402 pass, `tsc --strict` sạch.
+- CRON-07 bản Tạm: 02:00 thứ Hai tạo sẵn Storyboard cho Hook đề xuất của tuần qua creative-factory-v2, chờ Mark duyệt; vết trên `/command` (D-87).
+- `bun test`: 404 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
-Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisional.json), đọc qua `getProvisional()`, có nhãn "Tạm" trên giao diện. Mark sửa hoặc chuyển FINAL ở trang Ngưỡng. Gồm: tầng 3B, Win gate, lịch kênh, hoa hồng, tên bundle, CRON-07, từ cấm K-07, ngưỡng tầng 4, trọng số Stage Q-09.
+Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisional.json), đọc qua `getProvisional()`, có nhãn "Tạm" trên giao diện. Mark sửa hoặc chuyển FINAL ở trang Ngưỡng. Gồm: tầng 3B, Win gate, lịch kênh, hoa hồng, tên bundle, CRON-07 (đang bật, nội dung đề xuất ở D-87), từ cấm K-07, ngưỡng tầng 4, trọng số Stage Q-09.
 
 ## Việc tiếp theo
 
@@ -44,5 +45,5 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## PR đang mở
 
-- growth-workspace: PR đổi mật khẩu (D-85), rồi PR nạp Closed Won cho persona (D-86), merge theo thứ tự.
-- creative-factory-v2: markng-byte/creative-factory-v2#22 (CF_PROFILE=one-ibc).
+- growth-workspace: PR CRON-07 bản Tạm (D-87).
+- creative-factory-v2: không có PR mở.

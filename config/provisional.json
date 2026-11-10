@@ -25,8 +25,8 @@
     "status": "PROVISIONAL", "source": "Mark đề xuất, 09/11/2026", "decided_by": null
   },
   "cron07": {
-    "value": { "enabled": false, "description": "Vòng lặp Harness tuần (spec mục 10) chưa định nghĩa; chưa chạy" },
-    "status": "PROVISIONAL", "source": "spec v0.3.2 mục 10, chưa mô tả", "decided_by": null
+    "value": { "enabled": true, "description": "02:00 thứ Hai: Hook đề xuất của tuần chưa có Storyboard thì gọi creative-factory-v2 bước 1 (compile) để có Storyboard chờ Mark duyệt; không tạo ảnh, video; không gọi LLM" },
+    "status": "PROVISIONAL", "source": "spec v0.3.2 mục 10 chỉ có tên; nội dung đề xuất 10/11/2026 (D-87)", "decided_by": null
   },
   "k07_ad_words": {
     "value": {
