@@ -70,4 +70,11 @@ describe("T-3D Command Center 3D", () => {
     expect(screen).not.toMatch(/inputSummary/);
     for (const s of ["SkeletonUtils.clone", "pelvis.scale.setScalar(EPS)", "neck.scale.setScalar(1 / EPS)", "d.role !== 'viewer'"]) expect(crew).toContain(s);
   });
+  test("T-3D-06 thanh động tác và âm thanh (spec mục 4): Join, Working, Done task, âm thanh WebAudio không tải file, nhớ lựa chọn, gắn sự kiện thật", () => {
+    const js = readFileSync(STATIC + "command3d/actions.js", "utf8");
+    expect(readFileSync(STATIC + "command3d/app.js", "utf8")).toContain("'./actions.js'");
+    for (const s of [">Join<", ">Working<", ">Done task<", "Âm thanh: Bật", "Âm thanh: Tắt", "'Jump'", "'Excited'", "'Scenario_Study'", "'Scenario_Celebrate'", "ctx.play('Idle')",
+      "new AudioContext()", "stopAll()", "gw3d-sound", "gw:run-start", "gw:run-done", "perform('join')"]) expect(js).toContain(s);
+    expect(js).not.toMatch(/new Audio\(|\.mp3|\.wav|\.ogg/);
+  });
 });

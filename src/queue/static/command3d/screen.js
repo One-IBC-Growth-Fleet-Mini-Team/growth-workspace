@@ -23,9 +23,9 @@ function curved(w, h, bend) {
 function layout() {
   const z = ctx.narrow ? -1.0 : -2.2;
   const hw = halfWidthAt(z);
-  const w = ctx.narrow ? 1.16 * hw : 0.62 * hw, h = w * 0.625;
-  const x = ctx.narrow ? 0 : ctx.base.position.x + 0.1 * hw;
-  const y = ctx.narrow ? 2.35 : 2.35;
+  const w = ctx.narrow ? 0.9 * hw : 0.62 * hw, h = w * 0.625;
+  const x = ctx.narrow ? 0.48 * hw : ctx.base.position.x + 0.1 * hw;
+  const y = ctx.narrow ? 1.25 : 2.35;
   group.position.set(x, y, z);
   const bend = w * 0.07;
   bezel.geometry?.dispose(); bezel.geometry = curved(w + 0.14, h + 0.14, bend); bezel.position.z = -0.012;
@@ -69,7 +69,8 @@ ctx.drawScreen = draw;
 
 // Lượt mới (khác id) thì hiện dần từng bước; cùng lượt thì vẽ lại theo dữ liệu mới.
 ctx.run = { id: null, session: null, reveal: 0, costUsd: 0 };
-ctx.onData.push((d) => {
+// Dữ liệu đã có trước khi module này nạp được xử lý ngay; không thì lượt bắt đầu trong vài giây đầu bị coi là lượt cũ.
+function onData(d) {
   const s = d.session;
   if (s && s.id !== ctx.run.id) {
     const first = ctx.run.id === null;
@@ -77,7 +78,9 @@ ctx.onData.push((d) => {
     if (!first) document.dispatchEvent(new CustomEvent('gw:run-start', { detail: s }));
   } else if (s) { ctx.run.session = s; ctx.run.costUsd = d.sessionCostUsd; }
   draw();
-});
+}
+ctx.onData.push(onData);
+if (ctx.data) onData(ctx.data);
 let acc = 0;
 ctx.ticks.push((dt) => {
   const r = ctx.run;
