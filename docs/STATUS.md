@@ -14,8 +14,8 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Bản demo có dữ liệu mẫu và tài khoản 4 vai trò (`bun run demo`).
 - Cài trên Ubuntu một lệnh (`deploy/local/install.sh`), tài khoản theo vai trò (`scripts/add-user.ts`), sao lưu hằng ngày, khôi phục (`scripts/restore-db.ts`).
 - Mi1 Command Center bản phẳng: sổ thuyền viên `src/fleet/registry.ts`, điều phối lượt chạy cha và con cho `/ask` và CRON-06, trang `/command` cho Mark và BOD (D-82). Tắt thuyền viên bằng `FLEET_DISABLED`.
-- Nghiệm thu 4 vai trò trên demo (10/11/2026): mọi bước trong hướng dẫn đạt, trừ Tạo Storyboard và Phân tích của Team MKT (cần nối creative-factory-v2).
-- `bun test`: 397 pass, `tsc --strict` sạch.
+- Nghiệm thu 4 vai trò trên demo (10/11/2026): mọi bước trong hướng dẫn đạt. Luồng Creative chạy được với creative-factory-v2 thật trên máy (Storyboard, duyệt, QA PASS, đóng gói chạy thử, phân tích).
+- `bun test`: 398 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
@@ -23,7 +23,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## Việc tiếp theo
 
-1. Nối creative-factory-v2 (merge markng-byte/creative-factory-v2#17 tới #20, đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`) để Team MKT tạo Storyboard.
+1. Cấu hình nguồn thương hiệu One IBC cho creative-factory-v2 (`CF_BRANDS_DIR`, `CF_SHEET_ID`) để Storyboard dùng nội dung Hook thay vì ví dụ mặc định; trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
 2. Trang persona tổng hợp cho Team MKT: để sau, cần dữ liệu Closed Won từ CRM.
 
 ## Đang bị chặn
@@ -42,5 +42,5 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## PR đang mở
 
-- growth-workspace: PR sửa sau nghiệm thu (D-83).
-- creative-factory-v2: markng-byte/creative-factory-v2#17 tới #20.
+- growth-workspace: PR file mẫu khớp nhau, demo nối creative-factory-v2 (D-84).
+- creative-factory-v2: không có PR mở.

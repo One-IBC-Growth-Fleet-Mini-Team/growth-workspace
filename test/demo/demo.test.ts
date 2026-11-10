@@ -2,6 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { Glob } from "bun";
 import { createDemo, DEMO_HOST } from "../../src/demo/server.ts";
+import { buildHookBoard } from "../../src/db/hooks.ts";
 
 describe("Bản demo", () => {
   test("T-E2E-01 (demo) sinh đủ ba loại mục; vào bằng /login rồi mở được Hàng chờ và bấm xác nhận", async () => {
@@ -50,6 +51,14 @@ describe("Bản demo", () => {
     const bod = await as("bod");
     expect((await page(bod, "/partners")).status).toBe(200);
     expect(await (await page(bod, "/queue")).text()).not.toContain("/confirm");
+  });
+
+  test("T-DEMO-02 file mẫu khớp nhau: Hook có tài phán đã chốt giá thì đủ điều kiện tạo Storyboard; tài phán chưa chốt thì Giữ lại (D-84)", async () => {
+    const { db } = await createDemo(new Date("2026-11-09T01:00:00.000Z"));
+    const v = Object.fromEntries(buildHookBoard(db).hooks.map((h) => [h.hookId, h.verdict]));
+    expect(["pass", "review"]).toContain(v["HK-01"]);
+    expect(["pass", "review"]).toContain(v["SG-01"]);
+    expect(v["BVI-01"]).toBe("hold");
   });
 
   test("T-Q-06 (demo) chỉ nghe trên 127.0.0.1; mã chạy thật không import src/demo", async () => {
