@@ -65,7 +65,7 @@ Lịch khác (spec mục 10): 08:00 và 13:00 thứ Hai tới thứ Bảy, Mi1-s
 | Đổi mật khẩu | `echo -n 'mật khẩu mới' \| bash ~/growth-workspace/deploy/local/run.sh scripts/hash-password.ts`, chép kết quả vào `~/.config/growth/growth.env` (giữ nháy đơn hai bên), rồi `systemctl --user restart growth-queue` |
 | Xem Hàng chờ có chạy không | `systemctl --user status growth-queue` |
 | Xem lỗi | `journalctl --user -u growth-queue -n 50` |
-| Tắt hẳn | `systemctl --user disable --now growth-queue growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer` |
+| Tắt hẳn | `systemctl --user disable --now growth-queue growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer growth-harness.timer` |
 
 ## Giới hạn
 

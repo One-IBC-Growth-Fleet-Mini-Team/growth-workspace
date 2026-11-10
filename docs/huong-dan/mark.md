@@ -6,6 +6,7 @@ Mark giám sát fleet Mi1 và Team MKT, duyệt việc tốn tiền, chốt các
 
 - **Tổng quan** (`/overview`): 4 hàng. Hệ thống (độ mới từng nguồn, phiên lỗi, chi phí LLM); Vận hành (Hàng chờ của Amy, Lead trùng, invoice, WO); Growth (cờ tầng 1 tới 5, Win gate, lịch kênh, hoa hồng đề xuất); Tiến độ dự án. Ô màu cam là ô cần xem.
 - **Điều phối Mi1** (`/command`): Mi1 đang làm gì từng bước (thuyền viên, tool, kết quả, chi phí), thẻ từng thuyền viên (bật hay tắt, điểm eval, lần chạy cuối, chi phí tháng), việc Amy escalate đang chờ Mark và đã chờ bao lâu, dự báo tải Hàng chờ, chi phí tháng so với trần. Trang tự tải lại mỗi 5 giây. Tắt một thuyền viên: thêm mã của nó vào `FLEET_DISABLED` trong file env rồi khởi động lại dịch vụ.
+- **Storyboard mỗi thứ Hai** (CRON-07, Tạm): 02:00 thứ Hai Mi1 tạo sẵn Storyboard cho Hook đề xuất của tuần chưa có Storyboard. Sáng thứ Hai mở Creative để duyệt hoặc từ chối; chưa duyệt thì không tạo ảnh, video. Tắt ở Ngưỡng, khoá `cron07`.
 - **Phiên chạy** (`/runs`): mỗi lần agent chạy, token, chi phí; bấm "Đánh dấu đã xem" cho agent Mark giám sát.
 - **Ngưỡng** (`/tuning`): đổi ngưỡng escalate, trọng số Hook (cần chạy lại eval) và các giá trị tạm.
 - **Độ phủ ID** (`/data`): độ phủ chuỗi ID, gãy tracking, tầng 3B.

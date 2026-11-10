@@ -21,7 +21,7 @@ export const CREW: readonly Crew[] = [
   { id: "mi1-sa-01", role: "Tự báo RM, lý do từ chối, khớp PO và SO, nhắc invoice, NBA", supervisor: "Amy", kind: "llm", tools: ["get_pipeline_by_close_date"], agentRun: "mi1-sa-01" },
   { id: "mi1-ptn-01", role: "Hiệu suất đối tác, cờ reseller, bảng đề xuất hoa hồng", supervisor: "Amy", kind: "script", tools: ["track_referral", "calc_commission", "match_to_contact", "check_reseller_flag"], agentRun: null },
   { id: "mi1-mkt-01", role: "Overview Meta/GG, Win gate, nháp đổi ngân sách", supervisor: "Mark", kind: "script", tools: [], agentRun: null },
-  { id: "mi1-mkt-02", role: "Chấm Hook 25/25/20/15/15, gọi creative-factory-v2 bước 1 tới 4", supervisor: "Mark", kind: "script", tools: ["query:hook_board", "propose_hook_card"], agentRun: null },
+  { id: "mi1-mkt-02", role: "Chấm Hook 25/25/20/15/15, gọi creative-factory-v2 bước 1 tới 4", supervisor: "Mark", kind: "script", tools: ["query:hook_board", "propose_hook_card", "compile_creative_ir"], agentRun: null },
   { id: "mi1-mkt-03", role: "Quy định, tiếng khách, verify Meta TW/IN", supervisor: "Mark", kind: "script", tools: [], agentRun: null },
   { id: "mi1-mkt-04", role: "Gói và giá đối thủ khớp 45 tài phán", supervisor: "Mark", kind: "script", tools: [], agentRun: null },
   { id: "mi1-mkt-05", role: "Bảng giá 45 tài phán, bộ SKD, nghiệm thu sandbox8, lịch kênh", supervisor: "Mark", kind: "script", tools: ["query:output_readiness", "query:channel_health", "sync_45_juris_pricing", "audit_media_kit_bundle", "verify_sandbox8_release", "check_ad_compliance", "check_channel_account_health"], agentRun: null },
