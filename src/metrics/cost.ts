@@ -36,3 +36,10 @@ export function monthToDateCostUsd(runs: readonly { cost_usd: number; started_at
   for (const r of runs) if (r.started_at.slice(0, 7) === month) total += r.cost_usd;
   return total;
 }
+
+// Tổng chi phí các bước của một phiên điều phối (D-82), làm tròn tới 0,0001 USD.
+export function sumCostUsd(items: readonly { costUsd: number }[]): number {
+  let total = 0;
+  for (const i of items) total += i.costUsd;
+  return Math.round(total * 10_000) / 10_000;
+}
