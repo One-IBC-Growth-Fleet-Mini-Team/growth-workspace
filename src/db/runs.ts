@@ -20,10 +20,11 @@ export function buildRunLog(db: Database, now: Date, limit = 200) {
   return { runs, month: now.toISOString().slice(0, 7), monthCostUsd: monthToDateCostUsd(costs, now), capUsd: LLM_MONTHLY_CAP_USD, unseen: runs.filter((r) => !r.seenBy).length };
 }
 
-export function markRunSeen(db: Database, runId: string, opts: { now: Date; actor: string }): "ok" | "NOT_FOUND" | "NOT_SUPERVISOR" {
+export function markRunSeen(db: Database, runId: string, opts: { now: Date; actor: string; actorRole?: string }): "ok" | "NOT_FOUND" | "NOT_SUPERVISOR" {
   const r = db.query("SELECT agent FROM agent_runs WHERE id = ?").get(runId) as { agent: string } | null;
   if (!r) return "NOT_FOUND";
-  if (supervisorOf(r.agent) !== opts.actor) return "NOT_SUPERVISOR";
+  // Người giám sát là vai trò (amy, mark); người đánh dấu ghi theo mã tài khoản (D-97).
+  if (supervisorOf(r.agent) !== (opts.actorRole ?? opts.actor)) return "NOT_SUPERVISOR";
   db.run("INSERT OR IGNORE INTO agent_run_reviews (agent_run_id, seen_at, actor) VALUES (?, ?, ?)", [runId, opts.now.toISOString(), opts.actor]);
   return "ok";
 }

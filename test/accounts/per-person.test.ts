@@ -110,3 +110,18 @@ describe("T-ACC tài khoản theo người", () => {
     expect(() => db.run("UPDATE accounts SET role = 'mark'")).toThrow(/append_only/);
   });
 });
+
+describe("T-ACC người giám sát theo vai trò", () => {
+  test("T-ACC-09 /runs: tài khoản amy-01 (vai amy) đánh dấu đã xem phiên của Mi1-sa-01; người xem ghi theo mã tài khoản", async () => {
+    const db = freshDb();
+    const { app } = makeApp(db, { passwordLogin: true, now: () => NOW });
+    db.run(`INSERT INTO agent_runs (id, agent, trigger, prompt_version, eval_version, model, input_tokens, output_tokens, cost_usd, status, started_at, finished_at)
+            VALUES ('run_x', 'mi1-sa-01', 'manual', 'p', 'e', 'm', 0, 0, 0, 'succeeded', '2026-11-02T00:00:00Z', '2026-11-02T00:01:00Z')`);
+    const made = await runAccountCommand(db, ["add-user", "amy-01", "amy"], { now: NOW });
+    const c = await loginAndChange(app, "amy-01", tempOf(made.out), "ca-phe-sang-amy-tuoi");
+    const page = await (await get(app, "/runs", c)).text();
+    const csrf = /name="csrf" value="([^"]+)"/.exec(page)![1]!;
+    expect((await post(app, "/runs", { csrf, run_id: "run_x" }, c)).status).toBe(200);
+    expect(db.query("SELECT actor FROM agent_run_reviews").all()).toEqual([{ actor: "amy-01" }]);
+  });
+});

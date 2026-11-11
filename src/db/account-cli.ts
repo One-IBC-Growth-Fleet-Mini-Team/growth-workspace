@@ -13,14 +13,16 @@ const USAGE = `Cách dùng:
   list-users                                    tài khoản, vai trò, lần đăng nhập cuối, còn mật khẩu tạm không
 Mã tài khoản: chữ thường, số, gạch nối, 2 tới 32 ký tự (ví dụ mkt-01). Không dùng tên thật.\n`;
 
+// Cấp mật khẩu tạm và trả câu in ra màn hình; hạn in ra đúng là hạn đã ghi vào DB.
 async function issueTemp(db: Database, id: string, now: Date, actor: string): Promise<string> {
   const pw = tempPassword();
-  await setPassword(db, id, pw, { mustChange: true, now, actor, expiresAt: new Date(now.getTime() + TEMP_PASSWORD_HOURS * 3_600_000) });
-  return pw;
+  const expiresAt = new Date(now.getTime() + TEMP_PASSWORD_HOURS * 3_600_000);
+  await setPassword(db, id, pw, { mustChange: true, now, actor, expiresAt });
+  return tempText(id, pw, expiresAt);
 }
 
-const tempText = (id: string, pw: string, now: Date) =>
-  `Tài khoản: ${id}\nMật khẩu tạm: ${pw}\nHết hạn: ${new Date(now.getTime() + TEMP_PASSWORD_HOURS * 3_600_000).toISOString().slice(0, 16).replace("T", " ")} UTC (${TEMP_PASSWORD_HOURS} giờ). ` +
+const tempText = (id: string, pw: string, expiresAt: Date) =>
+  `Tài khoản: ${id}\nMật khẩu tạm: ${pw}\nHết hạn: ${expiresAt.toISOString().slice(0, 16).replace("T", " ")} UTC (${TEMP_PASSWORD_HOURS} giờ). ` +
   `Đăng nhập ở /login rồi đổi ngay.\nGửi địa chỉ web và mật khẩu tạm qua hai kênh khác nhau. Mật khẩu này không được lưu ở đâu, không in lại được.\n`;
 
 export async function runAccountCommand(db: Database, argv: string[], opts: { now: Date; actor?: string }): Promise<CliResult> {
@@ -33,15 +35,15 @@ export async function runAccountCommand(db: Database, argv: string[], opts: { no
     if (r === "ROLE_INVALID") return { code: 2, out: `Vai trò phải là một trong: ${ACCOUNT_ROLES.join(", ")}.\n` };
     if (r === "EXISTS") return { code: 1, out: `Tài khoản ${id} đã có. Cấp mật khẩu tạm mới bằng: reset-password ${id}\n` };
     logSecurityEvent(db, id, "account_created", { now, actor });
-    return { code: 0, out: `Vai trò: ${role}\n${tempText(id, await issueTemp(db, id, now, actor), now)}` };
+    return { code: 0, out: `Vai trò: ${role}\n${await issueTemp(db, id, now, actor)}` };
   }
   if (cmd === "reset-password") {
     const a = getAccount(db, id);
     if (!a) return { code: 1, out: `Không có tài khoản ${id}.\n` };
     if (a.disabled) return { code: 1, out: `Tài khoản ${id} đã bị khoá; tạo tài khoản mới thay vì mở lại.\n` };
-    const pw = await issueTemp(db, id, now, actor);
+    const out = await issueTemp(db, id, now, actor);
     logSecurityEvent(db, id, "password_reset", { now, actor });
-    return { code: 0, out: tempText(id, pw, now) };
+    return { code: 0, out };
   }
   if (cmd === "disable-user") {
     const r = disableAccount(db, id, { now, actor });
