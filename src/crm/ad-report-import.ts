@@ -20,6 +20,20 @@ const num = (v: string | undefined) => {
 
 type Result = { status: "succeeded" | "failed"; ads: number; errorCode?: string };
 
+export type AdRowInput = { campaign: string | null; ad: string; impressions: number; clicks: number; spend: number; frequency: number | null };
+
+// Ghi một lần nạp vào ad_imports và ad_rows. Dùng chung cho file tải lên và adapter API (D-96), nên Win gate đọc một bảng.
+export function saveAdRows(db: Database, rows: AdRowInput[], opts: { platform: "meta" | "google"; weekStart: string; now: Date; actor: string }): string {
+  const id = Bun.randomUUIDv7();
+  db.transaction(() => {
+    db.run("INSERT INTO ad_imports (id, actor, imported_at, platform, week_start) VALUES (?, ?, ?, ?, ?)", [id, opts.actor, opts.now.toISOString(), opts.platform, opts.weekStart]);
+    const q = db.prepare("INSERT INTO ad_rows (import_id, row_no, campaign, ad, impressions, clicks, spend, frequency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    rows.forEach((r, i) => q.run(id, i + 1, r.campaign?.slice(0, 120) || null, r.ad.slice(0, 120), Math.round(r.impressions), Math.round(r.clicks), r.spend, r.frequency));
+  })();
+  log({ event: "ad_report_import.succeeded", run_id: id, count: rows.length });
+  return id;
+}
+
 export function importAdReport(db: Database, text: string, opts: { platform: "meta" | "google"; weekStart: string; now: Date; actor: string }): Result {
   const fail = (code: string): Result => ({ status: "failed", ads: 0, errorCode: code });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(opts.weekStart) || new Date(`${opts.weekStart}T00:00:00Z`).getUTCDay() !== 1) return fail("AD_WEEK_NOT_MONDAY");
@@ -32,15 +46,10 @@ export function importAdReport(db: Database, text: string, opts: { platform: "me
     const col = (names: readonly string[]) => names.map((n) => header.indexOf(n)).find((i) => i >= 0) ?? -1;
     const c = Object.fromEntries(Object.entries(COLUMNS).map(([k, v]) => [k, col(v)])) as Record<keyof typeof COLUMNS, number>;
     const rows = all.slice(h + 1).filter((r) => (r[c.ad] ?? "").trim() && !/^total/i.test((r[0] ?? "").trim()));
-    const id = Bun.randomUUIDv7();
-    db.transaction(() => {
-      db.run("INSERT INTO ad_imports (id, actor, imported_at, platform, week_start) VALUES (?, ?, ?, ?, ?)", [id, opts.actor, opts.now.toISOString(), opts.platform, opts.weekStart]);
-      const q = db.prepare("INSERT INTO ad_rows (import_id, row_no, campaign, ad, impressions, clicks, spend, frequency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-      rows.forEach((r, i) => q.run(id, i + 1, c.campaign >= 0 ? (r[c.campaign] ?? "").trim().slice(0, 120) || null : null, r[c.ad]!.trim().slice(0, 120),
-        Math.round(num(r[c.impressions])), Math.round(c.clicks >= 0 ? num(r[c.clicks]) : 0), c.spend >= 0 ? num(r[c.spend]) : 0,
-        c.frequency >= 0 && (r[c.frequency] ?? "").trim() ? num(r[c.frequency]) : null));
-    })();
-    log({ event: "ad_report_import.succeeded", run_id: id, count: rows.length });
+    const ads = rows.map((r) => ({ campaign: c.campaign >= 0 ? (r[c.campaign] ?? "").trim() || null : null, ad: r[c.ad]!.trim(),
+      impressions: num(r[c.impressions]), clicks: c.clicks >= 0 ? num(r[c.clicks]) : 0, spend: c.spend >= 0 ? num(r[c.spend]) : 0,
+      frequency: c.frequency >= 0 && (r[c.frequency] ?? "").trim() ? num(r[c.frequency]) : null }));
+    saveAdRows(db, ads, opts);
     return { status: "succeeded", ads: rows.length };
   } catch (e) {
     const code = e instanceof CsvError ? e.code : "AD_REPORT_IMPORT_FAILED";

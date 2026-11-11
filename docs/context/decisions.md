@@ -225,6 +225,7 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - **Ổ cắm và adapter:**
     - Graph (đã có) thêm lấy token mới khi 401 và chờ khi 429.
     - Thêm adapter Internal Control theo A5.
+    - Meta Ads (Insights GET, code 190 là hết hạn, code 4, 17, 32, 613, 80000 tới 80014 là giới hạn tần suất), Google Ads (chỉ `googleAds:search`, refresh token OAuth), GA4 (chỉ `runReport`). Job 06:30 kéo tuần trọn gần nhất khi đủ biến; số quảng cáo ghi cùng `ad_rows` với file tải lên qua `saveAdRows`. GA4 chưa có bảng nhận số nên chỉ đọc để kiểm nối.
   - **Sổ ổ cắm** `src/connectors/registry.ts`: thiếu biến thì "chưa nối" và hệ thống dùng adapter tải file như cũ.
   - **Nhật ký gọi** `connector_calls` (migration 030): chỉ ghi thành công hay mã lỗi.
   - **Trang `/settings`** (chỉ Mark): bảng ổ cắm, chỉ hiện tên biến; không nhận key qua web.

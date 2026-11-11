@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật: 10/11/2026 (phiên 12). Quy ước: ai xong việc thì cập nhật file này trong cùng PR. Lịch sử: [`docs/history.md`](history.md). Quyết định: [`docs/context/decisions.md`](context/decisions.md). Tiến độ cho trang Tổng quan: [`docs/progress.json`](progress.json).
+Cập nhật: 11/11/2026 (phiên 13). Quy ước: ai xong việc thì cập nhật file này trong cùng PR. Lịch sử: [`docs/history.md`](history.md). Quyết định: [`docs/context/decisions.md`](context/decisions.md). Tiến độ cho trang Tổng quan: [`docs/progress.json`](progress.json).
 
 ## Mục tiêu đợt này
 
@@ -26,7 +26,8 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Command Center 3D ở `/command/3d`: phòng lab, Mi1 trên bệ xoay 360°, vệ tinh module, bảng kính mờ, đầu thuyền viên, màn hình tường hiện vết lượt chạy, thanh động tác và âm thanh; tự về bản phẳng khi không WebGL hoặc giảm chuyển động (D-93).
 - Bảng sẵn sàng Phụ lục B trên `/command` (Mark, BOD): mỗi hạng mục, điều kiện bật, tiến độ đo được, ai mở khoá; không xây mục nào của Phụ lục B (D-94).
 - Repo public: tên RM thật trong tài liệu đã thay bằng mã, bỏ email công ty; test chặn email tên miền công ty và tên RM thật (D-95).
-- `bun test`: 431 pass, `tsc --strict` sạch.
+- Adapter thật chỉ đọc cho mọi ổ cắm, chưa cần key (D-96): CRM API, Internal Control (A5), Microsoft Graph (Teams), Meta Ads, Google Ads, GA4. Cửa đọc chung `src/connectors/read-http.ts` (chỉ GET hoặc POST truy vấn đọc, token hết hạn, giới hạn tần suất, phân trang). Thiếu biến thì "chưa nối" và dùng adapter tải file như cũ. Trang `/settings` (chỉ Mark) hiện trạng thái từng ổ cắm, tên biến còn thiếu, lần gọi thành công gần nhất; không hiện, không nhận key.
+- `bun test`: 443 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
@@ -46,6 +47,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 | b | Đọc channel Teams "Đồng bộ dữ liệu" | Đăng ký app Microsoft Graph | Admin tenant |
 | c | Bộ eval Mi1-sa-01 | Khoảng 30 ca Amy xác nhận | Amy |
 | d | Danh mục mã lý do từ chối | Amy và RM xác nhận | Amy, RM |
+| f | Nối adapter thật | Điền biến trong `~/.config/growth/growth.env` theo `.env.example` (CRM, Internal Control, Graph, Meta Ads, Google Ads, GA4), rồi xem `/settings` | Mark, MobCEC, admin tenant |
 | e | Eval Mi1 và Mi1-sa-01 với Claude thật; `/ask` và đọc tự báo thật | Điền `ANTHROPIC_API_KEY` trong `~/.config/growth/growth.env` (cài được khi để trống), chạy `bun run eval:mi1`, `bun run eval:sa01` và `bun run eval:strategy` | Mark |
 
 ## Người giữ việc
@@ -54,5 +56,5 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## PR đang mở
 
-- growth-workspace: #71 tới #78, rồi PR bảng Phụ lục B (D-94), merge theo thứ tự số.
+- growth-workspace: #79 (Phụ lục B, D-94) → #80 (PII, D-95) → #81 (adapter, D-96) → #82 (adapter quảng cáo, GA4, D-96). Nhánh xếp chồng, merge theo thứ tự số. #71 tới #78 đã merge.
 - creative-factory-v2: không có PR mở.

@@ -19,7 +19,7 @@ export const SOCKETS: readonly Socket[] = [
   { id: "google-ads", label: "Google Ads", required: ["GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REFRESH_TOKEN", "GOOGLE_ADS_CUSTOMER_ID"], optional: ["GOOGLE_ADS_LOGIN_CUSTOMER_ID", "GOOGLE_ADS_API_VERSION"],
     fileAdapter: "Tải CSV báo cáo tuần ở /ads-overview", realAdapter: "Google Ads API googleAds:search chỉ đọc (src/connectors/google-ads.ts)", usedBy: "Quảng cáo tuần, job kéo nguồn 06:30" },
   { id: "ga4", label: "GA4 (số liệu)", required: ["GA4_PROPERTY_ID", "GA4_CLIENT_ID", "GA4_CLIENT_SECRET", "GA4_REFRESH_TOKEN"], optional: [],
-    fileAdapter: "Tải CSV sự kiện ở /data", realAdapter: "Analytics Data API runReport chỉ đọc (src/connectors/ga4.ts)", usedBy: "Đếm sự kiện phễu theo tuần (Mi1-data-01)" },
+    fileAdapter: "Tải CSV sự kiện ở /data", realAdapter: "Analytics Data API runReport chỉ đọc (src/connectors/ga4.ts)", usedBy: "Job kéo nguồn 06:30 đọc thử để kiểm nối; chưa có bảng nhận số GA4" },
 ];
 
 export type SocketStatus = { id: string; label: string; state: "connected" | "not_enabled" | "not_connected"; active: string; missing: string[]; optionalMissing: string[]; lastOkAt: string | null; lastError: string | null; fileAdapter: string; realAdapter: string; usedBy: string };
