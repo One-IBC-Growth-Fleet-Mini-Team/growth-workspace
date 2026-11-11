@@ -38,9 +38,9 @@ export function disableAccount(db: Database, id: string, opts: { now: Date; acto
   return "ok";
 }
 
-export function currentPassword(db: Database, user: string): { hash: string; mustChange: boolean; expiresAt: string | null } | null {
-  const r = db.query("SELECT hash, must_change, expires_at FROM user_passwords WHERE user_id = ? ORDER BY set_at DESC, id DESC LIMIT 1").get(user) as { hash: string; must_change: number; expires_at: string | null } | null;
-  return r ? { hash: r.hash, mustChange: r.must_change === 1, expiresAt: r.expires_at } : null;
+export function currentPassword(db: Database, user: string): { hash: string; mustChange: boolean; setAt: string; expiresAt: string | null } | null {
+  const r = db.query("SELECT hash, must_change, set_at, expires_at FROM user_passwords WHERE user_id = ? ORDER BY set_at DESC, id DESC LIMIT 1").get(user) as { hash: string; must_change: number; set_at: string; expires_at: string | null } | null;
+  return r ? { hash: r.hash, mustChange: r.must_change === 1, setAt: r.set_at, expiresAt: r.expires_at } : null;
 }
 
 // Đổi mật khẩu (kể cả reset) huỷ mọi phiên cấp trước đó của tài khoản (D-85); tài khoản bị khoá hay không còn thì huỷ hết.

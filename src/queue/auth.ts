@@ -17,11 +17,15 @@ export function permissionOf(role: "amy" | "mkt" | "mark" | "bod"): QueueUser["r
   return role === "amy" ? "approver" : role === "mkt" ? "mkt" : "viewer";
 }
 // iat: lúc cấp phiên (ms). Phiên cấp trước lần đổi mật khẩu gần nhất của tài khoản bị huỷ (D-85).
-export type Session = { sub: string; csrf: string; exp: number; iat?: number };
+// exp: hạn tuyệt đối (7 ngày từ lúc cấp); seen: lần dùng gần nhất, quá 8 giờ không dùng thì hết hạn (D-97).
+export type Session = { sub: string; csrf: string; exp: number; iat?: number; seen?: number };
 
 export const SESSION_COOKIE = "gw_session";
 export const OIDC_COOKIE = "gw_oidc";
-const SESSION_TTL_MS = 12 * 3600 * 1000;
+const SESSION_TTL_MS = 7 * 24 * 3600 * 1000;
+export const SESSION_IDLE_MS = 8 * 3600 * 1000;
+// Ghi lại seen khi lần dùng trước cách quá 5 phút, để không đặt cookie ở mọi yêu cầu.
+const TOUCH_AFTER_MS = 5 * 60 * 1000;
 
 function sign(secret: string, data: string): string {
   return createHmac("sha256", secret).update(data).digest("base64url");
@@ -64,11 +68,18 @@ export function createSessionCookie(secret: string, s: Session): string {
 }
 
 export function newSession(user: QueueUser, now: Date): Session {
-  return { sub: user.id, csrf: randomBytes(24).toString("base64url"), exp: now.getTime() + SESSION_TTL_MS, iat: now.getTime() };
+  return { sub: user.id, csrf: randomBytes(24).toString("base64url"), exp: now.getTime() + SESSION_TTL_MS, iat: now.getTime(), seen: now.getTime() };
 }
 
 export function sessionSetCookie(secret: string, s: Session, secure = true): string {
-  return cookie(SESSION_COOKIE, sealValue(secret, s), Math.floor(SESSION_TTL_MS / 1000), "/", "Strict", secure);
+  return cookie(SESSION_COOKIE, sealValue(secret, s), Math.max(0, Math.floor((s.exp - (s.seen ?? s.iat ?? Date.now())) / 1000)), "/", "Strict", secure);
+}
+
+// Phiên còn dùng: trả cookie mới với seen = bây giờ nếu lần ghi trước đã lâu; null nếu chưa cần.
+export function touchSession(secret: string, s: Session, now: Date, secure = true): string | null {
+  const last = s.seen ?? s.iat;
+  if (last === undefined || now.getTime() - last < TOUCH_AFTER_MS) return null;
+  return sessionSetCookie(secret, { ...s, seen: now.getTime() }, secure);
 }
 
 export function clearCookie(name: string, path = "/", secure = true): string {
@@ -78,6 +89,10 @@ export function clearCookie(name: string, path = "/", secure = true): string {
 export function readSession(req: Request, secret: string, now: Date): Session | null {
   const s = unsealValue<Session>(secret, cookieValue(req, SESSION_COOKIE));
   if (!s || typeof s.exp !== "number" || s.exp <= now.getTime()) return null;
+  // Hạn tuyệt đối tính lại từ iat, phòng phiên cũ (trước D-97) mang exp dài hơn 7 ngày.
+  if (typeof s.iat === "number" && now.getTime() - s.iat >= SESSION_TTL_MS) return null;
+  const last = s.seen ?? s.iat;
+  if (typeof last === "number" && now.getTime() - last > SESSION_IDLE_MS) return null;
   if (typeof s.sub !== "string" || !/^[a-z][a-z0-9-]{1,31}$/.test(s.sub)) return null;
   return s;
 }
