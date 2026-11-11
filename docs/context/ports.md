@@ -17,7 +17,7 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | LLM | `LLM_MODEL`, `ANTHROPIC_API_KEY`, `LLM_PRICE_*` | Claude API qua `@anthropic-ai/sdk` | LLM giả cho demo và test (không chọn bằng biến, chỉ dùng trong `src/demo` và `test/`) | | `src/agents/sa-01/llm.ts`, `src/demo/fake-llm.ts` |
 | Bật, tắt thuyền viên Mi1 | `FLEET_DISABLED` (mã thuyền viên, cách nhau bằng dấu phẩy; trống là bật hết) | Sổ thuyền viên trong code (`src/fleet/registry.ts`) | | | `src/fleet/registry.ts` |
 | Lưu trữ (Growth DB) | `GROWTH_DB_PATH` | SQLite (`bun:sqlite`, D-02) | | Neo4j cho đồ thị (`NEO4J_*`, GĐ sau) | `src/db/` |
-| Sao lưu | `GROWTH_BACKUP_DIR` | thư mục trên máy (`~/Growth-backup` ở bản cài máy Ubuntu) | | đẩy ra ngoài máy bằng rclone (chỉ ở bộ máy chủ, để sau) | `src/db/backup.ts` |
+| Sao lưu | `GROWTH_BACKUP_DIR` | thư mục trên máy (`~/Growth-backup` ở bản cài máy Ubuntu) | | máy chủ: đẩy ra ngoài máy bằng rclone, bắt buộc remote `crypt` (`deploy/offsite-backup.sh`, D-97) | `src/db/backup.ts` |
 | Đơn hàng và invoice (Mi1-sa-01, D-30) | `CRM_CSV_COLUMNS_PATH` (mục `SalesOrder`, `PurchaseOrder`, `Invoice`) | tải file ở `/billing` | | API Order và Invoice của CRM (chờ MobCEC) | `src/crm/billing-import.ts` |
 | Đối tác và deal giới thiệu (Mi1-ptn-01, D-31) | `CRM_CSV_COLUMNS_PATH` (mục `Partner`, `Referral`) | tải file ở `/partners` | | Partner Portal trên web OCC, trường A4 trên CRM | `src/crm/partner-import.ts` |
 | Bảng giá 45 tài phán và bộ SKD eKYC (Mi1-mkt-05, D-32, D-33) | không có biến | tải CSV của sheet "FINAL - Gói & Giá năm 2 & năm 3" và dán tên file SKD ở `/jurisdictions` | | đọc thẳng Google Sheet và thư mục Drive qua API (chỉ đọc) | `src/crm/jurisdiction-import.ts` |
@@ -48,7 +48,7 @@ Khi nối, mỗi nguồn là một cổng mới theo đúng mẫu trên: adapter
 
 | Việc | Vì sao để sau |
 |---|---|
-| Chạy trên máy chủ (Azure, Oracle theo `deploy/README.md`; Railway; Vercel) | Chỉ một cách triển khai: cài trên máy Ubuntu, localhost (D-26). Bộ `deploy/` cho máy chủ không bảo trì thêm |
+| Chạy trên PaaS (Railway, Vercel) hoặc Docker | Đã có hai đường: bản cài máy (D-26) và máy chủ Ubuntu (D-97); không thêm đường thứ ba |
 | Truy cập từ xa (Tailscale, Cloudflare Tunnel) | Chỉ Amy dùng, ngồi tại máy |
 | Đăng nhập Entra (SSO) | Hai người dùng, mật khẩu là đủ |
 | Đọc Teams qua Graph | Dán tay chạy được; cần admin tenant |

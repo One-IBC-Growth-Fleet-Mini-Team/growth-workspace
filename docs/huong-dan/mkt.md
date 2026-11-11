@@ -2,6 +2,15 @@
 
 Team MKT dùng Growth Workspace để kiểm nội dung trước khi đăng, chọn Hook, theo dõi quảng cáo và giá đối thủ. Team MKT chỉ thấy số tổng hợp, không thấy mã khách hay deal. Sau khi đăng nhập, trang đầu tiên là Tổng quan.
 
+## Đăng nhập lần đầu
+
+1. Mở địa chỉ web Mark gửi. Ô "Tài khoản" gõ mã tài khoản của bạn (ví dụ `mkt-01`), ô "Mật khẩu" gõ mật khẩu tạm Mark gửi qua kênh khác.
+2. Hệ thống chuyển ngay sang trang "Đổi mật khẩu"; chưa đổi thì mọi trang khác đều quay về đây.
+3. Đặt mật khẩu mới: ít nhất 12 ký tự, khác mật khẩu tạm, không chứa mã tài khoản, không phải mật khẩu phổ biến. Dễ nhớ nhất là ba bốn từ ghép lại bằng gạch nối. Gõ lại lần hai, bấm Đổi.
+4. Xong là vào Tổng quan. Không ghi mật khẩu lên giấy dán màn hình, không gửi cho ai, kể cả Mark.
+
+Mật khẩu tạm chỉ dùng được trong 72 giờ. Quá hạn, quên mật khẩu, hoặc gõ sai 5 lần (bị khoá 15 phút) mà vẫn không vào được: nhắn Mark cấp mật khẩu tạm mới. Không dùng được 8 giờ liền thì phải đăng nhập lại; sau 7 ngày luôn phải đăng nhập lại.
+
 ## Việc hằng tuần
 
 1. **Kiểm nội dung trước khi đăng** ("Kiểm quảng cáo"): dán nội dung một mẫu (câu chính, tiêu đề, mô tả, tài phán, quốc gia nhắm tới) hoặc tải file nhiều mẫu. Kết quả: Đạt, Cần người duyệt, Giữ lại (tài phán chưa chốt giá hoặc quốc gia chưa verify Meta), Không đạt (dính từ cấm, quá dài). Đạt không có nghĩa được đăng: đăng vẫn cần người duyệt.

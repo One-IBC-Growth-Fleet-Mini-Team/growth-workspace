@@ -19,6 +19,23 @@ Mark giám sát fleet Mi1 và Team MKT, duyệt việc tốn tiền, chốt các
 
 Mở Ngưỡng, bảng "Giá trị tạm". Chọn khoá, gõ giá trị mới dạng JSON (ví dụ `{"min_count":4,"window_days":28}`), chọn "Tạm" hoặc "Đã chốt (FINAL)", bấm Ghi. Chuyển FINAL thì nhãn "Tạm" biến mất khỏi mọi trang. Mọi lần sửa được ghi lại.
 
+## Quản lý tài khoản
+
+Mỗi người một tài khoản, gắn một vai trò `amy`, `mkt`, `mark` hoặc `bod`. Mã tài khoản không dùng tên thật, ví dụ `mkt-01`. Trên máy chủ chạy bằng `sudo growth-run ...`; trên máy của Mark chạy bằng `bash ~/growth-workspace/deploy/local/run.sh scripts/accounts.ts ...`.
+
+- **Thêm**: `add-user mkt-02 mkt`. Lệnh in mật khẩu tạm đúng một lần, hết hạn sau 72 giờ. Gửi địa chỉ web một kênh, mật khẩu tạm một kênh khác (ví dụ chat Teams 1-1), không gửi chung một tin; nhắc đổi trong 72 giờ.
+- **Cấp lại mật khẩu** (quên, hết hạn): `reset-password mkt-02`. Mọi phiên đang mở của tài khoản đó bị đăng xuất.
+- **Khoá người nghỉ việc**, ngay hôm nghỉ: `disable-user mkt-02`. Phiên đang mở bị đăng xuất ngay, lịch sử thao tác giữ nguyên. Không mở lại; người quay lại thì tạo mã mới.
+- **Xem**: `list-users`: tài khoản, vai trò, lần đăng nhập cuối, còn mật khẩu tạm không. Không in mật khẩu hay mã băm.
+
+Mọi thao tác (nạp file, xác nhận, bác, duyệt) ghi theo mã tài khoản, nên hai người cùng vai `mkt` vẫn phân biệt được.
+
+## Sổ sự kiện bảo mật
+
+Trang `/settings`, mục "Sổ sự kiện bảo mật" (chỉ vai trò `mark`): 200 sự kiện gần nhất, gồm đăng nhập được, đăng nhập sai, bị khoá 15 phút, chặn theo IP, đổi mật khẩu, cấp mật khẩu tạm, mật khẩu tạm hết hạn, tạo và khoá tài khoản. Dòng cam là dòng cần xem. Tài khoản "?" là mã không có trong hệ thống (gõ nhầm, hoặc có người dò). Không có mật khẩu, mã băm hay IP trong sổ.
+
+Đọc mỗi tuần một lần. Nhiều dòng sai liên tiếp ở một tài khoản mà người đó không nhận là mình: cấp lại mật khẩu (`reset-password`). Nhiều dòng "?" và "Chặn theo IP": có người dò từ ngoài; cân nhắc điền `ALLOW_IPS` (deploy/README.md bước 4b).
+
 ## Nếu thấy X thì làm Y
 
 | Nếu thấy | Thì làm |

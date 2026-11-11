@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật: 11/11/2026 (phiên 13). Quy ước: ai xong việc thì cập nhật file này trong cùng PR. Lịch sử: [`docs/history.md`](history.md). Quyết định: [`docs/context/decisions.md`](context/decisions.md). Tiến độ cho trang Tổng quan: [`docs/progress.json`](progress.json).
+Cập nhật: 11/11/2026 (phiên 14). Quy ước: ai xong việc thì cập nhật file này trong cùng PR. Lịch sử: [`docs/history.md`](history.md). Quyết định: [`docs/context/decisions.md`](context/decisions.md). Tiến độ cho trang Tổng quan: [`docs/progress.json`](progress.json).
 
 ## Mục tiêu đợt này
 
@@ -27,7 +27,11 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - Bảng sẵn sàng Phụ lục B trên `/command` (Mark, BOD): mỗi hạng mục, điều kiện bật, tiến độ đo được, ai mở khoá; không xây mục nào của Phụ lục B (D-94).
 - Repo public: tên RM thật trong tài liệu đã thay bằng mã, bỏ email công ty; test chặn email tên miền công ty và tên RM thật (D-95).
 - Adapter thật chỉ đọc cho mọi ổ cắm, chưa cần key (D-96): CRM API, Internal Control (A5), Microsoft Graph (Teams), Meta Ads, Google Ads, GA4. Cửa đọc chung `src/connectors/read-http.ts` (chỉ GET hoặc POST truy vấn đọc, token hết hạn, giới hạn tần suất, phân trang). Thiếu biến thì "chưa nối" và dùng adapter tải file như cũ. Trang `/settings` (chỉ Mark) hiện trạng thái từng ổ cắm, tên biến còn thiếu, lần gọi thành công gần nhất; không hiện, không nhận key.
-- `bun test`: 443 pass, `tsc --strict` sạch.
+- Máy chủ cho Amy và Team MKT vào từ xa (D-97), song song với bản cài máy của Mark:
+  - Một cách đăng nhập cho cả hai: tài khoản trong DB, mỗi người một mã gắn vai trò; `growth-run add-user`, `reset-password`, `disable-user`, `list-users`.
+  - Mật khẩu tạm 72 giờ, luật mật khẩu mới, chặn theo IP, phiên 8 giờ và 7 ngày, sổ sự kiện bảo mật ở `/settings`.
+  - `setup.sh`: ufw (80, 443; 22 chỉ admin-ips), SSH chỉ khoá, fail2ban, Caddy có header bảo mật và `ALLOW_IPS` tuỳ chọn, ghim tag, backup ngoài máy bắt buộc mã hoá; `verify-remote.sh` cho Mark kiểm từ laptop. Đã chạy thử trong container Ubuntu 24.04 có systemd thật.
+- `bun test`: 461 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
@@ -35,9 +39,10 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## Việc tiếp theo
 
-1. Chạy creative-factory-v2 với `CF_PROFILE=one-ibc` (brand đúng spec mục 7, brief Tạm, CTA "Nhắn One IBC qua WhatsApp"; markng-byte/creative-factory-v2#22). Brief, campaign thật nhập sau qua Google Sheet. Trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
-2. Việt hoá câu nối Storyboard trong creative-factory-v2.
-3. Mark chốt các chỗ còn Tạm của GĐ3: khung quyết định (tỷ trọng A/C, biên ±20%, ngưỡng anh Jimmy), module Ngân sách của Team MKT, giọng văn và logo brand.
+1. Dựng máy chủ thật trong tuần này theo `deploy/README.md`: tạo tag phát hành, tạo máy, trỏ DNS, điền admin-ips và cấu hình, chạy setup, tạo tài khoản, gửi mật khẩu tạm, chạy `verify-remote.sh`, cấu hình backup crypt.
+2. Chạy creative-factory-v2 với `CF_PROFILE=one-ibc` (brand đúng spec mục 7, brief Tạm, CTA "Nhắn One IBC qua WhatsApp"; markng-byte/creative-factory-v2#22). Brief, campaign thật nhập sau qua Google Sheet. Trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
+3. Việt hoá câu nối Storyboard trong creative-factory-v2.
+4. Mark chốt các chỗ còn Tạm của GĐ3: khung quyết định (tỷ trọng A/C, biên ±20%, ngưỡng anh Jimmy), module Ngân sách của Team MKT, giọng văn và logo brand.
 
 ## Đang bị chặn
 
@@ -48,6 +53,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 | c | Bộ eval Mi1-sa-01 | Khoảng 30 ca Amy xác nhận | Amy |
 | d | Danh mục mã lý do từ chối | Amy và RM xác nhận | Amy, RM |
 | f | Nối adapter thật | Điền biến trong `~/.config/growth/growth.env` theo `.env.example` (CRM, Internal Control, Graph, Meta Ads, Google Ads, GA4), rồi xem `/settings` | Mark, MobCEC, admin tenant |
+| g | Máy chủ thật | Tag phát hành trên GitHub; máy Azure hoặc Oracle; bản ghi DNS; kho lưu trữ cho backup crypt | Mark, người quản lý tên miền |
 | e | Eval Mi1 và Mi1-sa-01 với Claude thật; `/ask` và đọc tự báo thật | Điền `ANTHROPIC_API_KEY` trong `~/.config/growth/growth.env` (cài được khi để trống), chạy `bun run eval:mi1`, `bun run eval:sa01` và `bun run eval:strategy` | Mark |
 
 ## Người giữ việc
@@ -56,5 +62,5 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## PR đang mở
 
-- growth-workspace: #79 (Phụ lục B, D-94) → #80 (PII, D-95) → #81 (adapter, D-96) → #82 (adapter quảng cáo, GA4, D-96). Nhánh xếp chồng, merge theo thứ tự số. #71 tới #78 đã merge.
+- growth-workspace: chuỗi máy chủ (D-97), nhánh xếp chồng, merge theo thứ tự: tài khoản theo người → làm chặt đăng nhập → khoá cổng máy chủ → tài liệu. #79 tới #82 đã merge.
 - creative-factory-v2: không có PR mở.

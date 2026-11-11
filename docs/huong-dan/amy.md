@@ -2,6 +2,15 @@
 
 Growth Workspace gom tự báo của RM và dữ liệu CRM thành các đề xuất để Amy duyệt mỗi sáng. Mở bằng địa chỉ trên biểu tượng "Hàng chờ Growth", đăng nhập bằng tài khoản của Amy. Sau khi đăng nhập, trang đầu tiên là Hàng chờ.
 
+## Đăng nhập lần đầu
+
+1. Mở địa chỉ web Mark gửi. Ô "Tài khoản" gõ mã tài khoản của bạn (ví dụ `amy-01`), ô "Mật khẩu" gõ mật khẩu tạm Mark gửi qua kênh khác.
+2. Hệ thống chuyển ngay sang trang "Đổi mật khẩu"; chưa đổi thì mọi trang khác đều quay về đây.
+3. Đặt mật khẩu mới: ít nhất 12 ký tự, khác mật khẩu tạm, không chứa mã tài khoản, không phải mật khẩu phổ biến. Dễ nhớ nhất là ba bốn từ ghép lại bằng gạch nối. Gõ lại lần hai, bấm Đổi.
+4. Xong là vào Hàng chờ. Không ghi mật khẩu lên giấy dán màn hình, không gửi cho ai, kể cả Mark.
+
+Mật khẩu tạm chỉ dùng được trong 72 giờ. Quá hạn, quên mật khẩu, hoặc gõ sai 5 lần (bị khoá 15 phút) mà vẫn không vào được: nhắn Mark cấp mật khẩu tạm mới. Không dùng được 8 giờ liền thì phải đăng nhập lại; sau 7 ngày luôn phải đăng nhập lại.
+
 ## Việc hằng sáng (khoảng 20 phút)
 
 1. **Đọc Brief sáng** (thanh trên cùng, nhóm "Hằng ngày"): xem hôm nay có bao nhiêu mục, mục nào còn chờ từ hôm trước, mục nào đã gửi lên Mark.
