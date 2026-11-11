@@ -25,7 +25,8 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
 - `/command/data.json`: một payload cho `/command` bản phẳng và bản 3D sắp làm; module theo vai trò, việc chờ Mark gồm kế hoạch ngân sách và đề xuất chiến lược (D-92).
 - Command Center 3D ở `/command/3d`: phòng lab, Mi1 trên bệ xoay 360°, vệ tinh module, bảng kính mờ, đầu thuyền viên, màn hình tường hiện vết lượt chạy, thanh động tác và âm thanh; tự về bản phẳng khi không WebGL hoặc giảm chuyển động (D-93).
 - Bảng sẵn sàng Phụ lục B trên `/command` (Mark, BOD): mỗi hạng mục, điều kiện bật, tiến độ đo được, ai mở khoá; không xây mục nào của Phụ lục B (D-94).
-- `bun test`: 430 pass, `tsc --strict` sạch.
+- Repo public: tên RM thật trong tài liệu đã thay bằng mã, bỏ email công ty; test chặn `@oneibc.com` và tên RM thật (D-95).
+- `bun test`: 431 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 

@@ -47,3 +47,27 @@ describe("T-PII-07 quét fixture và eval", () => {
     }
   });
 });
+
+// T-PII-08 (repo public, D-95): không email đuôi @oneibc.com và không tên RM thật trong fixture, eval, tài liệu, file mẫu,
+// cấu hình, dữ liệu demo và test. Tên RM ghi bằng mã (RM 01...).
+const PUBLIC_DIRS = ["test", "evals", "docs", "deploy", "config", "src/demo"];
+const RM_NAMES = /\b(Adele|Mel|Freya|Dierick|Tony|Dominic|Brian|Briona)\b/;
+async function scanPublic(): Promise<Array<{ path: string; text: string }>> {
+  const out: Array<{ path: string; text: string }> = [];
+  for (const dir of PUBLIC_DIRS) {
+    for await (const path of new Glob(`${dir}/**/*.{md,ts,json,csv,txt,html,sh,example,yml}`).scan({ cwd: ROOT, onlyFiles: true })) {
+      if (path === "test/static/fixtures-pii.test.ts") continue; // file này chứa chính các mẫu cần chặn
+      out.push({ path, text: await Bun.file(ROOT + path).text() });
+    }
+  }
+  return out;
+}
+describe("T-PII-08 repo public", () => {
+  test("T-PII-08 không email @oneibc.com, không tên RM thật", async () => {
+    const files = await scanPublic();
+    expect(files.length).toBeGreaterThan(50);
+    for (const f of files) {
+      expect({ path: f.path, oneibc: /@oneibc\.com/i.test(f.text), rmName: RM_NAMES.exec(f.text)?.[0] ?? null }).toEqual({ path: f.path, oneibc: false, rmName: null });
+    }
+  });
+});
