@@ -1,12 +1,23 @@
 // Đăng nhập Hàng chờ (D-04): Microsoft Entra ID (OIDC, authorization code + PKCE), dùng chung app đăng ký với Graph.
 // Phiên là cookie ký HMAC-SHA256 bằng SESSION_SECRET; actor lấy từ phiên, không từ form (design doc mục 9).
-// Danh sách người dùng cố định: Amy (duyệt), Mark (xem, nhận escalate). Q-16 chờ Mark về quyền thêm.
+// Chế độ mật khẩu (D-97): mỗi người một tài khoản trong DB (src/db/users.ts), gắn một vai trò.
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-// BOD xem như Mark (viewer); Team MKT chỉ thấy số tổng hợp (D-63, src/queue/roles.ts).
-export type QueueUser = { id: "amy" | "mark" | "mkt" | "bod"; role: "approver" | "viewer" | "mkt" };
+// id là mã tài khoản (ghi làm người thao tác); account là vai trò của tài khoản (D-97). role là quyền: BOD xem như Mark
+// (viewer); Team MKT chỉ thấy số tổng hợp (D-63, src/queue/roles.ts).
+export type QueueUser = { id: string; role: "approver" | "viewer" | "mkt"; account?: "amy" | "mkt" | "mark" | "bod" };
+
+// Vai trò tài khoản; account luôn có khi đăng nhập bằng mật khẩu. Thiếu (Entra, test cũ) thì suy từ quyền, viewer không
+// phải mã "mark" coi là BOD (quyền hẹp hơn).
+export function accountRoleOf(u: QueueUser): "amy" | "mkt" | "mark" | "bod" {
+  return u.account ?? (u.role === "approver" ? "amy" : u.role === "mkt" ? "mkt" : u.id === "mark" ? "mark" : "bod");
+}
+
+export function permissionOf(role: "amy" | "mkt" | "mark" | "bod"): QueueUser["role"] {
+  return role === "amy" ? "approver" : role === "mkt" ? "mkt" : "viewer";
+}
 // iat: lúc cấp phiên (ms). Phiên cấp trước lần đổi mật khẩu gần nhất của tài khoản bị huỷ (D-85).
-export type Session = { sub: QueueUser["id"]; csrf: string; exp: number; iat?: number };
+export type Session = { sub: string; csrf: string; exp: number; iat?: number };
 
 export const SESSION_COOKIE = "gw_session";
 export const OIDC_COOKIE = "gw_oidc";
@@ -67,7 +78,7 @@ export function clearCookie(name: string, path = "/", secure = true): string {
 export function readSession(req: Request, secret: string, now: Date): Session | null {
   const s = unsealValue<Session>(secret, cookieValue(req, SESSION_COOKIE));
   if (!s || typeof s.exp !== "number" || s.exp <= now.getTime()) return null;
-  if (s.sub !== "amy" && s.sub !== "mark" && s.sub !== "mkt" && s.sub !== "bod") return null;
+  if (typeof s.sub !== "string" || !/^[a-z][a-z0-9-]{1,31}$/.test(s.sub)) return null;
   return s;
 }
 

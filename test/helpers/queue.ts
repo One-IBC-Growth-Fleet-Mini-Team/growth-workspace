@@ -2,6 +2,7 @@
 import type { Database } from "bun:sqlite";
 import { createQueueApp, type QueueAppDeps } from "../../src/queue/server.ts";
 import { createSessionCookie, type QueueUser } from "../../src/queue/auth.ts";
+import { createAccount } from "../../src/db/users.ts";
 
 export const SECRET = "test-only-session-secret-0123456789abcdef";
 export const BASE = "https://queue.example.invalid";
@@ -10,6 +11,8 @@ export const MARK: QueueUser = { id: "mark", role: "viewer" };
 
 export function makeApp(db: Database, over: Partial<QueueAppDeps> = {}) {
   const escalations: string[] = [];
+  // Tài khoản thử, mã trùng vai trò (D-97): phiên test dùng mã amy, mark, mkt, bod.
+  for (const id of ["amy", "mark", "mkt", "bod"]) createAccount(db, id, id, { now: new Date("2026-11-01T00:00:00Z"), actor: "test" });
   const app = createQueueApp({
     db,
     sessionSecret: SECRET,

@@ -233,7 +233,7 @@ export function renderLoginPage(message: string | null): string {
   return shell("Đăng nhập Hàng chờ", html`<h1>Đăng nhập Hàng chờ</h1>
 ${message ? html`<p class="warn">${message}</p>` : ""}
 <form method="post" action="/login">
-<label>Người dùng <select name="user"><option value="amy">Amy</option><option value="mark">Mark</option><option value="mkt">Team MKT</option><option value="bod">BOD</option></select></label>
+<label>Tài khoản <input name="user" required autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" placeholder="ví dụ mkt-01"></label>
 <label>Mật khẩu <input type="password" name="password" required autocomplete="current-password"></label>
 <button type="submit">Đăng nhập</button></form>`);
 }

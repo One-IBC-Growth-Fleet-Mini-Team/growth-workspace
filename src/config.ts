@@ -103,29 +103,20 @@ export function getQueueConfig(env: Env = process.env): QueueConfig {
   return { sessionSecret, baseUrl, host, port };
 }
 
-// Cách đăng nhập (D-24): "password" (mặc định, tạm khi chưa có app Entra) hoặc "entra" (D-04).
-export type AuthConfig =
-  | { mode: "password"; hashes: Map<string, string> }
-  | { mode: "entra"; amyOid: string; markOid: string };
+// Cách đăng nhập (D-24, D-97): "password" (mặc định) là tài khoản trong DB, tạo bằng scripts/add-user.ts; "entra" (D-04).
+export type AuthConfig = { mode: "password" } | { mode: "entra"; amyOid: string; markOid: string };
 
 export function getAuthConfig(env: Env = process.env): AuthConfig {
   const mode = optional(env, "AUTH_MODE") ?? "password";
   if (mode === "entra") return { mode, amyOid: required(env, "AMY_ENTRA_OID"), markOid: required(env, "MARK_ENTRA_OID") };
   if (mode !== "password") throw new ConfigError("AUTH_MODE");
-  const hashes = new Map<string, string>();
-  for (const [user, name] of [["amy", "AMY_PASSWORD_HASH"], ["mark", "MARK_PASSWORD_HASH"]] as const) {
-    const h = required(env, name);
-    if (!h.startsWith("$argon2")) throw new ConfigError(name);
-    hashes.set(user, h);
-  }
-  // Tài khoản Team MKT và BOD (D-63) là tuỳ chọn: đặt mã băm thì đăng nhập được.
-  for (const [user, name] of [["mkt", "MKT_PASSWORD_HASH"], ["bod", "BOD_PASSWORD_HASH"]] as const) {
-    const h = optional(env, name);
-    if (h === undefined) continue;
-    if (!h.startsWith("$argon2")) throw new ConfigError(name);
-    hashes.set(user, h);
-  }
-  return { mode, hashes };
+  return { mode };
+}
+
+// Biến mã băm mật khẩu cũ (trước D-97), không còn được đọc. Preflight cảnh báo để người vận hành chuyển sang tài khoản DB.
+export const LEGACY_PASSWORD_VARS = ["AMY_PASSWORD_HASH", "MARK_PASSWORD_HASH", "MKT_PASSWORD_HASH", "BOD_PASSWORD_HASH"] as const;
+export function legacyPasswordVars(env: Env = process.env): string[] {
+  return LEGACY_PASSWORD_VARS.filter((n) => optional(env, n) !== undefined);
 }
 
 // Nguồn tự báo (D-24): "paste" (mặc định, Amy dán) hoặc "graph" (đọc channel Teams, cần quyền Q-02).

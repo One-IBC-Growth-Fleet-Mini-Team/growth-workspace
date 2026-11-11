@@ -18,8 +18,8 @@ function parseValue(param: Param, raw: string): number | number[] | null {
   return w.length === HOOK_PARAMS.weights.length && w.every((x) => Number.isInteger(x) && x >= 0) && w.reduce((a, b) => a + b, 0) === 100 ? w : null;
 }
 
-export function proposeTuning(db: Database, param: string, raw: string, opts: { now: Date; actor: string }) {
-  if (opts.actor !== TUNER) return { status: "refused" as const, errorCode: "ONLY_MARK" };
+export function proposeTuning(db: Database, param: string, raw: string, opts: { now: Date; actor: string; actorRole?: string }) {
+  if ((opts.actorRole ?? opts.actor) !== TUNER) return { status: "refused" as const, errorCode: "ONLY_MARK" };
   if (!(PARAMS as readonly string[]).includes(param)) return { status: "refused" as const, errorCode: "PARAM_NOT_TUNABLE" };
   const value = parseValue(param as Param, raw);
   if (value === null) return { status: "refused" as const, errorCode: "VALUE_INVALID" };
@@ -28,8 +28,8 @@ export function proposeTuning(db: Database, param: string, raw: string, opts: { 
   return { status: "ok" as const, id };
 }
 
-export function activateTuning(db: Database, id: string, evalRun: EvalRun, opts: { now: Date; actor: string }): "ok" | "ONLY_MARK" | "NOT_FOUND" | "ALREADY_ACTIVE" | "EVAL_NOT_RERUN" | "EVAL_FAILED" {
-  if (opts.actor !== TUNER) return "ONLY_MARK";
+export function activateTuning(db: Database, id: string, evalRun: EvalRun, opts: { now: Date; actor: string; actorRole?: string }): "ok" | "ONLY_MARK" | "NOT_FOUND" | "ALREADY_ACTIVE" | "EVAL_NOT_RERUN" | "EVAL_FAILED" {
+  if ((opts.actorRole ?? opts.actor) !== TUNER) return "ONLY_MARK";
   const c = db.query("SELECT proposed_at FROM tuning_changes WHERE id = ?").get(id) as { proposed_at: string } | null;
   if (!c) return "NOT_FOUND";
   if (db.query("SELECT 1 FROM tuning_activations WHERE change_id = ?").get(id)) return "ALREADY_ACTIVE";

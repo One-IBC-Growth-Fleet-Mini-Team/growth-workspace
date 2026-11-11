@@ -38,8 +38,9 @@ export async function generateStrategy(db: Database, llm: LlmClient, opts: { now
   return { status: "created", id, kept: r.value.kept.length, dropped: r.value.dropped };
 }
 
-export function decideStrategy(db: Database, id: string, decision: string, note: string, opts: { now: Date; actor: string }): "ok" | "NOT_FOUND" | "INVALID" | "ONLY_MARK" {
-  if (opts.actor !== "mark") return "ONLY_MARK";
+export function decideStrategy(db: Database, id: string, decision: string, note: string, opts: { now: Date; actor: string; actorRole?: string }): "ok" | "NOT_FOUND" | "INVALID" | "ONLY_MARK" {
+  // Kiểm theo vai trò tài khoản (D-97); actorRole thiếu thì so mã tài khoản như trước.
+  if ((opts.actorRole ?? opts.actor) !== "mark") return "ONLY_MARK";
   if (decision !== "approve" && decision !== "reject") return "INVALID";
   if (!db.query("SELECT 1 FROM strategy_drafts WHERE id = ?").get(id)) return "NOT_FOUND";
   db.run("INSERT INTO strategy_decisions (id, draft_id, decision, note, decided_at, actor) VALUES (?, ?, ?, ?, ?, ?)", [Bun.randomUUIDv7(), id, decision, redactR1(note.trim().slice(0, 300)).text || null, opts.now.toISOString(), opts.actor]);

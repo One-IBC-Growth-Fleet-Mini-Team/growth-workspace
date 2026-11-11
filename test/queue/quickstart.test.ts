@@ -1,4 +1,5 @@
 // Chạy thật sớm (02/11/2026): thẻ dễ đọc, dán tự báo thay Graph, đăng nhập bằng mật khẩu thay Entra.
+import { setPassword } from "../../src/db/users.ts";
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { Database } from "bun:sqlite";
 import { freshDb } from "../helpers/db.ts";
@@ -114,8 +115,10 @@ describe("Dán tự báo", () => {
 
 describe("Đăng nhập bằng mật khẩu", () => {
   async function passwordApp() {
-    const hashes = new Map([["amy", await Bun.password.hash("mat-khau-amy-thu")], ["mark", await Bun.password.hash("mat-khau-mark-thu")]]);
-    return makeApp(db, { passwordHashes: hashes });
+    const made = makeApp(db, { passwordLogin: true });
+    await setPassword(db, "amy", "mat-khau-amy-thu", { mustChange: false, now: new Date("2026-11-01T00:00:00Z"), actor: "test" });
+    await setPassword(db, "mark", "mat-khau-mark-thu", { mustChange: false, now: new Date("2026-11-01T00:00:00Z"), actor: "test" });
+    return made;
   }
 
   test("T-Q-06 (mật khẩu) đúng mật khẩu thì vào được Hàng chờ; sai thì không; cookie phiên an toàn", async () => {

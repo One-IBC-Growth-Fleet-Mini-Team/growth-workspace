@@ -1,11 +1,11 @@
 // Trang hướng dẫn theo vai trò (D-80): docs/huong-dan/<vai trò>.md, dựng HTML bằng bộ chuyển markdown tối giản
 // (tiêu đề, danh sách, bảng, đoạn, `code`, **đậm**). Nội dung được escape trước khi dựng.
 import { readFileSync } from "node:fs";
-import type { QueueUser } from "./auth.ts";
+import { accountRoleOf, type QueueUser } from "./auth.ts";
 
 const DIR = new URL("../../docs/huong-dan/", import.meta.url).pathname;
 export function guideFor(u: QueueUser): string {
-  return u.role === "approver" ? "amy" : u.role === "mkt" ? "mkt" : u.id === "bod" ? "bod" : "mark";
+  return accountRoleOf(u);
 }
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

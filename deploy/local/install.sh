@@ -51,18 +51,6 @@ install -d -m 700 "$CONF"
 install -d -m 700 "$SHARE/data" "$SHARE/data/eval-results"
 install -d -m 700 "$BACKUP_DIR"
 if [ ! -f "$ENV_FILE" ]; then
-  hash_pw() {
-    local who="$1" pw pw2
-    while true; do
-      # Lời nhắc và thông báo ra stderr: stdout của hàm chỉ có mã băm.
-      read -rsp "Đặt mật khẩu đăng nhập cho $who (ít nhất 12 ký tự): " pw; echo >&2
-      read -rsp "Gõ lại mật khẩu cho $who: " pw2; echo >&2
-      if [ "$pw" != "$pw2" ]; then echo "Hai lần gõ không khớp, gõ lại." >&2; continue; fi
-      if [ "${#pw}" -lt 12 ]; then echo "Mật khẩu cần ít nhất 12 ký tự." >&2; continue; fi
-      printf '%s' "$pw" | (cd "$APP_DIR" && "$BUN" run scripts/hash-password.ts)
-      return
-    done
-  }
   # Chưa có key thì Enter để bỏ qua (D-89): cài vẫn chạy, LLM tắt tới khi điền ANTHROPIC_API_KEY vào file cấu hình.
   while true; do
     read -rsp "Dán API key Claude (bắt đầu bằng sk-ant-), hoặc Enter để điền sau: " api_key; echo
@@ -70,15 +58,11 @@ if [ ! -f "$ENV_FILE" ]; then
     [[ "$api_key" =~ ^sk-ant-[A-Za-z0-9_-]+$ ]] && break
     echo "API key không đúng dạng, dán lại hoặc Enter để bỏ qua."
   done
-  amy_hash="$(hash_pw Amy)"
-  mark_hash="$(hash_pw Mark)"
   umask 077
   # Giá trị để trong nháy đơn: systemd và bash đều đọc nguyên văn (mã băm argon2 có ký tự $).
   cat > "$ENV_FILE" <<EOF
 # Tạo bởi deploy/local/install.sh. Không gửi file này cho ai, không đưa lên repo.
 ANTHROPIC_API_KEY='$api_key'
-AMY_PASSWORD_HASH='$amy_hash'
-MARK_PASSWORD_HASH='$mark_hash'
 SESSION_SECRET='$(openssl rand -hex 32)'
 PII_HASH_KEY='$(openssl rand -hex 32)'
 LLM_MODEL='claude-sonnet-5-5'
@@ -105,8 +89,25 @@ fi
 # Bảng ghép cột theo tên cột của file xuất CRM thật (D-42, D-72); giữ file cũ nếu đã có.
 [ -f "$CONF/crm-columns.json" ] || install -m 600 "$APP_DIR/deploy/crm-columns.example.json" "$CONF/crm-columns.json"
 
-say "4/6 Nâng schema Growth DB"
+say "4/6 Nâng schema Growth DB, tài khoản đầu tiên"
 (set -a; . "$ENV_FILE"; set +a; cd "$APP_DIR" && "$BUN" run src/db/migrate.ts)
+# Đăng nhập bằng tài khoản trong DB (D-97), giống máy chủ. Lần cài đầu tạo amy và mark; bản cài cũ còn dòng mã băm của
+# vai nào mà chưa có tài khoản cùng tên thì tạo tài khoản đó, để không ai bị khoá ra ngoài sau khi nâng cấp.
+accounts() { (set -a; . "$ENV_FILE"; set +a; cd "$APP_DIR" && "$BUN" run scripts/accounts.ts "$@"); }
+users="$(accounts list-users)"
+need=()
+[[ "$users" == "Chưa có tài khoản"* ]] && need=(amy mark)
+for r in amy mark mkt bod; do
+  R="$(printf '%s' "$r" | tr '[:lower:]' '[:upper:]')"
+  if grep -q "^${R}_PASSWORD_HASH=" "$ENV_FILE" && ! printf '%s\n' "$users" | grep -q "^$r "; then need+=("$r"); fi
+done
+created=0
+for r in $(printf '%s\n' "${need[@]}" | sort -u); do accounts add-user "$r" "$r"; created=1; done
+[ "$created" -eq 0 ] || echo "Ghi lại các mật khẩu tạm trên (hết hạn sau 72 giờ); lần đăng nhập đầu sẽ bắt đổi."
+if grep -qE '^(AMY|MARK|MKT|BOD)_PASSWORD_HASH=' "$ENV_FILE"; then
+  echo "Cảnh báo: $ENV_FILE còn dòng *_PASSWORD_HASH, không còn được dùng (D-97). Đăng nhập bằng tài khoản và mật khẩu tạm in ở trên, rồi tự xoá các dòng đó."
+  echo "  Quên mật khẩu: bash $APP_DIR/deploy/local/run.sh scripts/accounts.ts reset-password <tài khoản>."
+fi
 
 say "5/6 Dịch vụ chạy nền khi bạn đăng nhập; lịch 08:00, 08:15, 13:00, Digest 08:30 thứ Hai"
 install -d "$UNIT_DIR"
@@ -290,9 +291,9 @@ if curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
 Growth Workspace đang chạy: http://localhost:$PORT  (hoặc bấm biểu tượng "Hàng chờ Growth")
 
 Bước tiếp theo:
-  1. Mở địa chỉ trên, đăng nhập bằng Amy hoặc Mark (mật khẩu vừa đặt).
-  2. Thêm tài khoản Team MKT hoặc BOD (in ra mật khẩu tạm, phải đổi ở lần đăng nhập đầu):
-       cd "$APP_DIR" && set -a && . "$ENV_FILE" && set +a && "$BUN" run scripts/add-user.ts mkt
+  1. Mở địa chỉ trên, đăng nhập bằng tài khoản amy hoặc mark (mật khẩu tạm in ở bước 4), đổi mật khẩu ngay.
+  2. Thêm tài khoản, mỗi người một mã (in ra mật khẩu tạm, phải đổi trong 72 giờ):
+       bash "$APP_DIR/deploy/local/run.sh" scripts/accounts.ts add-user mkt-01 mkt
   3. Thử nạp file mẫu ở trang "File CRM" (link "File mẫu" cạnh từng ô), hoặc nạp file xuất thật.
   4. Hướng dẫn cho từng vai trò: nút "Hướng dẫn" trên thanh điều hướng.
   5. Sao lưu tự động mỗi ngày vào $BACKUP_DIR. Khôi phục:

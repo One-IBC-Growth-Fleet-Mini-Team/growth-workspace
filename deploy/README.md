@@ -75,7 +75,6 @@ sudo nano /etc/growth/growth.env
 | `QUEUE_BASE_URL` | `https://hangcho.<tên miền>` |
 | `SESSION_SECRET`, `PII_HASH_KEY` | mỗi biến một chuỗi ngẫu nhiên dài; tạo bằng lệnh `openssl rand -hex 32` (mỗi biến chạy một lần, chép kết quả vào) |
 | `AUTH_MODE` | `password` |
-| `AMY_PASSWORD_HASH`, `MARK_PASSWORD_HASH` | mã băm mật khẩu, tạo ở bước 5 (để trống lúc này) |
 | `REPORT_SOURCE` | `paste` |
 | `LLM_MODEL` | `claude-sonnet-5-5` |
 | `LLM_PRICE_INPUT_USD_PER_MTOK`, `LLM_PRICE_OUTPUT_USD_PER_MTOK` | `2` và `10` (giá Claude Sonnet 5.5 cho 1 triệu token; kiểm lại trên trang giá của Anthropic) |
@@ -90,15 +89,15 @@ Không gửi nội dung hai file này qua chat hay email; chúng chứa khoá b�
 sudo bash setup.sh
 ```
 
-Tạo mật khẩu cho Amy (ít nhất 12 ký tự): chạy lệnh dưới, gõ mật khẩu, Enter, rồi Ctrl+D. Lệnh in ra một chuỗi bắt đầu bằng `$argon2id$`.
+Tạo tài khoản, mỗi người một mã, gắn một vai trò `amy`, `mkt`, `mark` hoặc `bod` (D-97). Lệnh in mật khẩu tạm một lần, hết hạn sau 72 giờ:
 
 ```bash
-sudo growth-run scripts/hash-password.ts
+sudo growth-run add-user amy-01 amy
 ```
 
-Chép chuỗi đó vào `AMY_PASSWORD_HASH` trong `/etc/growth/growth.env` (`sudo nano /etc/growth/growth.env`). Làm lại cho Mark (`MARK_PASSWORD_HASH`). Rồi chạy lại `sudo bash setup.sh`. Gửi mật khẩu cho Amy và Mark trực tiếp, không qua kênh lưu lại lịch sử.
+Gửi địa chỉ web và mật khẩu tạm qua hai kênh khác nhau; lần đăng nhập đầu bắt đổi mật khẩu.
 
-Xong khi: thấy "Hàng chờ đang chạy.", mở `https://hangcho.<tên miền>/health` thấy chữ `ok`, và đăng nhập được bằng mật khẩu của Amy ở `https://hangcho.<tên miền>/login`. Dòng "Preflight còn mục chưa đạt" là bình thường khi chưa có CRM, Teams và eval.
+Xong khi: thấy "Hàng chờ đang chạy.", mở `https://hangcho.<tên miền>/health` thấy chữ `ok`, và đăng nhập được bằng tài khoản vừa tạo ở `https://hangcho.<tên miền>/login`. Dòng "Preflight còn mục chưa đạt" là bình thường khi chưa có CRM, Teams và eval.
 
 Từ giờ, mỗi lần có bản mới trên `main`, chỉ cần chạy lại đúng lệnh này.
 
@@ -132,7 +131,7 @@ File Work Order cho trang "WO tồn đọng" (D-25) dùng sẵn tên cột chu�
 
 | Muốn | Lệnh |
 |---|---|
-| Đổi mật khẩu của Amy hoặc Mark | tạo mã băm mới (bước 5), thay trong `growth.env`, `sudo systemctl restart growth-queue` |
+| Quên mật khẩu, khoá người nghỉ, xem tài khoản | `sudo growth-run reset-password <tài khoản>`, `sudo growth-run disable-user <tài khoản>`, `sudo growth-run list-users` |
 | Xem lịch chạy | `systemctl list-timers 'growth-*'` |
 | Xem Hàng chờ có chạy không | `systemctl status growth-queue` |
 | Xem log một job | `journalctl -u growth-job@sa01-morning -n 50` |

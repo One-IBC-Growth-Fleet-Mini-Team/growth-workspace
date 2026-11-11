@@ -229,3 +229,7 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - **Sổ ổ cắm** `src/connectors/registry.ts`: thiếu biến thì "chưa nối" và hệ thống dùng adapter tải file như cũ.
   - **Nhật ký gọi** `connector_calls` (migration 030): chỉ ghi thành công hay mã lỗi.
   - **Trang `/settings`** (chỉ Mark): bảng ổ cắm, chỉ hiện tên biến; không nhận key qua web.
+- **D-97** (11/11/2026): mở lại đường máy chủ (`deploy/setup.sh`, Caddy, systemd) song song với bản cài máy, để Amy và Team MKT truy cập từ xa. D-26 giữ nguyên cho máy của Mark.
+  - **Một cách đăng nhập** cho cả máy chủ và bản cài máy: tài khoản trong Growth DB (migration 031), mỗi người một mã (ví dụ `mkt-01`), gắn một vai trò `amy`, `mkt`, `mark` hoặc `bod`. Quyền theo vai trò; người thao tác ghi theo mã tài khoản. Quyền riêng của Mark (`/settings`, `/tuning`, `/strategy`, duyệt kế hoạch ngân sách) kiểm theo vai trò, không theo mã.
+  - Bỏ biến `*_PASSWORD_HASH`: không còn đọc; còn trong `growth.env` thì preflight và `install.sh` cảnh báo, không tự xoá.
+  - Lệnh `add-user`, `reset-password`, `disable-user`, `list-users` (`sudo growth-run ...` trên máy chủ, `scripts/accounts.ts` ở bản cài máy). Mật khẩu tạm in một lần ra màn hình, hết hạn sau 72 giờ; khoá tài khoản giữ lịch sử.

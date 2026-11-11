@@ -17,8 +17,8 @@ describe("T-ACC tài khoản và khôi phục", () => {
     const db = freshDb();
     const pw = tempPassword();
     expect(pw).toMatch(/^[A-Za-z2-9]{16}$/);
+    const { app } = makeApp(db, { passwordLogin: true });
     await setPassword(db, "mkt", pw, { mustChange: true, now: NOW, actor: "add-user" });
-    const { app } = makeApp(db, { passwordHashes: new Map([["amy", await Bun.password.hash("mat-khau-amy-thu")]]) });
     const login = await post(app, "/login", { user: "mkt", password: pw });
     expect(login.headers.get("location")).toBe("/password");
     const cookie = login.headers.getSetCookie().find((c) => c.startsWith("gw_session="))!.split(";")[0]!;
@@ -37,8 +37,8 @@ describe("T-ACC tài khoản và khôi phục", () => {
     const db = freshDb();
     let clock = new Date("2026-11-02T01:00:00.000Z");
     const later = (min: number) => { clock = new Date(clock.getTime() + min * 60_000); };
+    const { app } = makeApp(db, { now: () => clock, passwordLogin: true });
     await setPassword(db, "mark", "mat-khau-cu-cua-mark", { mustChange: false, now: clock, actor: "add-user" });
-    const { app } = makeApp(db, { now: () => clock, passwordHashes: new Map([["amy", await Bun.password.hash("mat-khau-amy-thu")]]) });
     const login = async (pw: string) => (await post(app, "/login", { user: "mark", password: pw })).headers.getSetCookie().find((c) => c.startsWith("gw_session="))!.split(";")[0]!;
     later(1);
     const here = await login("mat-khau-cu-cua-mark");

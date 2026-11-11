@@ -1,7 +1,7 @@
 // Điểm vào theo vai trò (D-77): trang chính sau đăng nhập, thanh điều hướng nhóm theo việc (chỉ trang vai trò được xem),
 // một dòng mô tả đầu mỗi trang (để làm gì, số từ file nào, cập nhật lần cuối) và lời nhắc khi trang chưa có dữ liệu.
 import type { Database } from "bun:sqlite";
-import type { QueueUser } from "./auth.ts";
+import { accountRoleOf, type QueueUser } from "./auth.ts";
 import { canSee } from "./roles.ts";
 
 type Page = { path: string; label: string; group: "Hằng ngày" | "Nạp dữ liệu" | "Theo dõi" | "Cài đặt"; purpose: string; source?: string; samples?: string[]; last?: string; approverOnly?: boolean; viewerOnly?: boolean };
@@ -52,7 +52,7 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 // csrf có thì thêm nút Đăng xuất cuối thanh, để mọi vai trò đăng xuất được ở mọi trang (PHẦN 8).
 export function navHtml(u: QueueUser, current: string, csrf?: string): string {
   const groups = ["Hằng ngày", "Nạp dữ liệu", "Theo dõi", "Cài đặt"] as const;
-  const visible = PAGES.filter((p) => canSee(u, p.path) && (!p.approverOnly || u.role === "approver") && (!p.viewerOnly || u.role === "viewer") && (p.path !== "/settings" || u.id === "mark"));
+  const visible = PAGES.filter((p) => canSee(u, p.path) && (!p.approverOnly || u.role === "approver") && (!p.viewerOnly || u.role === "viewer") && (p.path !== "/settings" || accountRoleOf(u) === "mark"));
   return `<nav class="meta">${groups.map((g) => { const ps = visible.filter((p) => p.group === g); return ps.length ? `<div><strong>${g}:</strong> ${ps.map((p) => p.path === current ? `<b>${esc(p.label)}</b>` : `<a href="${p.path}">${esc(p.label)}</a>`).join(" · ")}</div>` : ""; }).join("")}${csrf ? `<form method="post" action="/logout" style="display:inline"><input type="hidden" name="csrf" value="${esc(csrf)}"><button type="submit">Đăng xuất</button></form>` : ""}</nav>`;
 }
 
