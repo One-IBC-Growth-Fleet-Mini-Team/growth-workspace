@@ -10,4 +10,4 @@ if (!file) {
   process.exit(2);
 }
 const r = restoreDb(file, getDbPath(), new Date());
-process.stdout.write(`Đã khôi phục từ ${file}.\nBản DB trước khi khôi phục giữ ở ${r.previous ?? "(chưa có DB)"}.\nBật lại: systemctl --user start growth-queue\n`);
+process.stdout.write(`Đã khôi phục từ ${file}.\nBản DB trước khi khôi phục giữ ở ${r.previous ?? "(chưa có DB)"}.\nBật lại Hàng chờ: sudo systemctl start growth-queue (máy chủ) hoặc systemctl --user start growth-queue (bản cài máy)\n`);
