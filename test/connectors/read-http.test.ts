@@ -54,7 +54,7 @@ describe("T-CONN cửa đọc chung", () => {
     const g = fake([[429, { error: "khách CANARY" }], [429, {}], [429, {}], [429, {}]]);
     const e = await readJson({ url: "https://api.example.com/x" }, opts(g.impl)).catch((x) => x as Error);
     expect(e).toMatchObject({ code: "RATE_LIMITED", status: 429 });
-    expect(String(e.message)).not.toContain("CANARY");
+    expect(String((e as Error).message)).not.toContain("CANARY");
   });
 
   test("T-CONN-04 Internal Control (A5): GET có khoảng ngày, phân trang next_page_token, chỉ giữ trường A5; OAuth Google làm mới khi bị ép", async () => {
