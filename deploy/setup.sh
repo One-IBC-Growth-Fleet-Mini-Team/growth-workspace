@@ -18,6 +18,8 @@ say() { printf '\n== %s\n' "$*"; }
 die() { printf '\nDỪNG: %s\n' "$*" >&2; exit 2; }
 as_app() { runuser -u growth -- env HOME="$DATA_DIR/home" "$@"; }
 # Danh sách IP hoặc dải trong file (mỗi dòng một mục, bỏ dòng trống và chú thích #).
+# Kiểm đúng dạng IP hoặc dải bằng thư viện chuẩn, trước khi đụng tường lửa: mục sai mà lọt tới ufw thì ufw đã bị reset.
+valid_ip() { python3 -c 'import ipaddress,sys; ipaddress.ip_network(sys.argv[1], strict=False)' "$1" 2>/dev/null; }
 ip_list() { sed -e 's/#.*//' -e 's/[[:space:]]//g' "$1" | grep -v '^$' || true; }
 
 [ "$(id -u)" -eq 0 ] || { echo "Cần chạy bằng root: sudo REPO_REF=<tag> bash setup.sh"; exit 1; }
@@ -95,10 +97,10 @@ ACME_EMAIL="$(val ACME_EMAIL)"
 ALLOW_IPS="$(val ALLOW_IPS)"
 [[ "$QUEUE_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || die "QUEUE_DOMAIN trong $ENV_DIR/caddy.env chưa điền hoặc sai dạng."
 [[ "$ACME_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]] || die "ACME_EMAIL trong $ENV_DIR/caddy.env chưa điền hoặc sai dạng."
-for ip in $ALLOW_IPS; do [[ "$ip" =~ $IP_RE ]] || die "ALLOW_IPS có mục sai dạng: $ip"; done
+for ip in $ALLOW_IPS; do [[ "$ip" =~ $IP_RE ]] && valid_ip "$ip" || die "ALLOW_IPS có mục sai dạng: $ip"; done
 ADMIN_IPS="$(ip_list "$ENV_DIR/admin-ips")"
 [ -n "$ADMIN_IPS" ] || die "$ENV_DIR/admin-ips trống. Điền IP của người quản trị (mỗi dòng một IP) rồi chạy lại. Cổng 22 không mở cho mọi nơi."
-for ip in $ADMIN_IPS; do [[ "$ip" =~ $IP_RE ]] || die "admin-ips có mục sai dạng: $ip"; done
+for ip in $ADMIN_IPS; do [[ "$ip" =~ $IP_RE ]] && valid_ip "$ip" || die "admin-ips có mục sai dạng: $ip"; done
 # Mọi người đang SSH vào phải nằm trong admin-ips, nếu không bật tường lửa xong là tự khoá mình ra ngoài. Đọc từ các kết nối
 # đang mở tới cổng 22 (sudo bỏ biến SSH_CLIENT); chạy ở serial console thì không có kết nối nào, bỏ qua.
 for client_ip in $(ss -Htn state established '( sport = :22 )' 2>/dev/null | awk '{print $4}' | sed -e 's/:[0-9]*$//' -e 's/^\[//' -e 's/\]$//' -e 's/^::ffff://' | sort -u); do
@@ -113,7 +115,8 @@ say "6/10 SSH chỉ dùng khoá, không đăng nhập root"
 admin="${SUDO_USER:-}"
 [ -n "$admin" ] && [ "$admin" != "root" ] || die "Chạy setup bằng sudo từ tài khoản quản trị (không phải root) để kiểm khoá SSH của tài khoản đó."
 admin_home="$(getent passwd "$admin" | cut -d: -f6)"
-grep -qE '^(ssh-|ecdsa-|sk-)' "$admin_home/.ssh/authorized_keys" 2>/dev/null \
+# Dòng khoá có thể có tuỳ chọn đứng trước (from="...", restrict...): tìm loại khoá ở bất kỳ vị trí nào.
+grep -qE '(^|[[:space:],])(ssh-[a-z0-9]+|ecdsa-sha2-[a-z0-9]+|sk-[a-z0-9@.-]+) AAAA' "$admin_home/.ssh/authorized_keys" 2>/dev/null \
   || die "Tài khoản $admin chưa có khoá SSH trong $admin_home/.ssh/authorized_keys. Thêm khoá trước khi tắt đăng nhập bằng mật khẩu."
 cat > /etc/ssh/sshd_config.d/10-growth.conf <<'EOF'
 # Tạo bởi deploy/setup.sh (D-97): chỉ đăng nhập bằng khoá, không root.
