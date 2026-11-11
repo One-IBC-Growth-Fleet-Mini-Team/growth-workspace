@@ -127,3 +127,19 @@ describe("T-SEC làm chặt đăng nhập", () => {
     expect((await get(app, "/settings", ca)).status).toBe(403);
   });
 });
+
+describe("T-SEC sau review", () => {
+  test("T-SEC-08 reset-password gỡ khoá 15 phút ngay; tài khoản không có thật cũng chạy verify (không lộ qua thời gian)", async () => {
+    const { db, app, clock, temp } = await setup();
+    for (let i = 0; i < 5; i++) await post(app, "/login", { user: "mkt-01", password: "sai-mat-khau" });
+    expect((await post(app, "/login", { user: "mkt-01", password: temp })).status).toBe(429);
+    clock.t += 60_000;
+    const fresh = tempOf((await runAccountCommand(db, ["reset-password", "mkt-01"], { now: new Date(clock.t) })).out);
+    clock.t += 1000;
+    expect((await post(app, "/login", { user: "mkt-01", password: fresh })).headers.get("location")).toBe("/password");
+    const time = async (user: string) => { const t0 = performance.now(); await post(app, "/login", { user, password: "khong-dung" }); return performance.now() - t0; };
+    await time("khong-co-ai");
+    const known = await time("mkt-01"), unknown = await time("khong-co-ai-2");
+    expect(unknown).toBeGreaterThan(known / 4);
+  });
+});

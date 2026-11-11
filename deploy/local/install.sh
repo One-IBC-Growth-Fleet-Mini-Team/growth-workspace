@@ -91,16 +91,22 @@ fi
 
 say "4/6 Nâng schema Growth DB, tài khoản đầu tiên"
 (set -a; . "$ENV_FILE"; set +a; cd "$APP_DIR" && "$BUN" run src/db/migrate.ts)
-# Đăng nhập bằng tài khoản trong DB (D-97), giống máy chủ. Lần cài đầu tạo amy và mark, in mật khẩu tạm một lần.
+# Đăng nhập bằng tài khoản trong DB (D-97), giống máy chủ. Lần cài đầu tạo amy và mark; bản cài cũ còn dòng mã băm của
+# vai nào mà chưa có tài khoản cùng tên thì tạo tài khoản đó, để không ai bị khoá ra ngoài sau khi nâng cấp.
 accounts() { (set -a; . "$ENV_FILE"; set +a; cd "$APP_DIR" && "$BUN" run scripts/accounts.ts "$@"); }
-if accounts list-users | grep -q "^Chưa có tài khoản"; then
-  accounts add-user amy amy
-  accounts add-user mark mark
-  echo "Ghi lại hai mật khẩu tạm trên (hết hạn sau 72 giờ); lần đăng nhập đầu sẽ bắt đổi."
-fi
+users="$(accounts list-users)"
+need=()
+[[ "$users" == "Chưa có tài khoản"* ]] && need=(amy mark)
+for r in amy mark mkt bod; do
+  R="$(printf '%s' "$r" | tr '[:lower:]' '[:upper:]')"
+  if grep -q "^${R}_PASSWORD_HASH=" "$ENV_FILE" && ! printf '%s\n' "$users" | grep -q "^$r "; then need+=("$r"); fi
+done
+created=0
+for r in $(printf '%s\n' "${need[@]}" | sort -u); do accounts add-user "$r" "$r"; created=1; done
+[ "$created" -eq 0 ] || echo "Ghi lại các mật khẩu tạm trên (hết hạn sau 72 giờ); lần đăng nhập đầu sẽ bắt đổi."
 if grep -qE '^(AMY|MARK|MKT|BOD)_PASSWORD_HASH=' "$ENV_FILE"; then
-  echo "Cảnh báo: $ENV_FILE còn dòng *_PASSWORD_HASH, không còn được dùng (D-97)."
-  echo "  Cấp mật khẩu tạm: bash $APP_DIR/deploy/local/run.sh scripts/accounts.ts reset-password <tài khoản> (chưa có thì add-user <tài khoản> <vai trò>), rồi tự xoá các dòng đó."
+  echo "Cảnh báo: $ENV_FILE còn dòng *_PASSWORD_HASH, không còn được dùng (D-97). Đăng nhập bằng tài khoản và mật khẩu tạm in ở trên, rồi tự xoá các dòng đó."
+  echo "  Quên mật khẩu: bash $APP_DIR/deploy/local/run.sh scripts/accounts.ts reset-password <tài khoản>."
 fi
 
 say "5/6 Dịch vụ chạy nền khi bạn đăng nhập; lịch 08:00, 08:15, 13:00, Digest 08:30 thứ Hai"

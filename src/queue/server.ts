@@ -1,5 +1,6 @@
 // Server Hàng chờ (design doc mục 5.7, 9). Bun.serve, HTML render phía server, không framework.
 // Mọi route trừ /health và luồng đăng nhập cần phiên hợp lệ; mọi POST cần CSRF token và Origin đúng.
+import { randomBytes } from "node:crypto";
 import type { Database } from "bun:sqlite";
 import {
   getAuthConfig,
@@ -246,9 +247,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   const validSession = (raw: Session | null): Session | null =>
     raw && (getAccount(deps.db, raw.sub) ? !sessionRevoked(deps.db, raw) : [...deps.users.values()].some((u) => u.id === raw.sub)) ? raw : null;
   const isMark = (s: Session) => accountRoleOf(userOf(s)) === "mark";
-  const markBy = (s: Session) => ({ now: now(), actor: userOf(s).id, actorRole: accountRoleOf(userOf(s)) });
+  const actorBy = (s: Session) => ({ now: now(), actor: userOf(s).id, actorRole: accountRoleOf(userOf(s)) });
   // Đếm lần đăng nhập sai theo người dùng và theo IP, trong bộ nhớ (khởi động lại thì xoá, chấp nhận được với vài người dùng).
-  const fails = new Map<string, { count: number; until: number }>();
+  const fails = new Map<string, { count: number; until: number; lockedAt?: number }>();
+  // Mã băm giả để tài khoản không có thật vẫn tốn một lần verify argon2: thời gian phản hồi không lộ mã nào có thật.
+  let dummyHash: Promise<string> | null = null;
+  const dummy = () => (dummyHash ??= Bun.password.hash(randomBytes(16).toString("hex"), { algorithm: "argon2id" }));
   const ipFails = new Map<string, { count: number; since: number }>();
   // App chỉ nghe 127.0.0.1; trên máy chủ mọi yêu cầu đi qua Caddy, Caddy ghi IP thật vào cuối X-Forwarded-For.
   // Bản cài máy không có proxy nên mọi yêu cầu chung một khoá "local".
@@ -338,6 +342,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         logSecurityEvent(deps.db, who, "login_rate_limited", { now: now(), actor: "login" });
         return respond(renderLoginPage("Quá nhiều lần đăng nhập sai từ mạng này, thử lại sau 15 phút."), 429, { "content-type": "text/html; charset=utf-8" });
       }
+      // Mark cấp mật khẩu tạm mới (reset) sau lúc bị khoá thì gỡ khoá ngay, không bắt chờ hết 15 phút.
+      const f0 = fails.get(who);
+      const resetAt = f0?.lockedAt !== undefined ? Date.parse(currentPassword(deps.db, who)?.setAt ?? "") : NaN;
+      if (f0 && resetAt > f0.lockedAt!) fails.delete(who);
       const f = fails.get(who);
       if (f && f.until > now().getTime()) {
         logSecurityEvent(deps.db, who, "login_locked", { now: now(), actor: "login" });
@@ -346,13 +354,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       // Chỉ tài khoản trong DB (D-97); tài khoản bị khoá đăng nhập không được.
       const user = dbUser(who);
       const stored = user ? currentPassword(deps.db, who) : null;
-      const ok = stored !== null && (await Bun.password.verify(pw, stored.hash));
+      const ok = (await Bun.password.verify(pw, stored?.hash ?? (await dummy()))) && stored !== null;
       if (!ok) {
         if (ipFails.size > 10_000) ipFails.clear();
         ipFails.set(ip, g && t - g.since < LOGIN_LOCK_MS ? { count: g.count + 1, since: g.since } : { count: 1, since: t });
         if (user) {
           const count = (f && f.until <= now().getTime() && f.count >= LOGIN_MAX_FAILS ? 0 : (f?.count ?? 0)) + 1;
-          fails.set(who, { count, until: count >= LOGIN_MAX_FAILS ? now().getTime() + LOGIN_LOCK_MS : 0 });
+          fails.set(who, count >= LOGIN_MAX_FAILS ? { count, until: now().getTime() + LOGIN_LOCK_MS, lockedAt: now().getTime() } : { count, until: 0 });
         }
         log({ event: "queue.login_failed", error_code: "PASSWORD_INVALID" });
         logSecurityEvent(deps.db, who, "login_failed", { now: now(), actor: "login" });
@@ -615,7 +623,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
     if (req.method === "GET" && path === "/runs") {
       if (!session) return redirect("/login");
-      return respond(renderRunsPage({ log: buildRunLog(deps.db, now()), me: userOf(session).id, csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
+      return respond(renderRunsPage({ log: buildRunLog(deps.db, now()), me: accountRoleOf(userOf(session)), csrf: session.csrf, message: null }), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/lessons") {
@@ -887,7 +895,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const r = await generateStrategy(deps.db, deps.askLlm.llm, { now: now(), actor, price: deps.askLlm.price, evalGate: gate, disabled: deps.fleetDisabled });
           return respond(strategyPage(session, r.status === "created" ? `Đã soạn: ${r.kept} câu giữ, ${r.dropped} câu loại.` : `Chưa soạn được (${r.errorCode}).`), r.status === "created" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
         }
-        const r = decideStrategy(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), markBy(session));
+        const r = decideStrategy(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), actorBy(session));
         return respond(strategyPage(session, r === "ok" ? "Đã ghi quyết định." : "Chưa ghi."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
@@ -900,7 +908,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
       if (path === "/tuning") {
         if (!isMark(session)) return text(403, "Chỉ Mark đổi ngưỡng và trọng số.");
-        const by = markBy(session);
+        const by = actorBy(session);
         const why: Record<string, string> = { VALUE_INVALID: "Giá trị không hợp lệ (ngưỡng trong khoảng 0 tới 1; trọng số là 5 số nguyên, tổng 100).", PARAM_NOT_TUNABLE: "Tham số này không chỉnh được.", EVAL_NOT_RERUN: "Chưa chạy lại eval sau lúc đề xuất (bun run eval:sa01).", EVAL_FAILED: "Lượt eval gần nhất chưa pass.", ALREADY_ACTIVE: "Đã kích hoạt.", NOT_FOUND: "Không thấy đề xuất.", KEY_UNKNOWN: "Không có khoá này.", ONLY_MARK: "Chỉ Mark đổi." };
         let code: string;
         if (form.get("op") === "provisional") {
@@ -914,9 +922,9 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       }
 
       if (path === "/runs") {
-        const r = markRunSeen(deps.db, String(form.get("run_id") ?? ""), { now: now(), actor: userOf(session).id });
+        const r = markRunSeen(deps.db, String(form.get("run_id") ?? ""), actorBy(session));
         if (r === "NOT_SUPERVISOR") return text(403, "Chỉ người giám sát của agent này được đánh dấu.");
-        return respond(renderRunsPage({ log: buildRunLog(deps.db, now()), me: userOf(session).id, csrf: session.csrf, message: r === "ok" ? "Đã đánh dấu đã xem." : "Không thấy phiên này." }), r === "ok" ? 200 : 404, { "content-type": "text/html; charset=utf-8" });
+        return respond(renderRunsPage({ log: buildRunLog(deps.db, now()), me: accountRoleOf(userOf(session)), csrf: session.csrf, message: r === "ok" ? "Đã đánh dấu đã xem." : "Không thấy phiên này." }), r === "ok" ? 200 : 404, { "content-type": "text/html; charset=utf-8" });
       }
 
       if (path === "/lessons") {
