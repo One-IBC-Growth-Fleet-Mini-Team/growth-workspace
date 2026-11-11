@@ -25,7 +25,8 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | Issue log sandbox8 (Mi1-mkt-05, D-35) | không có biến | tải CSV của tab "Bug" và "Test Cases" ở `/jurisdictions` | | đọc thẳng file test case của MobCEC qua API (chỉ đọc) | `src/crm/sandbox-import.ts` |
 | Sự kiện web và CRM (Mi1-data-01, D-36) | không có biến | tải CSV sự kiện (tên cột theo Phụ lục A) ở `/data` | | API hoặc webhook sự kiện của MobCEC (Phụ lục A2, A3), GA4 | `src/crm/event-import.ts` |
 | Sức khoẻ tài khoản kênh (CRON-02, D-37) | không có biến | nhập tay ở `/channels` | | Meta Graph API, WhatsApp Business Management API (cần quyền BM) | `src/db/channels.ts` |
-| Meta Ads, Google Ads (Mi1-mkt-01, D-39) | không có biến | tải CSV báo cáo tuần ở `/ads-overview` | | ads-mcp (`sync_meta_gg_report`), Marketing API (cần quyền tài khoản quảng cáo) | `src/crm/ad-report-import.ts` |
+| Meta Ads, Google Ads (Mi1-mkt-01, D-39, D-96) | `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID` (tuỳ chọn `META_API_VERSION`); `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_REFRESH_TOKEN`, `GOOGLE_ADS_CUSTOMER_ID` (tuỳ chọn `GOOGLE_ADS_LOGIN_CUSTOMER_ID`, `GOOGLE_ADS_API_VERSION`) | tải CSV báo cáo tuần ở `/ads-overview` | đủ biến: job 06:30 kéo tuần trọn gần nhất qua Marketing API Insights (GET) và Google Ads `googleAds:search`, ghi cùng bảng `ad_rows` | ads-mcp (`sync_meta_gg_report`) | `src/crm/ad-report-import.ts`, `src/connectors/meta-ads.ts`, `src/connectors/google-ads.ts`, `src/jobs/pull-ads-api.ts` |
+| GA4 (D-96) | `GA4_PROPERTY_ID`, `GA4_CLIENT_ID`, `GA4_CLIENT_SECRET`, `GA4_REFRESH_TOKEN` | tải CSV sự kiện ở `/data` | đủ biến: job 06:30 đọc `runReport` (eventCount theo eventName) để kiểm nối; chưa có bảng nhận số | đưa số GA4 vào phễu Mi1-data-01 (chưa có trong Việc tiếp theo) | `src/connectors/ga4.ts` |
 | Giá đối thủ (Mi1-mkt-04, D-40) | không có biến | tải CSV giá gói đối thủ ở `/competitors` | | market-scan-mcp (`scan_competitor_packages`, chỉ đọc) | `src/crm/competitor-import.ts` |
 | Điểm Hook (Mi1-mkt-02, D-43) | `HOOK_SOURCE`, `HOOK_MCP_URL`, `HOOK_MCP_TOKEN` | `file`: tải CSV ở `/hooks` | `mcp`: tool `get_hook_scores` của hệ thống SEO/AIO (`docs/context/hop-dong-mcp.md`) | | `src/crm/hook-import.ts`, `src/mcp/remote.ts` |
 | Creative Factory (D-44) | `CREATIVE_SOURCE`, `CREATIVE_MCP_URL`, `CREATIVE_MCP_TOKEN` | không nối: chỉ xem, duyệt Storyboard ở `/creative` | `mcp`: `compile_creative_ir`, `run_creative_pipeline` của creative-factory-v2 (`docs/context/hop-dong-mcp.md`) | `validate_brand_qa`, `export_channel_bundle` | `src/creative/factory.ts` |
@@ -41,7 +42,7 @@ Khi nối, mỗi nguồn là một cổng mới theo đúng mẫu trên: adapter
 
 | Nguồn | Dùng cho | Adapter chạy ngay đề xuất | Adapter thật | Đang chờ |
 |---|---|---|---|---|
-| GA4 | Mi1-mkt-01, Mi1-data-01 | tải file xuất | API hoặc MCP | quyền GA4 |
+| (hiện không còn; GA4 đã có cổng ở bảng trên, D-96) | | | | |
 
 ## Để sau (cách khó hơn, chưa làm khi chưa có người dùng thứ hai cần)
 

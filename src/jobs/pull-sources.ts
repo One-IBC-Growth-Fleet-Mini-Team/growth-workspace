@@ -9,6 +9,7 @@ import { pullMarketScan } from "../crm/market-import.ts";
 import { migrate } from "../db/migrate.ts";
 import { openReadWrite } from "../db/open.ts";
 import { log } from "../log.ts";
+import { pullAdsApi } from "./pull-ads-api.ts";
 import type { RemoteTarget } from "../mcp/remote.ts";
 
 type Targets = { hooks: RemoteTarget | null; ads: RemoteTarget | null; market: RemoteTarget | null };
@@ -52,6 +53,8 @@ if (import.meta.main) {
       if (bad.includes(SOURCE[r.source])) continue; // đã báo SOURCE_CONFIG_INVALID ở trên
       log({ event: `pull.${r.source}.${r.status}`, ...("errorCode" in r ? { error_code: r.errorCode } : {}) });
     }
+    // Adapter API (D-96): Meta Ads, Google Ads, GA4 khi đã đủ biến; thiếu biến thì bỏ qua, file tải lên vẫn dùng như cũ.
+    for (const r of await pullAdsApi(db, process.env, { now: new Date(), actor: "cron-03" })) if (r.status === "succeeded") log({ event: `pull.${r.connector.replace("-", "_")}.succeeded`, count: r.rows });
   } finally {
     db.close();
   }
