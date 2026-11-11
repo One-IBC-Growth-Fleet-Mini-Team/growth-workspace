@@ -1,6 +1,6 @@
 {
   "_doc": "Tiến độ dự án cho trang /overview (hàng 4). Cập nhật trong cùng PR với mỗi việc. Phần trăm là ước tính theo spec v0.3.2.",
-  "updated": "2026-11-09",
+  "updated": "2026-11-11",
   "overall_percent": 75,
   "phases": [
     {
@@ -86,7 +86,8 @@
         "Command Center 3D phần (b): vệ tinh module, nhãn ẩn, bảng kính mờ, Mi1 nhìn theo lựa chọn (D-93)",
         "Command Center 3D phần (c): đầu thuyền viên, màn hình tường hiện vết lượt chạy (D-93)",
         "Command Center 3D phần (d): thanh động tác, âm thanh, gắn sự kiện thật; nghiệm thu spec mục 7 (D-93)",
-        "Bảng sẵn sàng Phụ lục B trên /command (D-94)"
+        "Bảng sẵn sàng Phụ lục B trên /command (D-94)",
+        "Repo public: tên RM thay bằng mã, bỏ email công ty, test chặn email đuôi tên miền công ty (D-95)"
       ]
     }
   ]
