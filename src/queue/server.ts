@@ -116,6 +116,8 @@ import { renderCommand3dPage } from "./views/command3d.ts";
 import { readEvalScores } from "../fleet/eval-scores.ts";
 import { parseDisabled } from "../fleet/registry.ts";
 import { renderCommandPage } from "./views/command.ts";
+import { renderSettingsPage } from "./views/settings.ts";
+import { connectorStatus } from "../connectors/registry.ts";
 import { renderStrategyPage } from "./views/strategy.ts";
 import { approvedStrategy, decideStrategy, generateStrategy, latestStrategy } from "../mi1/strategy-run.ts";
 import { readStrategyEvalGate } from "../mi1/strategy-eval.ts";
@@ -513,6 +515,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/tasks") {
       if (!session) return redirect("/login");
       return respond(renderTasksPage(buildTaskDrafts(deps.db, now())), 200, { "content-type": "text/html; charset=utf-8" });
+    }
+
+    // Cài đặt kết nối (D-96): chỉ Mark; chỉ đọc, không nhận key qua web.
+    if (req.method === "GET" && path === "/settings") {
+      if (!session) return redirect("/login");
+      if (userOf(session).id !== "mark") return text(403, "Chỉ Mark xem cài đặt kết nối.");
+      return respond(renderSettingsPage(connectorStatus(deps.db)), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/strategy") {

@@ -20,5 +20,8 @@ const result = await runCrmEtl({
   crm: getCrmConfig(),
   hasher: createPiiHasher(getPiiHashKey(), cc ? { defaultCountryCode: cc } : {}),
 });
+// Nhật ký ổ cắm cho /settings (D-96): chỉ thành công hay mã lỗi.
+db.run("INSERT INTO connector_calls (id, connector, ok, error_code, at) VALUES (?, 'crm-api', ?, ?, ?)",
+  [Bun.randomUUIDv7(), result.status === "succeeded" ? 1 : 0, result.status === "succeeded" ? null : "ETL_FAILED", new Date().toISOString()]);
 db.close();
 process.exit(result.status === "succeeded" ? 0 : 1);

@@ -37,6 +37,7 @@ export const PAGES: Page[] = [
   { path: "/monthly", label: "Báo cáo tháng", group: "Theo dõi", purpose: "Số tháng trước: Hàng chờ, chi phí, đối tác, bài học." },
   { path: "/runs", label: "Phiên chạy", group: "Theo dõi", purpose: "Từng phiên agent: token, chi phí, người giám sát đã xem." },
   { path: "/tuning", label: "Ngưỡng", group: "Cài đặt", purpose: "Ngưỡng, trọng số và giá trị tạm; chỉ Mark đổi." },
+  { path: "/settings", label: "Kết nối", group: "Cài đặt", purpose: "Ổ cắm kết nối: adapter đang dùng, đã nối hay chưa, thiếu biến nào. Chỉ Mark.", viewerOnly: true },
   { path: "/huong-dan", label: "Hướng dẫn", group: "Cài đặt", purpose: "Hướng dẫn sử dụng cho vai trò của bạn." },
   { path: "/password", label: "Đổi mật khẩu", group: "Cài đặt", purpose: "Đặt mật khẩu mới." },
 ];
@@ -51,7 +52,7 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 // csrf có thì thêm nút Đăng xuất cuối thanh, để mọi vai trò đăng xuất được ở mọi trang (PHẦN 8).
 export function navHtml(u: QueueUser, current: string, csrf?: string): string {
   const groups = ["Hằng ngày", "Nạp dữ liệu", "Theo dõi", "Cài đặt"] as const;
-  const visible = PAGES.filter((p) => canSee(u, p.path) && (!p.approverOnly || u.role === "approver") && (!p.viewerOnly || u.role === "viewer"));
+  const visible = PAGES.filter((p) => canSee(u, p.path) && (!p.approverOnly || u.role === "approver") && (!p.viewerOnly || u.role === "viewer") && (p.path !== "/settings" || u.id === "mark"));
   return `<nav class="meta">${groups.map((g) => { const ps = visible.filter((p) => p.group === g); return ps.length ? `<div><strong>${g}:</strong> ${ps.map((p) => p.path === current ? `<b>${esc(p.label)}</b>` : `<a href="${p.path}">${esc(p.label)}</a>`).join(" · ")}</div>` : ""; }).join("")}${csrf ? `<form method="post" action="/logout" style="display:inline"><input type="hidden" name="csrf" value="${esc(csrf)}"><button type="submit">Đăng xuất</button></form>` : ""}</nav>`;
 }
 

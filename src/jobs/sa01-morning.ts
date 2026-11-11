@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { getDbPath, getEntraConfig, getEvalResultsDir, getGraphChannel, getLlmPricing, hasLlmKey, getQueueConfig, getReportSource, getTeamsWebhooks } from "../config.ts";
 import { createAnthropicLlm } from "../agents/sa-01/llm.ts";
+import { recordCall } from "../connectors/registry.ts";
 import { readEvalStats } from "../agents/sa-01/eval/runner.ts";
 import { runSa01 } from "../agents/sa-01/run.ts";
 import { migrate } from "../db/migrate.ts";
@@ -38,7 +39,8 @@ try {
   await runSa01(vnDate(new Date()), {
     db,
     crm,
-    graph: channel ? { client: createGraphClient({ getToken: createGraphTokenProvider(getEntraConfig()) }), ...channel } : null,
+    // Mỗi lần gọi Graph ghi vào nhật ký ổ cắm cho /settings (D-96).
+    graph: channel ? { client: ((c) => ({ get: (u: string) => recordCall(db, "graph-teams", new Date(), () => c.get(u)) }))(createGraphClient({ getToken: createGraphTokenProvider(getEntraConfig()) })), ...channel } : null,
     // Chưa có key thì không gọi LLM; NBA vẫn chạy (D-89).
     llm: hasLlmKey() ? createAnthropicLlm({ model: pricing.model }) : null,
     pricing,

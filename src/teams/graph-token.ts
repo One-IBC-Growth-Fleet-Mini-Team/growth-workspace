@@ -3,10 +3,11 @@
 // Gọi login.microsoftonline.com, không phải CRM.
 import type { EntraConfig } from "../config.ts";
 
-export function createGraphTokenProvider(cfg: EntraConfig, fetchImpl: typeof fetch = fetch): () => Promise<string> {
+export function createGraphTokenProvider(cfg: EntraConfig, fetchImpl: typeof fetch = fetch): (force?: boolean) => Promise<string> {
   let cached: { token: string; exp: number } | null = null;
-  return async () => {
-    if (cached && cached.exp - 60_000 > Date.now()) return cached.token;
+  // force = true: token bị Graph từ chối (401) nên lấy token mới (D-96).
+  return async (force = false) => {
+    if (!force && cached && cached.exp - 60_000 > Date.now()) return cached.token;
     const res = await fetchImpl(`https://login.microsoftonline.com/${encodeURIComponent(cfg.tenantId)}/oauth2/v2.0/token`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
