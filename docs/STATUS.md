@@ -31,7 +31,7 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
   - Một cách đăng nhập cho cả hai: tài khoản trong DB, mỗi người một mã gắn vai trò; `growth-run add-user`, `reset-password`, `disable-user`, `list-users`.
   - Mật khẩu tạm 72 giờ, luật mật khẩu mới, chặn theo IP, phiên 8 giờ và 7 ngày, sổ sự kiện bảo mật ở `/settings`.
   - `setup.sh`: ufw (80, 443; 22 chỉ admin-ips), SSH chỉ khoá, fail2ban, Caddy có header bảo mật và `ALLOW_IPS` tuỳ chọn, ghim tag, backup ngoài máy bắt buộc mã hoá; `verify-remote.sh` cho Mark kiểm từ laptop. Đã chạy thử trong container Ubuntu 24.04 có systemd thật.
-- `bun test`: 459 pass, `tsc --strict` sạch.
+- `bun test`: 461 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
