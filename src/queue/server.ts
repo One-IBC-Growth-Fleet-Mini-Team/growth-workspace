@@ -445,7 +445,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       }
       // Điểm vào theo vai trò (D-77): "/" về trang chính; MKT không có Hàng chờ nên về Tổng quan.
       if (req.method === "GET" && (path === "/" || (u.role === "mkt" && path === "/queue"))) return redirect(homeFor(u));
-      if (!(req.method === "GET" ? canSee(u, path) : canPost(u, path))) return text(403, "Vai trò MKT chỉ xem số tổng hợp, không xem trang có mã khách hay duyệt việc tốn tiền.");
+      if (!(req.method === "GET" ? canSee(u, path) : canPost(u, path))) return text(403, u.role === "mkt" && req.method === "GET" ? "Vai trò MKT chỉ xem số tổng hợp, không xem trang có mã khách hay duyệt việc tốn tiền." : "Vai trò của tài khoản này không được làm việc này.");
     }
     if (req.method === "GET" && (path === "/" || path === "/queue")) {
       if (!session) return redirect("/login");
@@ -1015,7 +1015,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const body = decorate(await res.text(), u, deps.db, new URL(req.url).pathname, s.csrf);
           const touched = res.headers.has("set-cookie") ? null : touchSession(deps.sessionSecret, s, now(), secure);
           if (touched) headers.append("set-cookie", touched);
-          return new Response(u.role === "mkt" ? stripForbiddenForms(u, body) : body, { status: res.status, headers });
+          return new Response(stripForbiddenForms(u, body), { status: res.status, headers });
         }
         // Phiên vẫn dùng ở yêu cầu không phải trang HTML (JSON, POST): ghi lại lần dùng (D-97).
         const touched = s && !res.headers.has("set-cookie") ? touchSession(deps.sessionSecret, s, now(), secure) : null;
