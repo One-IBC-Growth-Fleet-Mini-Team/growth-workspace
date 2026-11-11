@@ -1,5 +1,6 @@
 // T-LOCAL-01, T-LOCAL-02: chạy Hàng chờ trên chính máy Ubuntu của người dùng (D-26).
 // Chỉ http://localhost hoặc http://127.0.0.1 được phép không có HTTPS; mọi địa chỉ khác vẫn bắt buộc https.
+import { setPassword } from "../../src/db/users.ts";
 import { describe, expect, test } from "bun:test";
 import { ConfigError, getQueueConfig } from "../../src/config.ts";
 import { freshDb } from "../helpers/db.ts";
@@ -23,8 +24,9 @@ describe("T-LOCAL-01 địa chỉ Hàng chờ", () => {
 
 describe("T-LOCAL-02 cookie phiên", () => {
   async function loginCookie(baseUrl: string): Promise<string> {
-    const hash = await Bun.password.hash("mat-khau-thu-nghiem-12", { algorithm: "argon2id" });
-    const { app } = makeApp(freshDb(), { baseUrl, passwordHashes: new Map([["amy", hash]]) });
+    const db = freshDb();
+    const { app } = makeApp(db, { baseUrl, passwordLogin: true });
+    await setPassword(db, "amy", "mat-khau-thu-nghiem-12", { mustChange: false, now: new Date("2026-11-01T00:00:00Z"), actor: "test" });
     const res = await app.fetch(
       new Request(`${baseUrl}/login`, {
         method: "POST",

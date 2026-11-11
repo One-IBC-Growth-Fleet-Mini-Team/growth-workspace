@@ -1,7 +1,7 @@
 // T-ROLE-01 tới T-ROLE-03: phân quyền theo vai trò (D-63, Mark 09/11/2026). Team MKT chỉ thấy persona và số tổng hợp,
 // không thấy mã khách, mã deal; Mark, Amy, BOD thấy được. MKT không duyệt việc tốn tiền.
 import { describe, expect, test } from "bun:test";
-import { getAuthConfig } from "../../src/config.ts";
+import { getAuthConfig, legacyPasswordVars } from "../../src/config.ts";
 import { createSessionCookie, type QueueUser } from "../../src/queue/auth.ts";
 import { canPost, canSee, MKT_PATHS } from "../../src/queue/roles.ts";
 import { freshDb } from "../helpers/db.ts";
@@ -42,12 +42,10 @@ describe("T-ROLE phân quyền", () => {
     expect(await (await get(BOD, "/jurisdictions")).text()).toContain('action="/jurisdictions"');
   });
 
-  test("T-ROLE-03 mật khẩu MKT, BOD tuỳ chọn: đặt thì đăng nhập được, không đặt thì chỉ Amy, Mark", () => {
-    const base = { AMY_PASSWORD_HASH: "$argon2id$a", MARK_PASSWORD_HASH: "$argon2id$m" };
-    const two = getAuthConfig(base);
-    expect(two.mode === "password" && [...two.hashes.keys()]).toEqual(["amy", "mark"]);
-    const four = getAuthConfig({ ...base, MKT_PASSWORD_HASH: "$argon2id$k", BOD_PASSWORD_HASH: "$argon2id$b" });
-    expect(four.mode === "password" && [...four.hashes.keys()]).toEqual(["amy", "mark", "mkt", "bod"]);
-    expect(() => getAuthConfig({ ...base, MKT_PASSWORD_HASH: "plain" })).toThrow();
+  test("T-ROLE-03 mã băm mật khẩu trong biến môi trường không còn được đọc (D-97); preflight cảnh báo, không lỗi cấu hình", () => {
+    const env = { AMY_PASSWORD_HASH: "$argon2id$a", MKT_PASSWORD_HASH: "plain" };
+    expect(getAuthConfig(env)).toEqual({ mode: "password" });
+    expect(legacyPasswordVars(env)).toEqual(["AMY_PASSWORD_HASH", "MKT_PASSWORD_HASH"]);
+    expect(legacyPasswordVars({})).toEqual([]);
   });
 });

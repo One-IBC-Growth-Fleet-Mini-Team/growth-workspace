@@ -50,6 +50,8 @@ import {
   unsealValue,
   type OidcPending,
   type OidcProvider,
+  accountRoleOf,
+  permissionOf,
   type QueueUser,
   type Session,
 } from "./auth.ts";
@@ -101,7 +103,7 @@ import { canPost, canSee, stripForbiddenForms } from "./roles.ts";
 import { readSample } from "./samples.ts";
 import { decorate, homeFor } from "./nav.ts";
 import { guideFor, renderGuide } from "./guide.ts";
-import { currentPassword, MIN_PASSWORD, sessionRevoked, setPassword } from "../db/users.ts";
+import { currentPassword, getAccount, logSecurityEvent, MIN_PASSWORD, sessionRevoked, setPassword } from "../db/users.ts";
 import { renderOverviewPage } from "./views/overview.ts";
 import { buildOverview, rowsFor } from "../mi1/overview.ts";
 import { listProvisional, setProvisional } from "../provisional.ts";
@@ -149,8 +151,8 @@ export type QueueAppDeps = {
   baseUrl: string; // https://..., dùng cho link và kiểm Origin
   users: Map<string, QueueUser>; // AAD object id → người dùng (chế độ Entra)
   oidc: OidcProvider;
-  // Chế độ mật khẩu tạm (D-24) khi chưa có app Entra: mã băm argon2 theo id người dùng ("amy", "mark").
-  passwordHashes?: Map<string, string>;
+  // Đăng nhập bằng tài khoản trong DB (D-24, D-97): bật thì có trang /login bằng mã tài khoản và mật khẩu.
+  passwordLogin?: boolean;
   // Xử lý văn bản tự báo Amy dán (D-24); trả số mục mới.
   onPaste?: (text: string, reportDate: string) => Promise<{ created: number; message?: string }>;
   // Nạp file CSV xuất từ CRM (D-24); trả câu báo kết quả cho Amy (không chứa giá trị ô).
@@ -187,7 +189,6 @@ const IMPORT_FIELDS: Record<string, CsvResource> = { opportunity: "Opportunity",
 const WO_IMPORT_FIELDS = { workorder: "WorkOrder", wopic: "WorkOrderPic" } as const;
 const LOGIN_MAX_FAILS = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
-const PASSWORD_USERS: Record<string, QueueUser> = { amy: { id: "amy", role: "approver" }, mark: { id: "mark", role: "viewer" }, mkt: { id: "mkt", role: "mkt" }, bod: { id: "bod", role: "viewer" } };
 const SECURITY_HEADERS = {
   "content-security-policy":
     "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; script-src 'none'",
@@ -230,13 +231,22 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   const now = deps.now ?? (() => new Date());
   const origin = new URL(deps.baseUrl).origin;
   const secure = !isLocalBaseUrl(deps.baseUrl);
-  const userOf = (s: Session): QueueUser =>
-    PASSWORD_USERS[s.sub] ?? [...deps.users.values()].find((u) => u.id === s.sub)!;
+  // Tài khoản trong DB thắng (D-97); không có thì là người dùng Entra cố định.
+  const dbUser = (id: string): QueueUser | null => {
+    const a = getAccount(deps.db, id);
+    return a && !a.disabled ? { id: a.id, role: permissionOf(a.role), account: a.role } : null;
+  };
+  const userOf = (s: Session): QueueUser => dbUser(s.sub) ?? [...deps.users.values()].find((u) => u.id === s.sub)!;
+  // Tài khoản DB: huỷ khi bị khoá, đổi hay reset mật khẩu. Không có trong DB thì chỉ người dùng Entra cố định còn hiệu lực.
+  const validSession = (raw: Session | null): Session | null =>
+    raw && (getAccount(deps.db, raw.sub) ? !sessionRevoked(deps.db, raw) : [...deps.users.values()].some((u) => u.id === raw.sub)) ? raw : null;
+  const isMark = (s: Session) => accountRoleOf(userOf(s)) === "mark";
+  const markBy = (s: Session) => ({ now: now(), actor: userOf(s).id, actorRole: accountRoleOf(userOf(s)) });
   // Đếm lần đăng nhập sai theo người dùng, trong bộ nhớ (khởi động lại thì xoá, chấp nhận được với 2 người dùng).
   const fails = new Map<string, { count: number; until: number }>();
 
   function tuningPage(session: Session, message: string | null): string {
-    return renderTuningPage({ current: currentTuning(deps.db), changes: listTuning(deps.db), evalRun: deps.evalRun?.() ?? { ranAt: null, passed: false }, canTune: userOf(session).id === "mark", csrf: session.csrf, message });
+    return renderTuningPage({ current: currentTuning(deps.db), changes: listTuning(deps.db), evalRun: deps.evalRun?.() ?? { ranAt: null, passed: false }, canTune: isMark(session), csrf: session.csrf, message });
   }
 
   function billingPage(session: Session, message: string | null): string {
@@ -281,11 +291,11 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   function strategyPage(session: Session, message: string | null): string {
     const gate = deps.strategyGate?.() ?? { passed: false, version: "none" };
     const locked = !deps.askLlm ? "Chưa cấu hình LLM (API key) nên chưa soạn được lời dẫn." : !gate.passed ? "Bộ eval đề xuất chiến lược chưa pass (bun run eval:strategy, ngưỡng 0,8) nên chưa soạn được." : null;
-    return renderStrategyPage({ draft: latestStrategy(deps.db), locked, canWrite: userOf(session).id === "mark", csrf: session.csrf, message });
+    return renderStrategyPage({ draft: latestStrategy(deps.db), locked, canWrite: isMark(session), csrf: session.csrf, message });
   }
 
   function budgetPage(session: Session, message: string | null): string {
-    return renderBudgetPage({ board: buildBudgetBoard(deps.db, now()), plan: latestPlan(deps.db), canDecidePlan: userOf(session).id === "mark", canPull: deps.adsSource?.mode === "mcp", csrf: session.csrf, message });
+    return renderBudgetPage({ board: buildBudgetBoard(deps.db, now()), plan: latestPlan(deps.db), canDecidePlan: isMark(session), canPull: deps.adsSource?.mode === "mcp", csrf: session.csrf, message });
   }
 
   function marketPage(session: Session, message: string | null): string {
@@ -304,32 +314,35 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
     if (req.method === "GET" && path === "/health") return text(200, "ok");
 
-    if (deps.passwordHashes && path === "/login") {
+    if (deps.passwordLogin && path === "/login") {
       if (req.method === "GET") return respond(renderLoginPage(null), 200, { "content-type": "text/html; charset=utf-8" });
       if (req.method !== "POST") return text(405, "Không hỗ trợ.");
       if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
       if (Number(req.headers.get("content-length") ?? "0") > MAX_BODY) return text(413, "Quá lớn.");
       const form = await req.formData();
-      const who = String(form.get("user") ?? "");
+      const who = String(form.get("user") ?? "").trim().toLowerCase().slice(0, 64);
       const pw = String(form.get("password") ?? "");
       const f = fails.get(who);
       if (f && f.until > now().getTime()) {
+        logSecurityEvent(deps.db, who, "login_locked", { now: now(), actor: "login" });
         return respond(renderLoginPage("Đăng nhập sai quá nhiều lần, thử lại sau 15 phút."), 429, { "content-type": "text/html; charset=utf-8" });
       }
-      // Mật khẩu trong DB (add-user, /password; D-79) thắng mã băm trong biến môi trường.
-      const stored = PASSWORD_USERS[who] ? currentPassword(deps.db, who) : null;
-      const hash = stored?.hash ?? deps.passwordHashes.get(who);
-      const ok = hash !== undefined && PASSWORD_USERS[who] !== undefined && (await Bun.password.verify(pw, hash));
+      // Chỉ tài khoản trong DB (D-97); tài khoản bị khoá đăng nhập không được.
+      const user = dbUser(who);
+      const stored = user ? currentPassword(deps.db, who) : null;
+      const ok = stored !== null && (await Bun.password.verify(pw, stored.hash));
       if (!ok) {
-        if (PASSWORD_USERS[who]) {
+        if (user) {
           const count = (f && f.until <= now().getTime() && f.count >= LOGIN_MAX_FAILS ? 0 : (f?.count ?? 0)) + 1;
           fails.set(who, { count, until: count >= LOGIN_MAX_FAILS ? now().getTime() + LOGIN_LOCK_MS : 0 });
         }
         log({ event: "queue.login_failed", error_code: "PASSWORD_INVALID" });
+        logSecurityEvent(deps.db, who, "login_failed", { now: now(), actor: "login" });
         return respond(renderLoginPage("Sai tên hoặc mật khẩu."), 401, { "content-type": "text/html; charset=utf-8" });
       }
       fails.delete(who);
-      return redirect(stored?.mustChange ? "/password" : homeFor(PASSWORD_USERS[who]!), [sessionSetCookie(deps.sessionSecret, newSession(PASSWORD_USERS[who]!, now()), secure)], 303);
+      logSecurityEvent(deps.db, who, "login_ok", { now: now(), actor: "login" });
+      return redirect(stored.mustChange ? "/password" : homeFor(user!), [sessionSetCookie(deps.sessionSecret, newSession(user!, now()), secure)], 303);
     }
 
     if (req.method === "GET" && path === "/login") {
@@ -367,7 +380,8 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     }
 
     const raw = readSession(req, deps.sessionSecret, now());
-    const session = raw && !sessionRevoked(deps.db, raw) ? raw : null;
+    // Tài khoản DB: huỷ khi bị khoá, đổi hay reset mật khẩu. Không có trong DB thì chỉ người dùng Entra cố định còn hiệu lực.
+    const session = validSession(raw);
     // Phân quyền theo vai trò (D-63): MKT về trang Hook thay cho Hàng chờ; trang có mã khách trả 403.
     if (session) {
       const u = userOf(session);
@@ -376,7 +390,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       if (path === "/password") {
         // Mật khẩu cũ bắt buộc, trừ lần đầu đổi mật khẩu tạm (D-85).
         const stored = currentPassword(deps.db, u.id);
-        const oldHash = stored?.hash ?? deps.passwordHashes?.get(u.id);
+        const oldHash = stored?.hash;
         const needCurrent = oldHash !== undefined && !stored?.mustChange;
         const page = (msg: string | null, status: number) => respond(renderPasswordPage(session.csrf, msg, needCurrent), status, { "content-type": "text/html; charset=utf-8" });
         if (req.method === "GET") return page(null, 200);
@@ -390,6 +404,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         // Cùng một thời điểm cho mật khẩu mới và phiên mới: mọi phiên khác bị huỷ, phiên này được cấp lại và giữ nguyên.
         const at = now();
         await setPassword(deps.db, u.id, a, { mustChange: false, now: at, actor: u.id });
+        logSecurityEvent(deps.db, u.id, "password_changed", { now: at, actor: u.id });
         return redirect(homeFor(u), [sessionSetCookie(deps.sessionSecret, newSession(u, at), secure)], 303);
       }
       // Điểm vào theo vai trò (D-77): "/" về trang chính; MKT không có Hàng chờ nên về Tổng quan.
@@ -520,7 +535,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     // Cài đặt kết nối (D-96): chỉ Mark; chỉ đọc, không nhận key qua web.
     if (req.method === "GET" && path === "/settings") {
       if (!session) return redirect("/login");
-      if (userOf(session).id !== "mark") return text(403, "Chỉ Mark xem cài đặt kết nối.");
+      if (!isMark(session)) return text(403, "Chỉ Mark xem cài đặt kết nối.");
       return respond(renderSettingsPage(connectorStatus(deps.db)), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
@@ -794,7 +809,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const by = { now: now(), actor: userOf(session).id };
         // Kế hoạch tuần theo khung quyết định (D-90): chỉ Mark tạo và duyệt; vượt ngưỡng thì cần anh Jimmy ngoài hệ thống.
         if (path === "/budget/plan") {
-          if (by.actor !== "mark") return text(403, "Chỉ Mark tạo và duyệt kế hoạch ngân sách.");
+          if (!isMark(session)) return text(403, "Chỉ Mark tạo và duyệt kế hoạch ngân sách.");
           if (form.get("op") === "create") {
             const r = createWeeklyPlan(deps.db, now(), by.actor);
             return respond(budgetPage(session, r.created ? `Đã tạo kế hoạch tuần với ${r.lines} tổ hợp.` : "Tuần này đã có kế hoạch."), 200, { "content-type": "text/html; charset=utf-8" });
@@ -837,14 +852,14 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
       if (path === "/strategy") {
         const actor = userOf(session).id;
-        if (actor !== "mark") return text(403, "Chỉ Mark soạn và duyệt đề xuất chiến lược.");
+        if (!isMark(session)) return text(403, "Chỉ Mark soạn và duyệt đề xuất chiến lược.");
         if (form.get("op") === "write") {
           const gate = deps.strategyGate?.() ?? { passed: false, version: "none" };
           if (!deps.askLlm || !gate.passed) return respond(strategyPage(session, null), 422, { "content-type": "text/html; charset=utf-8" });
           const r = await generateStrategy(deps.db, deps.askLlm.llm, { now: now(), actor, price: deps.askLlm.price, evalGate: gate, disabled: deps.fleetDisabled });
           return respond(strategyPage(session, r.status === "created" ? `Đã soạn: ${r.kept} câu giữ, ${r.dropped} câu loại.` : `Chưa soạn được (${r.errorCode}).`), r.status === "created" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
         }
-        const r = decideStrategy(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), { now: now(), actor });
+        const r = decideStrategy(deps.db, String(form.get("id") ?? ""), String(form.get("decision") ?? ""), String(form.get("note") ?? ""), markBy(session));
         return respond(strategyPage(session, r === "ok" ? "Đã ghi quyết định." : "Chưa ghi."), r === "ok" ? 200 : 422, { "content-type": "text/html; charset=utf-8" });
       }
 
@@ -856,9 +871,8 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       }
 
       if (path === "/tuning") {
-        const actor = userOf(session).id;
-        if (actor !== "mark") return text(403, "Chỉ Mark đổi ngưỡng và trọng số.");
-        const by = { now: now(), actor };
+        if (!isMark(session)) return text(403, "Chỉ Mark đổi ngưỡng và trọng số.");
+        const by = markBy(session);
         const why: Record<string, string> = { VALUE_INVALID: "Giá trị không hợp lệ (ngưỡng trong khoảng 0 tới 1; trọng số là 5 số nguyên, tổng 100).", PARAM_NOT_TUNABLE: "Tham số này không chỉnh được.", EVAL_NOT_RERUN: "Chưa chạy lại eval sau lúc đề xuất (bun run eval:sa01).", EVAL_FAILED: "Lượt eval gần nhất chưa pass.", ALREADY_ACTIVE: "Đã kích hoạt.", NOT_FOUND: "Không thấy đề xuất.", KEY_UNKNOWN: "Không có khoá này.", ONLY_MARK: "Chỉ Mark đổi." };
         let code: string;
         if (form.get("op") === "provisional") {
@@ -957,8 +971,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       try {
         const res = await handle(req);
         // Trang HTML của người đã đăng nhập: thanh điều hướng, dòng mô tả (D-77); MKT ẩn form không được dùng (D-66).
-        const r = readSession(req, deps.sessionSecret, now());
-        const s = r && !sessionRevoked(deps.db, r) ? r : null;
+        const s = validSession(readSession(req, deps.sessionSecret, now()));
         if (s && res.status === 200 && res.headers.get("content-type")?.startsWith("text/html") && new URL(req.url).pathname !== "/command/3d") {
           const u = userOf(s);
           const headers = new Headers();
@@ -1047,7 +1060,7 @@ if (import.meta.main) {
       auth.mode === "entra"
         ? createEntraOidc({ ...getEntraConfig(), redirectUri: `${cfg.baseUrl}/auth/callback` })
         : { authorizationUrl: () => "/login", exchange: async () => { throw new Error("OIDC_DISABLED"); } },
-    passwordHashes: auth.mode === "password" ? auth.hashes : undefined,
+    passwordLogin: auth.mode === "password",
     onPaste: getReportSource() === "paste" ? onPaste : undefined,
     onImport: getCrmSource() === "csv" ? onImport : undefined,
     onWoImport,

@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 # Chạy một lệnh bun của Growth Workspace trên máy chủ, đúng user "growth" và đúng biến môi trường
 # như các dịch vụ systemd. Ví dụ:
+#   sudo growth-run add-user mkt-01 mkt         (tạo tài khoản, in mật khẩu tạm một lần; D-97)
+#   sudo growth-run reset-password mkt-01       (mật khẩu tạm mới, huỷ mọi phiên)
+#   sudo growth-run disable-user mkt-01         (khoá ngay, giữ lịch sử)
+#   sudo growth-run list-users
 #   sudo growth-run scripts/load-rm-directory.ts /srv/growth/data/rm-directory.json
-#   sudo growth-run src/agents/sa-01/eval/main.ts
+# Đầu ra đi thẳng ra màn hình (--pipe), không vào journal: mật khẩu tạm không bị ghi log.
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "Cần chạy bằng sudo: sudo growth-run $*"; exit 1; }
-[ "$#" -ge 1 ] || { echo "Cách dùng: sudo growth-run <file .ts> [tham số]"; exit 2; }
+[ "$#" -ge 1 ] || { echo "Cách dùng: sudo growth-run <add-user|reset-password|disable-user|list-users|file .ts> [tham số]"; exit 2; }
+case "$1" in
+  add-user|reset-password|disable-user|list-users) set -- scripts/accounts.ts "$@" ;;
+esac
 exec systemd-run --quiet --wait --pipe --collect \
   -p User=growth -p Group=growth \
   -p WorkingDirectory=/opt/growth-workspace \

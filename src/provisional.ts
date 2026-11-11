@@ -97,8 +97,8 @@ function lastSetAt(key: string): string | null {
   return at;
 }
 
-export function setProvisional(key: string, valueJson: string, status: ProvisionalStatus, opts: { now: Date; actor: string; evalRun?: { ranAt: string | null; passed: boolean } }): "ok" | "ONLY_MARK" | "KEY_UNKNOWN" | "VALUE_INVALID" | "EVAL_FAILED" | "EVAL_NOT_RERUN" {
-  if (opts.actor !== "mark") return "ONLY_MARK";
+export function setProvisional(key: string, valueJson: string, status: ProvisionalStatus, opts: { now: Date; actor: string; actorRole?: string; evalRun?: { ranAt: string | null; passed: boolean } }): "ok" | "ONLY_MARK" | "KEY_UNKNOWN" | "VALUE_INVALID" | "EVAL_FAILED" | "EVAL_NOT_RERUN" {
+  if ((opts.actorRole ?? opts.actor) !== "mark") return "ONLY_MARK";
   if (!(key in PROVISIONAL_SCHEMAS)) return "KEY_UNKNOWN";
   if (EVAL_GATED.has(key)) {
     const run = opts.evalRun ?? { ranAt: null, passed: false };

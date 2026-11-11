@@ -46,7 +46,12 @@ Cấu hình, mật khẩu và dữ liệu giữ nguyên.
 
 Mỗi ngày 08:15 (hoặc lần đăng nhập kế tiếp nếu máy tắt lúc đó), Mi1 đánh dấu "quá hạn, giữ nháp" cho mục chưa ai quyết của ngày trước, rồi máy chép Growth DB vào thư mục `~/Growth-backup`, giữ 14 bản gần nhất. Bản sao lưu nằm trên cùng ổ đĩa: nên chép thư mục này sang Google Drive hoặc ổ USB mỗi tuần. File trong đó không có email hay số điện thoại khách (chỉ mã băm) nhưng vẫn là dữ liệu nội bộ, không chia sẻ công khai.
 
-Thêm tài khoản (D-79): `bun run scripts/add-user.ts <amy|mark|mkt|bod>` trong thư mục repo đã cài, sau khi nạp biến môi trường (`set -a && . ~/.config/growth/growth.env && set +a`). Lệnh in mật khẩu tạm một lần; người dùng phải đổi ở lần đăng nhập đầu. Chạy lại lệnh là đặt lại mật khẩu. Team MKT chỉ vào trang số tổng hợp; BOD xem như Mark.
+Tài khoản (D-79, D-97): mỗi người một mã, gắn một vai trò `amy`, `mkt`, `mark` hoặc `bod`. Cùng cách với máy chủ:
+
+- Thêm: `bash ~/growth-workspace/deploy/local/run.sh scripts/accounts.ts add-user mkt-01 mkt`. In mật khẩu tạm một lần, hết hạn sau 72 giờ; lần đăng nhập đầu bắt đổi.
+- Cấp lại mật khẩu tạm: `... scripts/accounts.ts reset-password mkt-01`. Khoá: `... disable-user mkt-01`. Xem: `... list-users`.
+
+Team MKT chỉ vào trang số tổng hợp; BOD xem như Mark.
 
 Khôi phục từ bản sao lưu: `systemctl --user stop growth-queue`, rồi `bun run scripts/restore-db.ts ~/Growth-backup/<file>.sqlite`, rồi `systemctl --user start growth-queue`. DB trước khi khôi phục được giữ thành `<db>.before-restore-<thời điểm>`.
 
@@ -62,7 +67,7 @@ Lịch khác (spec mục 10): 08:00 và 13:00 thứ Hai tới thứ Bảy, Mi1-s
 |---|---|
 | Nạp danh bạ RM (để tự báo gắn đúng RM) | `bash ~/growth-workspace/deploy/local/run.sh scripts/load-rm-directory.ts ~/rm-directory.json` (file JSON giữ ngoài repo, dạng xem `docs/runbook/lat-cat-01.md`) |
 | Đặt bảng ghép cột CRM | lưu file vào `~/.config/growth/crm-columns.json`, rồi `systemctl --user restart growth-queue` |
-| Đổi mật khẩu | `echo -n 'mật khẩu mới' \| bash ~/growth-workspace/deploy/local/run.sh scripts/hash-password.ts`, chép kết quả vào `~/.config/growth/growth.env` (giữ nháy đơn hai bên), rồi `systemctl --user restart growth-queue` |
+| Đổi mật khẩu | trang `/password` trên web; quên mật khẩu thì `bash ~/growth-workspace/deploy/local/run.sh scripts/accounts.ts reset-password <tài khoản>` |
 | Xem Hàng chờ có chạy không | `systemctl --user status growth-queue` |
 | Xem lỗi | `journalctl --user -u growth-queue -n 50` |
 | Tắt hẳn | `systemctl --user disable --now growth-queue growth-daily.timer growth-sa01.timer growth-digest.timer growth-monthly.timer growth-pull.timer growth-harness.timer` |

@@ -18,6 +18,7 @@ import {
   getPiiHashKey,
   getQueueConfig,
   getTeamsWebhooks,
+  legacyPasswordVars,
   METRIC_PARAMS,
   type Env,
 } from "../config.ts";
@@ -61,6 +62,9 @@ export function checkConfig(env: Env): Check[] {
   out.push(...attempt("LLM_MODEL", () => getLlmPricing(env)));
   out.push(...attempt("QUEUE_BASE_URL", () => getQueueConfig(env)));
   out.push(...attempt("AUTH_MODE", () => getAuthConfig(env)));
+  // Mã băm mật khẩu trong biến môi trường không còn được đọc (D-97). Không tự xoá: báo để người vận hành cấp mật khẩu tạm
+  // bằng "growth-run reset-password <tài khoản>" (hoặc add-user nếu chưa có tài khoản) rồi tự xoá dòng đó trong growth.env.
+  for (const n of legacyPasswordVars(env)) out.push({ name: n, ok: false, error_code: "LEGACY_UNUSED_RUN_ADD_USER_THEN_REMOVE" });
   if ((env.AUTH_MODE ?? "").trim() === "entra") out.push(...attempt("ENTRA_CLIENT_ID", () => getEntraConfig(env)));
   out.push(...attempt("REPORT_SOURCE", () => getReportSource(env)));
   if ((env.REPORT_SOURCE ?? "").trim() === "graph") {
@@ -83,6 +87,10 @@ export function checkDb(path: string): Check[] {
     if (version >= 1) {
       const ok = listRmDirectory(db).some((r) => r.active === 1 && r.teams_user_id !== null);
       out.push({ name: "db.rm_directory", ok, error_code: ok ? undefined : "RM_DIRECTORY_EMPTY" });
+    }
+    if (db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'accounts'").get()) {
+      const n = (db.query("SELECT COUNT(*) AS n FROM accounts a WHERE NOT EXISTS (SELECT 1 FROM account_disabled d WHERE d.account_id = a.id)").get() as { n: number }).n;
+      out.push({ name: "db.accounts", ok: n > 0, error_code: n > 0 ? undefined : "NO_ACCOUNTS_RUN_ADD_USER" });
     }
     return out;
   } finally {

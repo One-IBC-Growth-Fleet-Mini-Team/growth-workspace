@@ -1,19 +1,13 @@
-// Tạo hoặc đặt lại tài khoản theo vai trò (D-79): bun run scripts/add-user.ts <amy|mark|mkt|bod>
-// Sinh mật khẩu tạm, in ra một lần; người dùng phải đổi ở lần đăng nhập đầu. Chạy trên máy cài, với biến môi trường
-// của bản cài (GROWTH_DB_PATH). Mật khẩu tạm không được ghi vào log hay file nào.
+// Tạo tài khoản (D-79, D-97): bun run scripts/add-user.ts <mã tài khoản> <amy|mkt|mark|bod>. In mật khẩu tạm một lần;
+// người dùng phải đổi ở lần đăng nhập đầu. Giữ cho tương thích; các lệnh khác ở scripts/accounts.ts.
 import { getDbPath } from "../src/config.ts";
+import { runAccountCommand } from "../src/db/account-cli.ts";
 import { migrate } from "../src/db/migrate.ts";
 import { openReadWrite } from "../src/db/open.ts";
-import { ACCOUNT_IDS, setPassword, tempPassword, type AccountId } from "../src/db/users.ts";
 
-const role = process.argv[2] ?? "";
-if (!(ACCOUNT_IDS as readonly string[]).includes(role)) {
-  process.stderr.write(`Cách dùng: bun run scripts/add-user.ts <${ACCOUNT_IDS.join("|")}>\n`);
-  process.exit(2);
-}
 const db = openReadWrite(getDbPath());
 migrate(db);
-const pw = tempPassword();
-await setPassword(db, role as AccountId, pw, { mustChange: true, now: new Date(), actor: "add-user" });
+const r = await runAccountCommand(db, ["add-user", ...process.argv.slice(2)], { now: new Date(), actor: "cli" });
 db.close();
-process.stdout.write(`Tài khoản: ${role}\nMật khẩu tạm: ${pw}\nĐăng nhập ở trang /login, chọn "${role}"; hệ thống sẽ bắt đổi mật khẩu ngay.\n`);
+(r.code === 0 ? process.stdout : process.stderr).write(r.out);
+process.exit(r.code);
