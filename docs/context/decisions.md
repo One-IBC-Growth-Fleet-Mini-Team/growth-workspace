@@ -206,3 +206,12 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - **Hai lỗi tìm ra khi nghiệm thu, đã sửa:**
     - `screen.js` bỏ lỡ dữ liệu đọc trước khi module nạp, nên lượt bắt đầu trong 5 giây đầu bị coi là lượt cũ.
     - Dòng gợi ý bị giãn cao trên điện thoại.
+- **D-94** (10/11/2026, GĐ3 việc 5): bảng sẵn sàng Phụ lục B trên `/command`, có trong payload (`appendixB`), chỉ Mark và BOD thấy. Không xây mục nào của Phụ lục B. Mỗi hạng mục có điều kiện bật theo spec, tiến độ đo được và ai mở khoá:
+  - **/steer:** số tuần liền đạt Cổng 2, trên 4 tuần.
+  - **Sentinel-01:** số quyết định của người trong Hàng chờ, trên 50.
+  - **Monte-Carlo ngân sách:** Cổng 3, tức số mắt nối từ phiên tới Payment có dữ liệu nối được, cộng số chiến dịch đủ mẫu Win gate.
+  - **owned-channel-mcp:** hệ thống không đo được quyền API nền tảng, nên ghi "chưa ghi nhận", cần Mark xác nhận.
+  - **cross-audit:** theo Sentinel-01.
+- **D-95** (11/11/2026, repo public): tên RM thật trong `docs/spec/rejection-reason-codes.md` thay bằng mã: RM 01 tới RM 07 là RM, NS 01 là nhân sự xác nhận quy tắc ngành. Bảng mã và tên giữ ngoài repo. Bỏ email công ty khỏi đầu mối trong spec và Data Contract. Test T-PII-08 fail nếu có email đuôi tên miền công ty (oneibc.com) hoặc tên RM thật trong `test/`, `evals/`, `docs/`, `deploy/`, `config/`, `src/demo/`.
+  - **Còn lại, cố ý giữ:** tên vai trò (Amy, Mark Ng, anh Jimmy, chị Mary Kim, Harvey) và tài khoản GitHub của người review (CODEOWNERS cần tài khoản).
+  - **Lịch sử git** còn các tên và email cũ; không viết lại lịch sử (không force push). Muốn xoá hẳn thì admin repo dùng công cụ xoá lịch sử của GitHub.

@@ -48,6 +48,9 @@ ${s.steps.length ? html`<ol>${s.steps.map((st) => html`<li><strong>${st.crewId}<
 ${d.waitingMark ? html`<section id="waiting"><h2>Việc chờ Mark (${d.waitingMark.length})</h2>
 ${d.waitingMark.length ? html`<ul>${d.waitingMark.map((w) => html`<li><a href="${WAIT_HREF[w.itemType] ?? "/queue"}">${WAIT_TEXT[w.itemType] ?? w.itemType}</a> · chờ ${w.ageHours} giờ${w.ageHours >= 24 ? html` <span class="warn">quá 1 ngày</span>` : ""}</li>`)}</ul>` : html`<p class="meta">Không có mục nào chờ Mark.</p>`}
 </section>` : ""}
+${d.appendixB ? html`<section id="appendix-b"><h2>Sẵn sàng Phụ lục B (chưa xây, chỉ đo điều kiện bật)</h2><div style="overflow-x:auto"><table class="kv">
+<tr><td><strong>Hạng mục</strong></td><td><strong>Điều kiện bật (spec)</strong></td><td><strong>Tiến độ</strong></td><td><strong>Ai mở khoá</strong></td></tr>
+${d.appendixB.map((r) => html`<tr><td>${r.item}</td><td class="meta">${r.condition}</td><td>${r.ready ? html`<strong>Đủ điều kiện</strong>` : html`<span class="warn">Chưa</span>`}: ${r.progress}</td><td class="meta">${r.unlockBy}</td></tr>`)}</table></div></section>` : ""}
 <section><h2>Tải tuần tới và chi phí</h2>
 <p>Dự báo Hàng chờ: khoảng ${d.forecastPerDay} mục mỗi ngày (trung bình 7 ngày qua).</p>
 <p${d.monthCostUsd >= d.capUsd ? html` class="warn"` : ""}>Chi phí LLM tháng này: ${usd(d.monthCostUsd)} / trần ${d.capUsd} USD.</p>

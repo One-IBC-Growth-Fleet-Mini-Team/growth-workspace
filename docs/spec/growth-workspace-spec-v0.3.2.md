@@ -411,7 +411,7 @@ event_id (duy nhất), event_name, event_time (UTC, ISO 8601), source (web, crm,
 
 6.  API Internal Control trả đúng số trên màn hình Internal Control cho 5 đơn chọn ngẫu nhiên.
 
-Đầu mối phía One IBC: Mark Ng, mark.ng@oneibc.com.
+Đầu mối phía One IBC: Mark Ng (liên hệ qua kênh nội bộ; repo public nên không ghi email).
 
 # Phụ lục B. Hạng mục để sau (Giai đoạn 3)
 
