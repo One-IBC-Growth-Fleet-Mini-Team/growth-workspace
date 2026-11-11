@@ -10,7 +10,8 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 |---|---|---|---|---|---|
 | CRM (Opportunity, Client, Lead, Order) | `CRM_SOURCE` | `csv`: Amy tải file ở `/import`; bảng ghép cột ở `CRM_CSV_COLUMNS_PATH` | `api`: ETL chỉ đọc qua `CRM_API_BASE`, `CRM_API_TOKEN` (chờ MobCEC mở API, Q-01) | MCP của CRM nếu MobCEC cung cấp | `src/crm/csv-import.ts`, `src/crm/etl.ts`, `src/crm/http.ts` |
 | CRM Closed Won cho persona (D-86) | không có | `csv`: Amy tải file Opportunity Closed Won và Account ở `/persona`; chỉ đọc cột trong danh sách, không lưu tên hay mã khách | `api` cùng ETL chỉ đọc khi MobCEC mở API | | `src/crm/closed-won-import.ts` |
-| Tự báo RM | `REPORT_SOURCE` | `paste`: Amy dán thread ở `/paste` | `graph`: đọc channel Teams qua Microsoft Graph (chờ admin tenant, Q-02) | | `src/teams/paste-report.ts`, `src/teams/graph-read.ts` |
+| Tự báo RM | `REPORT_SOURCE` | `paste`: Amy dán thread ở `/paste` | `graph`: đọc channel Teams qua Microsoft Graph (chờ admin tenant, Q-02); biến `TEAMS_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `GRAPH_TEAM_ID`, `GRAPH_CHANNEL_ID`; 401 lấy token mới, 429 chờ Retry-After (D-96) | | `src/teams/paste-report.ts`, `src/teams/graph-read.ts` |
+| Internal Control (Data Contract A5, D-96) | `IC_API_BASE`, `IC_API_TOKEN` | lợi nhuận trong file deal đối tác ở `/partners` | `api`: GET theo khoảng ngày, phân trang `next_page_token`, chỉ giữ trường A5 (tên đường dẫn tạm, chờ MobCEC) | | `src/connectors/internal-control.ts` |
 | Đăng nhập Hàng chờ | `AUTH_MODE` | `password`: mã băm argon2id `AMY_PASSWORD_HASH`, `MARK_PASSWORD_HASH`; tuỳ chọn `MKT_PASSWORD_HASH`, `BOD_PASSWORD_HASH` (D-63) | `entra`: Microsoft Entra OIDC (chờ app Entra) | | `src/queue/auth.ts` |
 | Thông báo | `TEAMS_WEBHOOK_URL_AMY`, `TEAMS_WEBHOOK_URL_MARK` | để trống: không gửi gì | webhook Teams (chỉ ngày và link, D-11) | email, Slack | `src/teams/notify.ts` |
 | LLM | `LLM_MODEL`, `ANTHROPIC_API_KEY`, `LLM_PRICE_*` | Claude API qua `@anthropic-ai/sdk` | LLM giả cho demo và test (không chọn bằng biến, chỉ dùng trong `src/demo` và `test/`) | | `src/agents/sa-01/llm.ts`, `src/demo/fake-llm.ts` |
@@ -32,13 +33,14 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | Thị trường: quy định, tiếng khách, giá đối thủ (D-46) | `MARKET_SOURCE`, `MARKET_MCP_URL`, `MARKET_MCP_TOKEN` | `file`: tải CSV ở `/market` và `/competitors` | `mcp`: `watch_regulation`, `collect_reviews_anonymized`, `scan_competitor_packages` (`docs/context/hop-dong-mcp.md`) | | `src/crm/market-import.ts` |
 | Work Order Bank Team (BK-08, tạm dừng) | không có biến | tải file ở `/import` | | | `src/crm/wo-import.ts` |
 
+Trạng thái từng ổ cắm (adapter đang dùng, đã nối hay chưa, thiếu biến nào, lần gọi thành công gần nhất) xem ở trang `/settings` (chỉ Mark, D-96). Adapter thật đều đi qua `src/connectors/read-http.ts`: chỉ đọc, host allowlist, chặn chuyển hướng, token hết hạn thì lấy mới một lần, 429 và 5xx chờ Retry-After, tối đa 3 lần.
+
 ## Nguồn spec cần, chưa có cổng
 
 Khi nối, mỗi nguồn là một cổng mới theo đúng mẫu trên: adapter tải file trước (chạy ngay), adapter API hoặc MCP sau.
 
 | Nguồn | Dùng cho | Adapter chạy ngay đề xuất | Adapter thật | Đang chờ |
 |---|---|---|---|---|
-| API Internal Control | `net_profit_ic`, Cổng 1 | tải file xuất | API GET (Phụ lục A5) | MobCEC |
 | GA4 | Mi1-mkt-01, Mi1-data-01 | tải file xuất | API hoặc MCP | quyền GA4 |
 
 ## Để sau (cách khó hơn, chưa làm khi chưa có người dùng thứ hai cần)

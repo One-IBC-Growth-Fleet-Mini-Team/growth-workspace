@@ -31,10 +31,13 @@ export class GraphError extends Error {
 export type GraphClient = { get(pathOrUrl: string): Promise<unknown> };
 
 export type GraphClientOptions = {
-  getToken: () => Promise<string>;
+  // force = true: bỏ token đang giữ, lấy token mới (token hết hạn sớm hơn dự tính, D-96).
+  getToken: (force?: boolean) => Promise<string>;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  sleep?: (ms: number) => Promise<void>;
 };
+const MAX_RETRIES = 3;
 
 function checkedUrl(pathOrUrl: string): URL {
   let url: URL;
@@ -54,25 +57,38 @@ export function createGraphClient(opts: GraphClientOptions): GraphClient {
   return {
     async get(pathOrUrl) {
       const url = checkedUrl(pathOrUrl);
-      const token = await opts.getToken();
-      let res: Response;
-      try {
-        res = await doFetch(url.href, {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-          redirect: "manual",
-          signal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
-        });
-      } catch {
-        throw new GraphError("GRAPH_NETWORK");
-      }
-      if (res.status >= 300 && res.status < 400) throw new GraphError("GRAPH_REDIRECT", res.status);
-      if (res.status === 401 || res.status === 403) throw new GraphError("GRAPH_AUTH", res.status);
-      if (!res.ok) throw new GraphError("GRAPH_HTTP_ERROR", res.status);
-      try {
-        return await res.json();
-      } catch {
-        throw new GraphError("GRAPH_BAD_RESPONSE", res.status);
+      const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+      let refreshed = false;
+      for (let attempt = 0; ; ) {
+        const token = await opts.getToken();
+        let res: Response;
+        try {
+          res = await doFetch(url.href, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+            redirect: "manual",
+            signal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
+          });
+        } catch {
+          throw new GraphError("GRAPH_NETWORK");
+        }
+        if (res.status >= 300 && res.status < 400) throw new GraphError("GRAPH_REDIRECT", res.status);
+        // Token hết hạn: lấy token mới một lần rồi gọi lại (D-96).
+        if (res.status === 401 && !refreshed) { refreshed = true; await opts.getToken(true); continue; }
+        if (res.status === 401 || res.status === 403) throw new GraphError("GRAPH_AUTH", res.status);
+        // Giới hạn tần suất của Graph (429, 503, 504): chờ theo Retry-After rồi thử lại (D-96).
+        if ((res.status === 429 || res.status === 503 || res.status === 504) && attempt < MAX_RETRIES) {
+          attempt += 1;
+          const ra = res.headers.get("retry-after");
+          await sleep(ra && /^\d+$/.test(ra) ? Math.min(Number(ra), 120) * 1000 : 500 * 2 ** attempt);
+          continue;
+        }
+        if (!res.ok) throw new GraphError("GRAPH_HTTP_ERROR", res.status);
+        try {
+          return await res.json();
+        } catch {
+          throw new GraphError("GRAPH_BAD_RESPONSE", res.status);
+        }
       }
     },
   };

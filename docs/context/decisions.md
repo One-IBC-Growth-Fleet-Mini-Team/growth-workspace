@@ -215,3 +215,16 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
 - **D-95** (11/11/2026, repo public): tên RM thật trong `docs/spec/rejection-reason-codes.md` thay bằng mã: RM 01 tới RM 07 là RM, NS 01 là nhân sự xác nhận quy tắc ngành. Bảng mã và tên giữ ngoài repo. Bỏ email công ty khỏi đầu mối trong spec và Data Contract. Test T-PII-08 fail nếu có email đuôi tên miền công ty (oneibc.com) hoặc tên RM thật trong `test/`, `evals/`, `docs/`, `deploy/`, `config/`, `src/demo/`.
   - **Còn lại, cố ý giữ:** tên vai trò (Amy, Mark Ng, anh Jimmy, chị Mary Kim, Harvey) và tài khoản GitHub của người review (CODEOWNERS cần tài khoản).
   - **Lịch sử git** còn các tên và email cũ; không viết lại lịch sử (không force push). Muốn xoá hẳn thì admin repo dùng công cụ xoá lịch sử của GitHub.
+- **D-96** (11/11/2026): đi dây adapter thật cho các ổ cắm, chưa cần key.
+  - **Cửa đọc chung** `src/connectors/read-http.ts`:
+    - Chỉ GET, hoặc POST tới đúng đường dẫn truy vấn đọc đã liệt kê; đường dẫn khác bị từ chối trước khi gọi.
+    - Host allowlist; chặn chuyển hướng.
+    - Token hết hạn (401 hoặc mã riêng của nền tảng) thì lấy token mới đúng một lần.
+    - Giới hạn tần suất và 5xx thì chờ theo Retry-After, tối đa 3 lần.
+    - Có hàm phân trang dùng chung; lỗi chỉ có mã.
+  - **Ổ cắm và adapter:**
+    - Graph (đã có) thêm lấy token mới khi 401 và chờ khi 429.
+    - Thêm adapter Internal Control theo A5.
+  - **Sổ ổ cắm** `src/connectors/registry.ts`: thiếu biến thì "chưa nối" và hệ thống dùng adapter tải file như cũ.
+  - **Nhật ký gọi** `connector_calls` (migration 030): chỉ ghi thành công hay mã lỗi.
+  - **Trang `/settings`** (chỉ Mark): bảng ổ cắm, chỉ hiện tên biến; không nhận key qua web.
