@@ -61,6 +61,18 @@ Trang "Hỏi Mi1" (`/ask`) chỉ mở sau khi chạy bộ eval một lần: `set
 
 Lịch khác (spec mục 10): 08:00 và 13:00 thứ Hai tới thứ Bảy, Mi1-sa-01 làm NBA cho Hàng chờ (CRON-05; chế độ dán chỉ làm NBA, NBA chỉ sinh khi bộ eval đã pass). 08:30 thứ Hai, báo Mark Digest tuần qua Teams nếu đã đặt `TEAMS_WEBHOOK_URL_MARK` (CRON-08). 07:00 ngày 1, báo Mark báo cáo tháng trước ở trang `/monthly` (CRON-09). 06:30 hằng ngày, kéo các nguồn đã đặt chế độ MCP: điểm Hook, kết quả chiến dịch, quét thị trường (CRON-03; nguồn chế độ file bỏ qua). Xem lần chạy gần nhất: `systemctl --user list-timers`; xem token và chi phí từng phiên ở trang `/runs`.
 
+## Cho người khác vào từ xa (Cloudflare Quick Tunnel, D-98)
+
+Máy của Mark mở một link `https://<tên ngẫu nhiên>.trycloudflare.com` cho Amy, Team MKT vào từ xa, không cần máy chủ hay tài khoản Cloudflare. Người mở link phải nhập email có trong danh sách; Cloudflare gửi mã PIN tới email đó. Qua được bước này mới tới trang đăng nhập Growth, nên vẫn cần tài khoản Growth.
+
+1. **Danh sách email.** Mở `~/.config/growth/tunnel-emails.txt` (lần đầu chạy bước 2 sẽ tạo file mẫu), mỗi dòng một email. Không đưa file này lên repo.
+2. **Bật.** `bash ~/growth-workspace/deploy/local/quick-tunnel.sh`. Script cài cloudflared bản mới nhất (kiểm SHA-256), bật dịch vụ `growth-tunnel` (tự chạy lại, tự bật khi máy khởi động) và in link. Xong khi: dòng cuối in `https://...trycloudflare.com`.
+3. **Thêm hoặc bớt email.** Sửa file ở bước 1, rồi chạy lại bước 2. Chạy lại là khởi động lại tunnel nên **link đổi**: gửi link mới cho mọi người.
+4. **Tạo tài khoản** cho người mới: `bash ~/growth-workspace/deploy/local/run.sh scripts/accounts.ts add-user mkt-02 mkt` (in mật khẩu tạm một lần, hết hạn 72 giờ).
+5. **Gửi** link qua một kênh, mã tài khoản và mật khẩu tạm qua kênh khác (ví dụ chat Teams 1-1). Nhắc người nhận dùng đúng email trong danh sách để nhận mã PIN.
+
+Xem link hiện tại: `bash ~/growth-workspace/deploy/local/run.sh scripts/tunnel-url.ts` (cũng hiện ở `/settings` và Brief sáng). Link đổi mỗi lần máy hoặc tunnel khởi động lại. Quick Tunnel không có cam kết thời gian chạy; máy của Mark tắt thì không ai vào được. Tắt hẳn: `systemctl --user disable --now growth-tunnel growth-tunnel-url.timer`. Lỗi: `journalctl --user -u growth-tunnel -n 50`.
+
 ## Việc thỉnh thoảng
 
 | Muốn | Làm |

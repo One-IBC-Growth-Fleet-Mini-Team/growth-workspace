@@ -312,6 +312,7 @@ export function renderBriefPage(b: Brief): string {
 <section><h2>Hàng chờ hôm nay</h2>
 ${b.today.length ? html`<table class="kv">${b.today.map((t) => html`<tr><td>${TYPE_TEXT[t.type] ?? t.type}</td><td>${t.total} mục</td><td>${t.pending} chờ duyệt</td></tr>`)}</table>` : html`<p class="meta">Chưa có mục nào hôm nay.</p>`}
 <p>Hàng chờ hôm nay: ${b.todayTotal.total} mục, ${b.todayTotal.pending} chờ duyệt.${b.forecastItems > 0 ? ` Trung bình 7 ngày trước: khoảng ${b.forecastItems} mục mỗi ngày làm việc.` : ""}</p></section>
+${b.remote ? html`<section><h2>Truy cập từ xa</h2><p>Link hôm nay: <a href="${b.remote.url}">${b.remote.url}</a> <span class="meta">(từ ${b.remote.since.slice(0, 16).replace("T", " ")} UTC; link đổi mỗi khi máy của Mark khởi động lại; mở được bằng email đã đăng ký)</span></p></section>` : ""}
 <section><h2>Cần chú ý</h2><ul>
 <li>Còn chờ từ ngày trước: <strong>${b.carryover.count}</strong> mục${b.carryover.oldestHours !== null ? html`, lâu nhất ${hours(b.carryover.oldestHours)}` : ""}.</li>
 <li>Quá hạn đã áp mặc định "giữ nháp" trong 24 giờ qua: ${b.defaultsLast24h} mục (Amy vẫn quyết lại được).</li>

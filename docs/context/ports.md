@@ -17,6 +17,7 @@ Bảng dưới gom các cổng đang có trong code, giữ nguyên cách chạy 
 | LLM | `LLM_MODEL`, `ANTHROPIC_API_KEY`, `LLM_PRICE_*` | Claude API qua `@anthropic-ai/sdk` | LLM giả cho demo và test (không chọn bằng biến, chỉ dùng trong `src/demo` và `test/`) | | `src/agents/sa-01/llm.ts`, `src/demo/fake-llm.ts` |
 | Bật, tắt thuyền viên Mi1 | `FLEET_DISABLED` (mã thuyền viên, cách nhau bằng dấu phẩy; trống là bật hết) | Sổ thuyền viên trong code (`src/fleet/registry.ts`) | | | `src/fleet/registry.ts` |
 | Lưu trữ (Growth DB) | `GROWTH_DB_PATH` | SQLite (`bun:sqlite`, D-02) | | Neo4j cho đồ thị (`NEO4J_*`, GĐ sau) | `src/db/` |
+| Truy cập từ xa (D-98) | `~/.config/growth/tunnel-emails.txt`, `TUNNEL_METRICS` (mặc định `127.0.0.1:20241`) | chỉ trong máy (`http://localhost:3000`) | Cloudflare Quick Tunnel có khoá email (`--allowed-mail`, mã PIN), `deploy/local/quick-tunnel.sh` | named tunnel với Cloudflare Access khi có tên miền trên Cloudflare (link cố định) | `src/db/tunnel.ts`, `scripts/tunnel-url.ts` |
 | Sao lưu | `GROWTH_BACKUP_DIR` | thư mục trên máy (`~/Growth-backup` ở bản cài máy Ubuntu) | | máy chủ: đẩy ra ngoài máy bằng rclone, bắt buộc remote `crypt` (`deploy/offsite-backup.sh`, D-97) | `src/db/backup.ts` |
 | Đơn hàng và invoice (Mi1-sa-01, D-30) | `CRM_CSV_COLUMNS_PATH` (mục `SalesOrder`, `PurchaseOrder`, `Invoice`) | tải file ở `/billing` | | API Order và Invoice của CRM (chờ MobCEC) | `src/crm/billing-import.ts` |
 | Đối tác và deal giới thiệu (Mi1-ptn-01, D-31) | `CRM_CSV_COLUMNS_PATH` (mục `Partner`, `Referral`) | tải file ở `/partners` | | Partner Portal trên web OCC, trường A4 trên CRM | `src/crm/partner-import.ts` |
@@ -49,7 +50,6 @@ Khi nối, mỗi nguồn là một cổng mới theo đúng mẫu trên: adapter
 | Việc | Vì sao để sau |
 |---|---|
 | Chạy trên PaaS (Railway, Vercel) hoặc Docker | Đã có hai đường: bản cài máy (D-26) và máy chủ Ubuntu (D-97); không thêm đường thứ ba |
-| Truy cập từ xa (Tailscale, Cloudflare Tunnel) | Chỉ Amy dùng, ngồi tại máy |
 | Đăng nhập Entra (SSO) | Hai người dùng, mật khẩu là đủ |
 | Đọc Teams qua Graph | Dán tay chạy được; cần admin tenant |
 | CRM qua API | Tải CSV chạy được; cần MobCEC |
