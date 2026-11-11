@@ -10,13 +10,15 @@ DOMAIN="${1:-}"; ACCOUNT="${2:-}"; ADMIN=0
 [ "${3:-}" = "--admin" ] && ADMIN=1
 [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ && "$ACCOUNT" =~ ^[a-z][a-z0-9-]{1,31}$ ]] || { echo "Cách dùng: bash verify-remote.sh <tên miền> <tài khoản thử> [--admin]"; exit 2; }
 for t in curl python3; do command -v "$t" >/dev/null || { echo "Cần cài $t."; exit 2; }; done
+# Tên miền phải phân giải được: nếu không, mọi kết nối đều hỏng và kiểm cổng sẽ báo "đóng" sai.
+python3 -c 'import socket,sys; socket.getaddrinfo(sys.argv[1], 443)' "$DOMAIN" 2>/dev/null || { echo "Không phân giải được $DOMAIN. Kiểm bản ghi DNS (deploy/README.md bước 2)."; exit 2; }
 PW="${VERIFY_PASSWORD:-}"
 [ -n "$PW" ] || { read -rsp "Mật khẩu của $ACCOUNT: " PW; echo; }
 BASE="https://$DOMAIN"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 rows=(); bad=0
 row() { rows+=("$1|$2|$3"); [ "$2" = "Đạt" ] || bad=1; }
-port_open() { python3 -c 'import socket,sys; s=socket.socket(); s.settimeout(5); sys.exit(0 if s.connect_ex((sys.argv[1], int(sys.argv[2])))==0 else 1)' "$DOMAIN" "$1"; }
+port_open() { python3 -c 'import socket,sys; s=socket.socket(); s.settimeout(5); sys.exit(0 if s.connect_ex((socket.gethostbyname(sys.argv[1]), int(sys.argv[2])))==0 else 1)' "$DOMAIN" "$1" 2>/dev/null; }
 login() { curl -sS -o "$TMP/body" -D "$TMP/head" -w '%{http_code}' --max-time 20 -X POST "$BASE/login" \
   -H "Origin: $BASE" -H 'Content-Type: application/x-www-form-urlencoded' --data-urlencode "user=$ACCOUNT" --data-urlencode "password=$1"; }
 header() { grep -i "^$1:" "$TMP/head" | head -n 1 | cut -d: -f2- | tr -d '\r' | sed 's/^ *//'; }
@@ -71,5 +73,5 @@ else row "Khoá sau 5 lần sai" "Lỗi" "lần thứ 6 nhận mã $code"; fi
 echo; echo "| Kiểm tra | Kết quả | Chi tiết |"; echo "|---|---|---|"
 for r in "${rows[@]}"; do IFS='|' read -r a b c <<<"$r"; echo "| $a | $b | $c |"; done
 echo
-[ "$bad" -eq 0 ] && echo "Tất cả đạt. Khoá tài khoản thử: sudo growth-run disable-user $ACCOUNT" || echo "Còn mục lỗi; xem deploy/README.md mục Xử lý sự cố."
+[ "$bad" -eq 0 ] && echo "Tất cả đạt. Khoá tài khoản thử: sudo growth-run disable-user $ACCOUNT" || echo "Còn mục lỗi; xem deploy/README.md bước 5 tới 8 và chạy lại sau khi sửa."
 exit "$bad"
