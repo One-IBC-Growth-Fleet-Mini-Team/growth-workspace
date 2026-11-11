@@ -30,7 +30,7 @@ Repo này xây Growth Workspace của One IBC. Spec nguồn: `docs/spec/growth-w
 
 - Dự án chưa cần chuẩn bảo mật hay hạ tầng doanh nghiệp. Chọn cách đơn giản nhất chạy được cho người dùng hiện tại (Amy, một người). Bảo mật giữ ở mức: CRM chỉ đọc, không PII, có mật khẩu, không lộ secret. Không thêm SSO, hạ tầng hay công cụ vận hành mới khi chưa có người dùng thứ hai cần nó.
 - Không thêm dependency, chế độ đăng nhập hay cách triển khai mới nếu người chịu trách nhiệm kỹ thuật chưa yêu cầu rõ.
-- Chỉ một cách triển khai: cài trên máy Ubuntu, chạy ở localhost (`deploy/local/`, D-26). Bộ máy chủ trong `deploy/` là "để sau", không bảo trì thêm.
+- Hai đường triển khai, cùng một cách đăng nhập (tài khoản trong DB): bản cài máy Ubuntu ở localhost (`deploy/local/`, D-26, máy của Mark) và máy chủ Ubuntu cho Amy, Team MKT vào từ xa (`deploy/setup.sh`, D-97). Không thêm cách thứ ba (Docker, PaaS).
 - Mỗi PR dưới khoảng 400 dòng thay đổi (không tính test). Lớn hơn thì tách.
 - Không mở phạm vi mới nếu việc đó không có trong "Việc tiếp theo" của `docs/STATUS.md`.
 - Khi có hai cách, nêu cách đơn giản trước; ghi cách khó vào `docs/context/ports.md` mục "Để sau".

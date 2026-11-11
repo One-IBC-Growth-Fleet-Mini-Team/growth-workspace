@@ -88,7 +88,8 @@
         "Command Center 3D phần (d): thanh động tác, âm thanh, gắn sự kiện thật; nghiệm thu spec mục 7 (D-93)",
         "Bảng sẵn sàng Phụ lục B trên /command (D-94)",
         "Repo public: tên RM thay bằng mã, bỏ email công ty, test chặn email đuôi tên miền công ty (D-95)",
-        "Adapter thật chỉ đọc cho mọi ổ cắm, trang /settings của Mark (D-96)"
+        "Adapter thật chỉ đọc cho mọi ổ cắm, trang /settings của Mark (D-96)",
+        "Máy chủ cho truy cập từ xa: tài khoản theo người, làm chặt đăng nhập, khoá cổng, backup mã hoá, verify-remote (D-97)"
       ]
     }
   ]

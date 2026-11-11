@@ -240,3 +240,10 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
     - Giữ khoá 15 phút sau 5 lần sai theo tài khoản (D-24); thêm chặn theo IP: 20 lần sai trong 15 phút (IP lấy từ cuối X-Forwarded-For do Caddy ghi).
     - Phiên hết sau 8 giờ không dùng, tối đa 7 ngày từ lúc đăng nhập; cookie Secure khi `QUEUE_BASE_URL` là https, luôn HttpOnly, SameSite=Strict.
     - Sổ sự kiện bảo mật `security_events` (đăng nhập được, sai, bị khoá, chặn IP, đổi, reset, hết hạn, tạo, khoá tài khoản); mã tài khoản lạ ghi "?" để không lưu chuỗi người dùng gõ nhầm; Mark xem ở `/settings`.
+  - **Máy chủ** (`deploy/setup.sh`, chạy lại nhiều lần không hỏng):
+    - ufw chặn vào, mở 80 và 443; cổng 22 chỉ cho `/etc/growth/admin-ips` (trống thì dừng; phiên SSH đang mở từ IP ngoài danh sách thì dừng); 3000 không bao giờ mở, app nghe 127.0.0.1.
+    - SSH chỉ khoá, không root; dừng nếu tài khoản chạy sudo chưa có `authorized_keys`. fail2ban cho sshd. unattended-upgrades giữ nguyên.
+    - Caddy: HTTP sang HTTPS, HSTS, nosniff, DENY, same-origin; CSP mặc định chỉ đặt khi app chưa đặt (bản 3D giữ CSP của app); chặn đường MCP (content-dist chỉ stdio, D-47). `ALLOW_IPS` tuỳ chọn, mặc định trống.
+    - Ghim `REPO_REF` (tag hoặc commit; thiếu thì dừng). Backup ngoài máy bắt buộc remote rclone `crypt`, thiếu thì lỗi và không đẩy.
+    - `deploy/verify-remote.sh` cho Mark kiểm từ laptop.
+  - **Chạy thử** (11/11/2026) trong container Ubuntu 24.04 có systemd thật, mạng bridge riêng, container thứ hai làm laptop: đạt hết. Giả lập: chứng chỉ Caddy tự ký (`tls internal` chèn tay sau setup) thay Let's Encrypt cho tên miền thử; CA của proxy môi trường thử truyền cho Bun bằng `NODE_EXTRA_CA_CERTS`. Chưa thử trên Azure, Oracle thật.
