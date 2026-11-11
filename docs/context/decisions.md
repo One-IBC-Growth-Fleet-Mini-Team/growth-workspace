@@ -212,6 +212,6 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - **Monte-Carlo ngân sách:** Cổng 3, tức số mắt nối từ phiên tới Payment có dữ liệu nối được, cộng số chiến dịch đủ mẫu Win gate.
   - **owned-channel-mcp:** hệ thống không đo được quyền API nền tảng, nên ghi "chưa ghi nhận", cần Mark xác nhận.
   - **cross-audit:** theo Sentinel-01.
-- **D-95** (11/11/2026, repo public): tên RM thật trong `docs/spec/rejection-reason-codes.md` thay bằng mã: RM 01 tới RM 07 là RM, NS 01 là nhân sự xác nhận quy tắc ngành. Bảng mã và tên giữ ngoài repo. Bỏ email công ty khỏi đầu mối trong spec và Data Contract. Test T-PII-08 fail nếu có email đuôi `@oneibc.com` hoặc tên RM thật trong `test/`, `evals/`, `docs/`, `deploy/`, `config/`, `src/demo/`.
+- **D-95** (11/11/2026, repo public): tên RM thật trong `docs/spec/rejection-reason-codes.md` thay bằng mã: RM 01 tới RM 07 là RM, NS 01 là nhân sự xác nhận quy tắc ngành. Bảng mã và tên giữ ngoài repo. Bỏ email công ty khỏi đầu mối trong spec và Data Contract. Test T-PII-08 fail nếu có email đuôi tên miền công ty (oneibc.com) hoặc tên RM thật trong `test/`, `evals/`, `docs/`, `deploy/`, `config/`, `src/demo/`.
   - **Còn lại, cố ý giữ:** tên vai trò (Amy, Mark Ng, anh Jimmy, chị Mary Kim, Harvey) và tài khoản GitHub của người review (CODEOWNERS cần tài khoản).
   - **Lịch sử git** còn các tên và email cũ; không viết lại lịch sử (không force push). Muốn xoá hẳn thì admin repo dùng công cụ xoá lịch sử của GitHub.
