@@ -25,7 +25,7 @@ describe("T-ACC tài khoản và khôi phục", () => {
     expect((await get(app, "/overview", cookie)).headers.get("location")).toBe("/password");
     const csrf = /name="csrf" value="([^"]+)"/.exec(await (await get(app, "/password", cookie)).text())![1]!;
     expect((await post(app, "/password", { csrf, password: "ngan", password2: "ngan" }, cookie)).status).toBe(422);
-    const done = await post(app, "/password", { csrf, password: "mat-khau-moi-cua-mkt", password2: "mat-khau-moi-cua-mkt" }, cookie);
+    const done = await post(app, "/password", { csrf, password: "den-long-do-ruc-ro", password2: "den-long-do-ruc-ro" }, cookie);
     expect(done.headers.get("location")).toBe("/overview");
     expect(currentPassword(db, "mkt")?.mustChange).toBe(false);
     const fresh = done.headers.getSetCookie().find((c) => c.startsWith("gw_session="))!.split(";")[0]!;
@@ -47,7 +47,7 @@ describe("T-ACC tài khoản và khôi phục", () => {
     const form = await (await get(app, "/password", here)).text();
     expect(form).toContain('name="current"');
     const csrf = /name="csrf" value="([^"]+)"/.exec(form)![1]!;
-    const change = (current: string | undefined) => post(app, "/password", { csrf, ...(current === undefined ? {} : { current }), password: "mat-khau-moi-cua-mark", password2: "mat-khau-moi-cua-mark" }, here);
+    const change = (current: string | undefined) => post(app, "/password", { csrf, ...(current === undefined ? {} : { current }), password: "mua-thu-ha-noi-vang", password2: "mua-thu-ha-noi-vang" }, here);
     expect((await change(undefined)).status).toBe(422);
     expect((await change("sai-mat-khau-cu")).status).toBe(422);
     expect((await post(app, "/login", { user: "mark", password: "mat-khau-cu-cua-mark" })).status).toBe(303);

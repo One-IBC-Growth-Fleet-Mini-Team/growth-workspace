@@ -47,6 +47,7 @@ import {
   pkceChallenge,
   readSession,
   sessionSetCookie,
+  touchSession,
   unsealValue,
   type OidcPending,
   type OidcProvider,
@@ -103,7 +104,8 @@ import { canPost, canSee, stripForbiddenForms } from "./roles.ts";
 import { readSample } from "./samples.ts";
 import { decorate, homeFor } from "./nav.ts";
 import { guideFor, renderGuide } from "./guide.ts";
-import { currentPassword, getAccount, logSecurityEvent, MIN_PASSWORD, sessionRevoked, setPassword } from "../db/users.ts";
+import { currentPassword, getAccount, listSecurityEvents, logSecurityEvent, MIN_PASSWORD, sessionRevoked, setPassword } from "../db/users.ts";
+import { passwordProblem } from "../security/password-policy.ts";
 import { renderOverviewPage } from "./views/overview.ts";
 import { buildOverview, rowsFor } from "../mi1/overview.ts";
 import { listProvisional, setProvisional } from "../provisional.ts";
@@ -189,6 +191,9 @@ const IMPORT_FIELDS: Record<string, CsvResource> = { opportunity: "Opportunity",
 const WO_IMPORT_FIELDS = { workorder: "WorkOrder", wopic: "WorkOrderPic" } as const;
 const LOGIN_MAX_FAILS = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
+// Giới hạn theo IP ở tầng app (D-97): quá 20 lần sai trong 15 phút từ một IP thì chặn IP đó tới hết cửa sổ.
+const IP_MAX_FAILS = 20;
+const TEMP_PASSWORD_MS = 72 * 3600 * 1000;
 const SECURITY_HEADERS = {
   "content-security-policy":
     "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; script-src 'none'",
@@ -242,8 +247,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     raw && (getAccount(deps.db, raw.sub) ? !sessionRevoked(deps.db, raw) : [...deps.users.values()].some((u) => u.id === raw.sub)) ? raw : null;
   const isMark = (s: Session) => accountRoleOf(userOf(s)) === "mark";
   const markBy = (s: Session) => ({ now: now(), actor: userOf(s).id, actorRole: accountRoleOf(userOf(s)) });
-  // Đếm lần đăng nhập sai theo người dùng, trong bộ nhớ (khởi động lại thì xoá, chấp nhận được với 2 người dùng).
+  // Đếm lần đăng nhập sai theo người dùng và theo IP, trong bộ nhớ (khởi động lại thì xoá, chấp nhận được với vài người dùng).
   const fails = new Map<string, { count: number; until: number }>();
+  const ipFails = new Map<string, { count: number; since: number }>();
+  // App chỉ nghe 127.0.0.1; trên máy chủ mọi yêu cầu đi qua Caddy, Caddy ghi IP thật vào cuối X-Forwarded-For.
+  // Bản cài máy không có proxy nên mọi yêu cầu chung một khoá "local".
+  const clientIp = (req: Request) => (req.headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean).at(-1)?.slice(0, 64) ?? "local";
 
   function tuningPage(session: Session, message: string | null): string {
     return renderTuningPage({ current: currentTuning(deps.db), changes: listTuning(deps.db), evalRun: deps.evalRun?.() ?? { ranAt: null, passed: false }, canTune: isMark(session), csrf: session.csrf, message });
@@ -322,6 +331,13 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       const form = await req.formData();
       const who = String(form.get("user") ?? "").trim().toLowerCase().slice(0, 64);
       const pw = String(form.get("password") ?? "");
+      const ip = clientIp(req);
+      const t = now().getTime();
+      const g = ipFails.get(ip);
+      if (g && t - g.since < LOGIN_LOCK_MS && g.count >= IP_MAX_FAILS) {
+        logSecurityEvent(deps.db, who, "login_rate_limited", { now: now(), actor: "login" });
+        return respond(renderLoginPage("Quá nhiều lần đăng nhập sai từ mạng này, thử lại sau 15 phút."), 429, { "content-type": "text/html; charset=utf-8" });
+      }
       const f = fails.get(who);
       if (f && f.until > now().getTime()) {
         logSecurityEvent(deps.db, who, "login_locked", { now: now(), actor: "login" });
@@ -332,6 +348,8 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       const stored = user ? currentPassword(deps.db, who) : null;
       const ok = stored !== null && (await Bun.password.verify(pw, stored.hash));
       if (!ok) {
+        if (ipFails.size > 10_000) ipFails.clear();
+        ipFails.set(ip, g && t - g.since < LOGIN_LOCK_MS ? { count: g.count + 1, since: g.since } : { count: 1, since: t });
         if (user) {
           const count = (f && f.until <= now().getTime() && f.count >= LOGIN_MAX_FAILS ? 0 : (f?.count ?? 0)) + 1;
           fails.set(who, { count, until: count >= LOGIN_MAX_FAILS ? now().getTime() + LOGIN_LOCK_MS : 0 });
@@ -339,6 +357,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         log({ event: "queue.login_failed", error_code: "PASSWORD_INVALID" });
         logSecurityEvent(deps.db, who, "login_failed", { now: now(), actor: "login" });
         return respond(renderLoginPage("Sai tên hoặc mật khẩu."), 401, { "content-type": "text/html; charset=utf-8" });
+      }
+      // Mật khẩu tạm quá 72 giờ (D-97): không đăng nhập được, phải reset. Dòng cũ chưa có hạn tính từ lúc cấp.
+      const expiresAt = stored.expiresAt ? Date.parse(stored.expiresAt) : stored.mustChange ? Date.parse(stored.setAt) + TEMP_PASSWORD_MS : Infinity;
+      if (stored.mustChange && expiresAt <= t) {
+        logSecurityEvent(deps.db, who, "password_expired", { now: now(), actor: "login" });
+        return respond(renderLoginPage("Mật khẩu tạm đã hết hạn (72 giờ). Nhờ Mark cấp mật khẩu tạm mới."), 401, { "content-type": "text/html; charset=utf-8" });
       }
       fails.delete(who);
       logSecurityEvent(deps.db, who, "login_ok", { now: now(), actor: "login" });
@@ -386,7 +410,10 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (session) {
       const u = userOf(session);
       // Mật khẩu tạm (D-79): phải đổi ở /password trước khi dùng trang khác.
-      if (path !== "/password" && path !== "/logout" && currentPassword(deps.db, u.id)?.mustChange) return redirect("/password");
+      // API JSON (ví dụ /command/data.json) trả 403, không trả dữ liệu, không chuyển hướng.
+      if (path !== "/password" && path !== "/logout" && currentPassword(deps.db, u.id)?.mustChange) {
+        return path.endsWith(".json") || (req.headers.get("accept") ?? "").includes("application/json") ? text(403, "Cần đổi mật khẩu tạm trước.") : redirect("/password");
+      }
       if (path === "/password") {
         // Mật khẩu cũ bắt buộc, trừ lần đầu đổi mật khẩu tạm (D-85).
         const stored = currentPassword(deps.db, u.id);
@@ -400,7 +427,8 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         if (needCurrent && !(await Bun.password.verify(String(form.get("current") ?? ""), oldHash!))) return page("Mật khẩu hiện tại không đúng.", 422);
         const a = String(form.get("password") ?? "");
         if (a !== String(form.get("password2") ?? "")) return page("Hai lần gõ không khớp.", 422);
-        if (a.length < MIN_PASSWORD) return page(`Mật khẩu cần ít nhất ${MIN_PASSWORD} ký tự.`, 422);
+        const problem = await passwordProblem(a, u.id, stored?.mustChange ? stored.hash : null);
+        if (problem) return page(problem, 422);
         // Cùng một thời điểm cho mật khẩu mới và phiên mới: mọi phiên khác bị huỷ, phiên này được cấp lại và giữ nguyên.
         const at = now();
         await setPassword(deps.db, u.id, a, { mustChange: false, now: at, actor: u.id });
@@ -536,7 +564,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/settings") {
       if (!session) return redirect("/login");
       if (!isMark(session)) return text(403, "Chỉ Mark xem cài đặt kết nối.");
-      return respond(renderSettingsPage(connectorStatus(deps.db)), 200, { "content-type": "text/html; charset=utf-8" });
+      return respond(renderSettingsPage(connectorStatus(deps.db), listSecurityEvents(deps.db)), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/strategy") {
@@ -977,7 +1005,17 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const headers = new Headers();
           res.headers.forEach((v, k) => headers.append(k, v));
           const body = decorate(await res.text(), u, deps.db, new URL(req.url).pathname, s.csrf);
+          const touched = res.headers.has("set-cookie") ? null : touchSession(deps.sessionSecret, s, now(), secure);
+          if (touched) headers.append("set-cookie", touched);
           return new Response(u.role === "mkt" ? stripForbiddenForms(u, body) : body, { status: res.status, headers });
+        }
+        // Phiên vẫn dùng ở yêu cầu không phải trang HTML (JSON, POST): ghi lại lần dùng (D-97).
+        const touched = s && !res.headers.has("set-cookie") ? touchSession(deps.sessionSecret, s, now(), secure) : null;
+        if (touched) {
+          const headers = new Headers();
+          res.headers.forEach((v, k) => headers.append(k, v));
+          headers.append("set-cookie", touched);
+          return new Response(res.body, { status: res.status, headers });
         }
         return res;
       } catch {

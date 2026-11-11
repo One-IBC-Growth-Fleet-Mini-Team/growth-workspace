@@ -233,3 +233,10 @@ Mark Ng đồng ý toàn bộ Sổ quyết định (design doc `docs/design/slic
   - **Một cách đăng nhập** cho cả máy chủ và bản cài máy: tài khoản trong Growth DB (migration 031), mỗi người một mã (ví dụ `mkt-01`), gắn một vai trò `amy`, `mkt`, `mark` hoặc `bod`. Quyền theo vai trò; người thao tác ghi theo mã tài khoản. Quyền riêng của Mark (`/settings`, `/tuning`, `/strategy`, duyệt kế hoạch ngân sách) kiểm theo vai trò, không theo mã.
   - Bỏ biến `*_PASSWORD_HASH`: không còn đọc; còn trong `growth.env` thì preflight và `install.sh` cảnh báo, không tự xoá.
   - Lệnh `add-user`, `reset-password`, `disable-user`, `list-users` (`sudo growth-run ...` trên máy chủ, `scripts/accounts.ts` ở bản cài máy). Mật khẩu tạm in một lần ra màn hình, hết hạn sau 72 giờ; khoá tài khoản giữ lịch sử.
+  - **Làm chặt đăng nhập:**
+    - Mật khẩu tạm quá 72 giờ thì không đăng nhập được, phải reset.
+    - Còn mật khẩu tạm thì trang HTML chuyển về `/password`, API JSON trả 403 không dữ liệu.
+    - Mật khẩu mới tối thiểu 12 ký tự, khác mật khẩu tạm, không chứa mã tài khoản, không thuộc 10.000 mật khẩu phổ biến (SecLists, vendored ở `src/security/`).
+    - Giữ khoá 15 phút sau 5 lần sai theo tài khoản (D-24); thêm chặn theo IP: 20 lần sai trong 15 phút (IP lấy từ cuối X-Forwarded-For do Caddy ghi).
+    - Phiên hết sau 8 giờ không dùng, tối đa 7 ngày từ lúc đăng nhập; cookie Secure khi `QUEUE_BASE_URL` là https, luôn HttpOnly, SameSite=Strict.
+    - Sổ sự kiện bảo mật `security_events` (đăng nhập được, sai, bị khoá, chặn IP, đổi, reset, hết hạn, tạo, khoá tài khoản); mã tài khoản lạ ghi "?" để không lưu chuỗi người dùng gõ nhầm; Mark xem ở `/settings`.

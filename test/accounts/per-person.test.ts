@@ -35,8 +35,8 @@ describe("T-ACC tài khoản theo người", () => {
     expect((await runAccountCommand(db, ["add-user", "Nguyen Van A", "mkt"], { now: NOW })).code).toBe(2);
     expect((await runAccountCommand(db, ["add-user", "mkt-03", "admin"], { now: NOW })).code).toBe(2);
     expect((await runAccountCommand(db, ["oops"], { now: NOW })).code).toBe(2);
-    const c1 = await loginAndChange(app, "mkt-01", tempOf(a.out), "mat-khau-moi-mkt-01");
-    const c2 = await loginAndChange(app, "MKT-02 ", tempOf(b.out), "mat-khau-moi-mkt-02");
+    const c1 = await loginAndChange(app, "mkt-01", tempOf(a.out), "ca-phe-sang-1-tuoi-mat");
+    const c2 = await loginAndChange(app, "MKT-02 ", tempOf(b.out), "ca-phe-sang-2-tuoi-mat");
     for (const c of [c1, c2]) {
       expect((await get(app, "/overview", c)).status).toBe(200);
       expect((await get(app, "/billing", c)).status).toBe(403);
@@ -55,14 +55,14 @@ describe("T-ACC tài khoản theo người", () => {
     const db = freshDb();
     const { app } = makeApp(db, { passwordLogin: true, now: () => clock });
     const made = await runAccountCommand(db, ["add-user", "amy-01", "amy"], { now: clock });
-    const c = await loginAndChange(app, "amy-01", tempOf(made.out), "mat-khau-cua-amy-01");
+    const c = await loginAndChange(app, "amy-01", tempOf(made.out), "ca-phe-sang-amy-tuoi");
     expect((await get(app, "/queue", c)).status).toBe(200);
     clock = new Date(NOW.getTime() + 60_000);
     const r = await runAccountCommand(db, ["reset-password", "amy-01"], { now: clock });
     expect(r.code).toBe(0);
     clock = new Date(NOW.getTime() + 120_000);
     expect((await get(app, "/queue", c)).headers.get("location")).toBe("/login");
-    expect((await post(app, "/login", { user: "amy-01", password: "mat-khau-cua-amy-01" })).status).toBe(401);
+    expect((await post(app, "/login", { user: "amy-01", password: "ca-phe-sang-amy-tuoi" })).status).toBe(401);
     expect((await post(app, "/login", { user: "amy-01", password: tempOf(r.out) })).headers.get("location")).toBe("/password");
     expect((await runAccountCommand(db, ["reset-password", "khong-co"], { now: clock })).code).toBe(1);
   });
@@ -72,12 +72,12 @@ describe("T-ACC tài khoản theo người", () => {
     const db = freshDb();
     const { app } = makeApp(db, { passwordLogin: true, now: () => clock });
     const made = await runAccountCommand(db, ["add-user", "bod-01", "bod"], { now: clock });
-    const c = await loginAndChange(app, "bod-01", tempOf(made.out), "mat-khau-cua-bod-01");
+    const c = await loginAndChange(app, "bod-01", tempOf(made.out), "tra-chieu-xanh-la-vang");
     expect((await get(app, "/overview", c)).status).toBe(200);
     clock = new Date(NOW.getTime() + 60_000);
     expect((await runAccountCommand(db, ["disable-user", "bod-01"], { now: clock })).code).toBe(0);
     expect((await get(app, "/overview", c)).headers.get("location")).toBe("/login");
-    expect((await post(app, "/login", { user: "bod-01", password: "mat-khau-cua-bod-01" })).status).toBe(401);
+    expect((await post(app, "/login", { user: "bod-01", password: "tra-chieu-xanh-la-vang" })).status).toBe(401);
     expect(getAccount(db, "bod-01")?.disabled).toBe(true);
     expect((db.query("SELECT COUNT(*) AS n FROM user_passwords WHERE user_id = 'bod-01'").get() as { n: number }).n).toBe(2);
     const list = (await runAccountCommand(db, ["list-users"], { now: clock })).out;
@@ -91,8 +91,8 @@ describe("T-ACC tài khoản theo người", () => {
     const { app } = makeApp(db, { passwordLogin: true, now: () => NOW });
     const m = await runAccountCommand(db, ["add-user", "gd-01", "mark"], { now: NOW });
     const b = await runAccountCommand(db, ["add-user", "bod-02", "bod"], { now: NOW });
-    const cm = await loginAndChange(app, "gd-01", tempOf(m.out), "mat-khau-cua-gd-01");
-    const cb = await loginAndChange(app, "bod-02", tempOf(b.out), "mat-khau-cua-bod-02");
+    const cm = await loginAndChange(app, "gd-01", tempOf(m.out), "giay-moi-mau-xanh-ngoc");
+    const cb = await loginAndChange(app, "bod-02", tempOf(b.out), "ban-go-soi-mau-nau");
     expect((await get(app, "/settings", cm)).status).toBe(200);
     expect((await get(app, "/settings", cb)).status).toBe(403);
     expect(await (await get(app, "/overview", cm)).text()).toContain('href="/settings"');
