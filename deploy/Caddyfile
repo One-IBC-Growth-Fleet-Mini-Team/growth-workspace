@@ -1,13 +1,24 @@
-# HTTPS cho Hàng chờ. setup.sh thay __QUEUE_DOMAIN__ và __ACME_EMAIL__ rồi chép vào /etc/caddy/Caddyfile.
-# Caddy tự xin và gia hạn chứng chỉ (cổng 80 và 443 phải mở).
+# HTTPS cho Growth Workspace (D-97). setup.sh thay ba chỗ giữ chỗ viết hoa (tên miền, email, khối ALLOW_IPS) rồi chép vào
+# /etc/caddy/Caddyfile. Caddy tự xin và gia hạn chứng chỉ, tự chuyển http sang https (cổng 80 và 443 phải mở).
 {
 	email __ACME_EMAIL__
 }
 
 __QUEUE_DOMAIN__ {
 	encode gzip
+	# ALLOW_IPS trong /etc/growth/caddy.env: có giá trị thì IP ngoài danh sách nhận 403; trống thì dòng dưới bỏ trống.
+	__ALLOW_IPS_BLOCK__
+	# Server MCP content-dist chỉ chạy stdio (D-47): không bao giờ phơi qua web.
+	@mcp path /mcp /mcp/* /content-dist /content-dist/* /sse /messages /messages/*
+	respond @mcp 404
 	header {
 		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		# App tự đặt CSP cho từng trang (bản 3D cho script cùng nguồn, WebGL, WebAudio, Three.js vendored; không CDN).
+		# Dòng dưới chỉ là mặc định khi phản hồi chưa có CSP (dấu ? là "chỉ đặt nếu chưa có").
+		?Content-Security-Policy "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; worker-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
 		-Server
 	}
 	reverse_proxy 127.0.0.1:3000
