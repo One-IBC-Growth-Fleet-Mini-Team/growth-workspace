@@ -1,5 +1,6 @@
 // Mi1 phần lõi (spec mục 6, CRON-06, CRON-08; D-27): áp phương án mặc định cho mục quá hạn,
 // brief sáng và Digest tuần. Toàn bộ là truy vấn và hàm tính, không gọi LLM ($0 token).
+import { latestTunnelUrl } from "../db/tunnel.ts";
 import { buildJurisdictionBoard } from "../db/jurisdictions.ts";
 import { buildSandboxBoard } from "../db/sandbox.ts";
 import { buildDataBoard } from "../db/data01.ts";
@@ -81,6 +82,8 @@ export type Brief = {
   mkt05: Mkt05Line;
   channels: { checked: boolean; ok: number; issues: string[]; stale: number; notTracked: number; staleHours: number };
   data01: { imported: boolean; rate: number | null; linked: number; sessions: number; degraded: boolean };
+  // Link truy cập từ xa hiện tại (D-98); null khi chưa bật tunnel.
+  remote: { url: string; since: string } | null;
 };
 
 function mkt05Line(db: Database): Mkt05Line {
@@ -130,6 +133,7 @@ export function buildBrief(db: Database, now: Date): Brief {
       const d = buildDataBoard(db, now);
       return { imported: d.importedAt !== null, rate: d.window.rate, linked: d.window.linked, sessions: d.window.sessions, degraded: d.window.degraded };
     })(),
+    remote: latestTunnelUrl(db),
   };
 }
 

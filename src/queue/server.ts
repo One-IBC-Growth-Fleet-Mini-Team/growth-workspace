@@ -107,6 +107,7 @@ import { decorate, homeFor } from "./nav.ts";
 import { guideFor, renderGuide } from "./guide.ts";
 import { currentPassword, getAccount, listSecurityEvents, logSecurityEvent, MIN_PASSWORD, sessionRevoked, setPassword } from "../db/users.ts";
 import { passwordProblem } from "../security/password-policy.ts";
+import { latestTunnelUrl } from "../db/tunnel.ts";
 import { renderOverviewPage } from "./views/overview.ts";
 import { buildOverview, rowsFor } from "../mi1/overview.ts";
 import { listProvisional, setProvisional } from "../provisional.ts";
@@ -237,6 +238,14 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
   const now = deps.now ?? (() => new Date());
   const origin = new URL(deps.baseUrl).origin;
   const secure = !isLocalBaseUrl(deps.baseUrl);
+  // Quick Tunnel (D-98): yêu cầu đến qua link tunnel hiện tại (cloudflared giữ Host gốc) là https từ phía trình duyệt, nên
+  // nhận Origin của link đó và đặt cookie Secure, dù app chạy ở http://localhost. Link cũ hết tác dụng khi có link mới.
+  const tunnelOrigin = (req: Request): string | null => {
+    const t = latestTunnelUrl(deps.db);
+    return t && req.headers.get("host") === new URL(t.url).host ? t.url : null;
+  };
+  const originOk = (req: Request) => { const o = req.headers.get("origin"); return o === origin || (o !== null && o === tunnelOrigin(req)); };
+  const secureFor = (req: Request) => secure || tunnelOrigin(req) !== null;
   // Tài khoản trong DB thắng (D-97); không có thì là người dùng Entra cố định.
   const dbUser = (id: string): QueueUser | null => {
     const a = getAccount(deps.db, id);
@@ -330,7 +339,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (deps.passwordLogin && path === "/login") {
       if (req.method === "GET") return respond(renderLoginPage(null), 200, { "content-type": "text/html; charset=utf-8" });
       if (req.method !== "POST") return text(405, "Không hỗ trợ.");
-      if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
+      if (!originOk(req)) return text(403, "Origin không hợp lệ.");
       if (Number(req.headers.get("content-length") ?? "0") > MAX_BODY) return text(413, "Quá lớn.");
       const form = await req.formData();
       const who = String(form.get("user") ?? "").trim().toLowerCase().slice(0, 64);
@@ -374,7 +383,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
       }
       fails.delete(who);
       logSecurityEvent(deps.db, who, "login_ok", { now: now(), actor: "login" });
-      return redirect(stored.mustChange ? "/password" : homeFor(user!), [sessionSetCookie(deps.sessionSecret, newSession(user!, now()), secure)], 303);
+      return redirect(stored.mustChange ? "/password" : homeFor(user!), [sessionSetCookie(deps.sessionSecret, newSession(user!, now()), secureFor(req))], 303);
     }
 
     if (req.method === "GET" && path === "/login") {
@@ -429,7 +438,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const needCurrent = oldHash !== undefined && !stored?.mustChange;
         const page = (msg: string | null, status: number) => respond(renderPasswordPage(session.csrf, msg, needCurrent), status, { "content-type": "text/html; charset=utf-8" });
         if (req.method === "GET") return page(null, 200);
-        if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
+        if (!originOk(req)) return text(403, "Origin không hợp lệ.");
         const form = await req.formData();
         if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
         if (needCurrent && !(await Bun.password.verify(String(form.get("current") ?? ""), oldHash!))) return page("Mật khẩu hiện tại không đúng.", 422);
@@ -441,7 +450,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
         const at = now();
         await setPassword(deps.db, u.id, a, { mustChange: false, now: at, actor: u.id });
         logSecurityEvent(deps.db, u.id, "password_changed", { now: at, actor: u.id });
-        return redirect(homeFor(u), [sessionSetCookie(deps.sessionSecret, newSession(u, at), secure)], 303);
+        return redirect(homeFor(u), [sessionSetCookie(deps.sessionSecret, newSession(u, at), secureFor(req))], 303);
       }
       // Điểm vào theo vai trò (D-77): "/" về trang chính; MKT không có Hàng chờ nên về Tổng quan.
       if (req.method === "GET" && (path === "/" || (u.role === "mkt" && path === "/queue"))) return redirect(homeFor(u));
@@ -572,7 +581,7 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
     if (req.method === "GET" && path === "/settings") {
       if (!session) return redirect("/login");
       if (!isMark(session)) return text(403, "Chỉ Mark xem cài đặt kết nối.");
-      return respond(renderSettingsPage(connectorStatus(deps.db), listSecurityEvents(deps.db)), 200, { "content-type": "text/html; charset=utf-8" });
+      return respond(renderSettingsPage(connectorStatus(deps.db), listSecurityEvents(deps.db), latestTunnelUrl(deps.db)), 200, { "content-type": "text/html; charset=utf-8" });
     }
 
     if (req.method === "GET" && path === "/strategy") {
@@ -672,12 +681,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
 
     if (req.method === "POST") {
       if (!session) return text(401, "Cần đăng nhập.");
-      if (req.headers.get("origin") !== origin) return text(403, "Origin không hợp lệ.");
+      if (!originOk(req)) return text(403, "Origin không hợp lệ.");
       const limit = path === "/paste" ? MAX_PASTE_BODY : path === "/import" || path === "/billing" || path === "/partners" || path === "/persona" || path === "/jurisdictions" || path === "/banks" || path === "/data" || path === "/ads-check" || path === "/ads-overview" || path === "/competitors" || path === "/hooks" || path === "/budget" || path === "/market" ? MAX_IMPORT_BODY : MAX_BODY;
       if (Number(req.headers.get("content-length") ?? "0") > limit) return text(413, "Quá lớn.");
       const form = await req.formData();
       if (!csrfMatches(session, form.get("csrf") as string | null)) return text(403, "CSRF token không hợp lệ.");
-      if (path === "/logout") return redirect("/login", [clearCookie("gw_session", "/", secure)], 303);
+      if (path === "/logout") return redirect("/login", [clearCookie("gw_session", "/", secureFor(req))], 303);
 
       if (path === "/import") {
         if (userOf(session).role !== "approver" || !(deps.onImport || deps.onWoImport)) return text(403, "Không có quyền.");
@@ -1013,12 +1022,12 @@ export function createQueueApp(deps: QueueAppDeps): { fetch(req: Request): Promi
           const headers = new Headers();
           res.headers.forEach((v, k) => headers.append(k, v));
           const body = decorate(await res.text(), u, deps.db, new URL(req.url).pathname, s.csrf);
-          const touched = res.headers.has("set-cookie") ? null : touchSession(deps.sessionSecret, s, now(), secure);
+          const touched = res.headers.has("set-cookie") ? null : touchSession(deps.sessionSecret, s, now(), secureFor(req));
           if (touched) headers.append("set-cookie", touched);
           return new Response(stripForbiddenForms(u, body), { status: res.status, headers });
         }
         // Phiên vẫn dùng ở yêu cầu không phải trang HTML (JSON, POST): ghi lại lần dùng (D-97).
-        const touched = s && !res.headers.has("set-cookie") ? touchSession(deps.sessionSecret, s, now(), secure) : null;
+        const touched = s && !res.headers.has("set-cookie") ? touchSession(deps.sessionSecret, s, now(), secureFor(req)) : null;
         if (touched) {
           const headers = new Headers();
           res.headers.forEach((v, k) => headers.append(k, v));

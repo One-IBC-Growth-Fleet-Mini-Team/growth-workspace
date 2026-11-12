@@ -1,6 +1,6 @@
 # Trạng thái dự án
 
-Cập nhật: 11/11/2026 (phiên 14). Quy ước: ai xong việc thì cập nhật file này trong cùng PR. Lịch sử: [`docs/history.md`](history.md). Quyết định: [`docs/context/decisions.md`](context/decisions.md). Tiến độ cho trang Tổng quan: [`docs/progress.json`](progress.json).
+Cập nhật: 11/11/2026 (phiên 15). Quy ước: ai xong việc thì cập nhật file này trong cùng PR. Lịch sử: [`docs/history.md`](history.md). Quyết định: [`docs/context/decisions.md`](context/decisions.md). Tiến độ cho trang Tổng quan: [`docs/progress.json`](progress.json).
 
 ## Mục tiêu đợt này
 
@@ -31,7 +31,9 @@ Growth Workspace "dùng được cơ bản" cho 4 vai trò (Amy, Team MKT, Mark,
   - Một cách đăng nhập cho cả hai: tài khoản trong DB, mỗi người một mã gắn vai trò; `growth-run add-user`, `reset-password`, `disable-user`, `list-users`.
   - Mật khẩu tạm 72 giờ, luật mật khẩu mới, chặn theo IP, phiên 8 giờ và 7 ngày, sổ sự kiện bảo mật ở `/settings`.
   - `setup.sh`: ufw (80, 443; 22 chỉ admin-ips), SSH chỉ khoá, fail2ban, Caddy có header bảo mật và `ALLOW_IPS` tuỳ chọn, ghim tag, backup ngoài máy bắt buộc mã hoá; `verify-remote.sh` cho Mark kiểm từ laptop. Đã chạy thử trong container Ubuntu 24.04 có systemd thật.
-- `bun test`: 461 pass, `tsc --strict` sạch.
+- Truy cập từ xa bằng Cloudflare Quick Tunnel có khoá email trên máy của Mark (D-98): `deploy/local/quick-tunnel.sh`, link hiện ở `/settings`, Brief sáng, `bun run tunnel:url`. Đường máy chủ (D-97) giữ trong repo, chưa dùng.
+- POST theo danh sách cho phép theo vai trò, mặc định từ chối; `/budget/decide` chỉ Mark (D-98).
+- `bun test`: 469 pass, `tsc --strict` sạch.
 
 ## Giá trị tạm đang dùng
 
@@ -39,7 +41,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## Việc tiếp theo
 
-1. Dựng máy chủ thật trong tuần này theo `deploy/README.md`: tạo tag phát hành, tạo máy, trỏ DNS, điền admin-ips và cấu hình, chạy setup, tạo tài khoản, gửi mật khẩu tạm, chạy `verify-remote.sh`, cấu hình backup crypt.
+1. Bật truy cập từ xa trên máy của Mark: điền `~/.config/growth/tunnel-emails.txt`, chạy `bash deploy/local/quick-tunnel.sh`, tạo tài khoản cho Amy và Team MKT, gửi link và mật khẩu tạm qua hai kênh, thử một lần từ điện thoại (`deploy/local/README.md`, mục "Cho người khác vào từ xa").
 2. Chạy creative-factory-v2 với `CF_PROFILE=one-ibc` (brand đúng spec mục 7, brief Tạm, CTA "Nhắn One IBC qua WhatsApp"; markng-byte/creative-factory-v2#22). Brief, campaign thật nhập sau qua Google Sheet. Trên máy cài đặt `CREATIVE_SOURCE=mcp`, `CREATIVE_MCP_URL`.
 3. Việt hoá câu nối Storyboard trong creative-factory-v2.
 4. Mark chốt các chỗ còn Tạm của GĐ3: khung quyết định (tỷ trọng A/C, biên ±20%, ngưỡng anh Jimmy), module Ngân sách của Team MKT, giọng văn và logo brand.
@@ -53,7 +55,7 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 | c | Bộ eval Mi1-sa-01 | Khoảng 30 ca Amy xác nhận | Amy |
 | d | Danh mục mã lý do từ chối | Amy và RM xác nhận | Amy, RM |
 | f | Nối adapter thật | Điền biến trong `~/.config/growth/growth.env` theo `.env.example` (CRM, Internal Control, Graph, Meta Ads, Google Ads, GA4), rồi xem `/settings` | Mark, MobCEC, admin tenant |
-| g | Máy chủ thật | Tag phát hành trên GitHub; máy Azure hoặc Oracle; bản ghi DNS; kho lưu trữ cho backup crypt | Mark, người quản lý tên miền |
+| g | Thử Quick Tunnel trên máy thật | Máy của Mark bật, có mạng; danh sách email | Mark |
 | e | Eval Mi1 và Mi1-sa-01 với Claude thật; `/ask` và đọc tự báo thật | Điền `ANTHROPIC_API_KEY` trong `~/.config/growth/growth.env` (cài được khi để trống), chạy `bun run eval:mi1`, `bun run eval:sa01` và `bun run eval:strategy` | Mark |
 
 ## Người giữ việc
@@ -62,5 +64,5 @@ Mọi giá trị chưa chốt ở [`config/provisional.json`](../config/provisio
 
 ## PR đang mở
 
-- growth-workspace: chuỗi máy chủ (D-97), nhánh xếp chồng, merge theo thứ tự: tài khoản theo người → làm chặt đăng nhập → khoá cổng máy chủ → tài liệu. #79 tới #82 đã merge.
+- growth-workspace: POST theo danh sách cho phép → Quick Tunnel (D-98), nhánh xếp chồng, merge theo thứ tự. #83 tới #86 (máy chủ, D-97) đã merge.
 - creative-factory-v2: không có PR mở.

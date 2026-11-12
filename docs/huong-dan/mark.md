@@ -36,6 +36,15 @@ Trang `/settings`, mục "Sổ sự kiện bảo mật" (chỉ vai trò `mark`):
 
 Đọc mỗi tuần một lần. Nhiều dòng sai liên tiếp ở một tài khoản mà người đó không nhận là mình: cấp lại mật khẩu (`reset-password`). Nhiều dòng "?" và "Chặn theo IP": có người dò từ ngoài; cân nhắc điền `ALLOW_IPS` (deploy/README.md bước 4b).
 
+## Cho người khác vào từ xa
+
+Máy của Mark mở link `https://...trycloudflare.com` (Cloudflare Quick Tunnel, D-98). Chi tiết ở `deploy/local/README.md`, mục "Cho người khác vào từ xa".
+
+- **Link hiện tại**: trang `/settings` mục "Truy cập từ xa", Brief sáng, hoặc lệnh `bun run tunnel:url`. Link đổi mỗi khi máy hay tunnel khởi động lại; đổi thì gửi lại cho mọi người.
+- **Thêm, bớt email**: sửa `~/.config/growth/tunnel-emails.txt` (mỗi dòng một email), chạy lại `bash deploy/local/quick-tunnel.sh`. Người không có email trong danh sách không qua được trang mã PIN.
+- **Người mới**: thêm email như trên, tạo tài khoản bằng `add-user` (mục Quản lý tài khoản), gửi link một kênh, mật khẩu tạm một kênh khác.
+- **Người nghỉ**: bỏ email khỏi danh sách và chạy lại script, rồi `disable-user` tài khoản của họ.
+
 ## Nếu thấy X thì làm Y
 
 | Nếu thấy | Thì làm |

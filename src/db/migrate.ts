@@ -38,6 +38,7 @@ const FILES: [file: string, marker: string][] = [
   ["029-strategy.sql", "strategy_drafts"],
   ["030-connector-calls.sql", "connector_calls"],
   ["031-accounts.sql", "accounts"],
+  ["032-tunnel-urls.sql", "tunnel_urls"],
 ];
 const MIGRATIONS: { version: number; marker: string; sql: string }[] = [];
 for (const [name, marker] of FILES) {

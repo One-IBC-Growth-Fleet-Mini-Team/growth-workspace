@@ -23,7 +23,8 @@
     "job:mi1-morning": "bun run src/jobs/mi1-morning.ts",
     "mcp:content-dist": "bun run src/mcp/content-dist/server.ts",
     "mcp:growth": "bun run src/mcp/growth/server.ts",
-    "mcp:partner": "bun run src/mcp/partner/server.ts"
+    "mcp:partner": "bun run src/mcp/partner/server.ts",
+    "tunnel:url": "bun run scripts/tunnel-url.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",
